@@ -40,6 +40,11 @@
 .gc-char-count{font-size:11px;color:#8a7d70}
 .gc-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:22px;font-size:11px;color:#9a8c7d}
 .gc-text-link{background:none;border:0;padding:6px 2px;font-size:11px;color:#9a8c7d;text-decoration:underline;text-underline-offset:3px}
+.gc-author-link{display:inline-flex;align-items:center;gap:6px;background:#faf7f3;border:1px solid #e6e0d7;border-radius:999px;padding:7px 13px;font-size:11px;color:#6f6459;white-space:nowrap}
+.gc-author-link:hover{background:#f3ece2;border-color:#d9cdbd}
+.gc-author-badge{color:#3f6b4c;font-size:11px}
+.gc-login-hint{margin:12px 0 0;font-size:11px;line-height:1.8;color:#8b7c6d}
+.gc-login-hint code{font-family:inherit;background:#f5f0e8;padding:1px 4px;border-radius:3px}
 @media(hover:hover) and (pointer:fine){.gc-text-link:hover{color:#6d5c4d}}
 .gc-tabs{display:flex;gap:6px;margin:22px 0 4px;border-bottom:1px solid #e8e2d9}
 .gc-tab{flex:1;min-width:0;min-height:40px;background:none;border:0;border-bottom:2px solid transparent;color:#8b7c6d;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

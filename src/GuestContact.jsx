@@ -71,7 +71,7 @@ function Disclaimer({ compact }) {
   </div>;
 }
 
-export default function GuestContact() {
+export default function GuestContact({ openAuthorLogin = false }) {
   const [view, setView] = useState('guest');           // 'guest' | 'author'
   const [token, setToken] = useState('');
   const [checking, setChecking] = useState(false);     // 刷新后 author_check 恢复中
@@ -94,7 +94,8 @@ export default function GuestContact() {
   const [authorTab, setAuthorTab] = useState('chat');  // 'chat' | 'devices'
   const [seen, setSeen] = useState({});                // 各会话已读消息数基准
 
-  const [loginOpen, setLoginOpen] = useState(false);
+  // 作者书签 #/author 直接打开登录框；已保存令牌时不弹，交给自动恢复进入工作台。
+  const [loginOpen, setLoginOpen] = useState(() => Boolean(openAuthorLogin) && !readAuthorToken());
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginBusy, setLoginBusy] = useState(false);
@@ -138,6 +139,16 @@ export default function GuestContact() {
     if (loginOpen && !dialog.open) dialog.showModal();
     else if (!loginOpen && dialog.open) dialog.close();
   }, [loginOpen]);
+
+  // 已打开的访客页里把地址改成 #/author（或点书签同页跳转）也要弹出口令框。
+  // 只监听 hashchange，不监听 view，避免「退出作者登录」后被立刻重新弹窗。
+  useEffect(() => {
+    function onHashChange() {
+      if (location.hash === '#/author' && !readAuthorToken() && view === 'guest') setLoginOpen(true);
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [view]);
 
   // 访客视图：每 10 秒刷新作者在线状态。hidden 时跳过，visibilitychange 回来补一次。
   useEffect(() => {
@@ -427,7 +438,7 @@ export default function GuestContact() {
         <aside className="station-sidebar gc-author-sidebar">
           <ChatCircle size={30} weight="light" />
           <h1>作者工作台</h1>
-          <p>联络会话自动刷新，无需手动上线。</p>
+          <p>已通过口令验证 · 会话自动刷新，无需手动上线。</p>
           <div className="gc-tabs" role="tablist" aria-label="作者视图">
             <button type="button" role="tab" aria-selected={authorTab === 'chat'} className={`gc-tab ${authorTab === 'chat' ? 'selected' : ''}`} onClick={() => setAuthorTab('chat')}>联络会话</button>
             <button type="button" role="tab" aria-selected={authorTab === 'devices'} className={`gc-tab ${authorTab === 'devices' ? 'selected' : ''}`} onClick={() => setAuthorTab('devices')}>设备空间</button>
@@ -482,7 +493,9 @@ export default function GuestContact() {
 
     <footer className="gc-footer">
       <span>联络站 · 留言会保存在云端</span>
-      {view === 'guest' && <button type="button" className="gc-text-link" onClick={openLogin}>作者登录</button>}
+      {view === 'guest'
+        ? <button type="button" className="gc-author-link" onClick={openLogin}>我是作者 · 进入后台 <span aria-hidden="true">→</span></button>
+        : <span className="gc-author-badge">已验证作者身份</span>}
     </footer>
 
     <dialog ref={loginDialog} className="detail-dialog" onCancel={event => { event.preventDefault(); setLoginOpen(false); }}>
@@ -491,12 +504,13 @@ export default function GuestContact() {
           <h2>作者登录</h2>
           <button type="button" className="small-control" onClick={() => setLoginOpen(false)}>关闭</button>
         </div>
-        <p>输入作者口令。登录后本页会自动保持在线并刷新访客消息，无需手动上线。</p>
+        <p>输入作者口令，由服务端校验身份。访客无需登录，直接点「发起联络」就能留言。</p>
         <label htmlFor="gc-author-pass">口令</label>
         <input id="gc-author-pass" type="password" autoComplete="current-password" required value={loginPass}
           onChange={event => { setLoginPass(event.target.value); setLoginError(''); }} />
         <p role="alert" className="form-error">{loginError}</p>
         <button className="small-control gc-primary" disabled={loginBusy}>{loginBusy ? '登录中…' : '登录'}</button>
+        <p className="gc-login-hint">登录后本页会自动保持在线；把 <code>#/author</code> 存为书签，下次打开直接回到这里。</p>
       </form>
     </dialog>
   </div>;

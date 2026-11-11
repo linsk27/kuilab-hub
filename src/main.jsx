@@ -176,6 +176,10 @@ function Router() {
     return () => window.removeEventListener('hashchange', update);
   }, []);
   const callback = new URLSearchParams(location.search).has('provider');
-  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || callback ? <GuestContact /> : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
+  // #/author 是给作者本人保存的低调书签：直接打开口令框，口令只由服务端校验。
+  const authorEntry = route === '#/author';
+  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || authorEntry || callback
+    ? <GuestContact openAuthorLogin={authorEntry} />
+    : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
