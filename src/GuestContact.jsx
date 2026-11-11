@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChatCircle } from '@phosphor-icons/react';
 import { rpc, rpcErrorText } from './station-rpc';
-// 旧的 OTP / 邀请配对 / 加密文件 / 设备空间逻辑原样保留，只在作者视图的次要 tab 里调用。
-import ContactStation from './ContactStation';
 
 const GUEST_KEY = 'personal-hub-guest-v1';
 const AUTHOR_KEY = 'personal-hub-author-v1';
@@ -114,7 +112,6 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const [authorText, setAuthorText] = useState('');
   const [authorError, setAuthorError] = useState('');
   const [authorBusy, setAuthorBusy] = useState('');
-  const [authorTab, setAuthorTab] = useState('chat');  // 'chat' | 'devices'
   const [seen, setSeen] = useState({});                // 各会话已读消息数基准
 
   // 作者书签 #/author 直接打开登录框；已保存令牌时不弹，交给自动恢复进入工作台。
@@ -698,11 +695,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
           <ChatCircle size={30} weight="light" />
           <h1>作者工作台</h1>
           <p>已验证 · 自动刷新</p>
-          <div className="gc-tabs" role="tablist" aria-label="作者视图">
-            <button type="button" role="tab" aria-selected={authorTab === 'chat'} className={`gc-tab ${authorTab === 'chat' ? 'selected' : ''}`} onClick={() => setAuthorTab('chat')}>联络会话</button>
-            <button type="button" role="tab" aria-selected={authorTab === 'devices'} className={`gc-tab ${authorTab === 'devices' ? 'selected' : ''}`} onClick={() => setAuthorTab('devices')}>设备空间</button>
-          </div>
-          {authorTab === 'chat' && <div className="station-space-list gc-inbox-list">
+          <div className="station-space-list gc-inbox-list">
             <span>联络会话 · {authorSpaces.length}</span>
             {authorSpaces.map(item => <button type="button" key={item.space}
               className={`station-space gc-inbox-item ${item.space === selectedSpace ? 'selected' : ''}`}
@@ -712,7 +705,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
               <small>{formatTime(item.last_at)} · {Number(item.count) || 0} 条</small>
             </button>)}
             {!authorSpaces.length && <p>还没有访客发起联络。</p>}
-          </div>}
+          </div>
           <div className="gc-author-actions">
             <button type="button" className="sample-toggle" onClick={openAuthorInvite}>＋ 新建邀请</button>
             <button type="button" className="sample-toggle" onClick={previewGuest}>访客预览</button>
@@ -721,11 +714,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
           {buildTag && <p className="gc-build-line">构建 {buildTag}</p>}
         </aside>
         <section className="station-conversation" aria-label="作者会话">
-          {authorTab === 'devices' ? (
-            <div className="station-private-embed"><ContactStation /></div>
-          ) : (
-            <>
-              <div className="station-conversation-heading">
+          <>
+            <div className="station-conversation-heading">
                 <h2>{currentSpaceTitle || '选择一个会话'}</h2>
                 <span>{authorError ? '连接异常' : '自动刷新中'}</span>
               </div>
@@ -747,8 +737,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
                   </button>
                 </div>
               </form>
-            </>
-          )}
+          </>
         </section>
       </main>
     )}
