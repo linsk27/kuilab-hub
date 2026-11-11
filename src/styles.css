@@ -262,14 +262,14 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* ---- 页面之间淡入淡出（支持的浏览器生效，其他忽略） ---- */
 @view-transition{navigation:auto}
-::view-transition-old(root){animation:vt-out 160ms ease both}
-::view-transition-new(root){animation:vt-in 220ms ease both}
+::view-transition-old(root){animation:vt-out 180ms ease both}
+::view-transition-new(root){animation:vt-in 260ms cubic-bezier(.05,.7,.1,1) both}
 @keyframes vt-out{to{opacity:0}}
 @keyframes vt-in{from{opacity:0}}
 
-/* ---- 便签卡片依次入场 ---- */
-@keyframes note-in{from{opacity:0;transform:translateY(10px) rotate(-.8deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
-.link-note{animation:note-in 420ms cubic-bezier(.2,.7,.3,1) backwards}
+/* ---- 便签卡片依次入场：340ms 落在卡片 200-350ms 区间，退出比进入快 ---- */
+@keyframes note-in{from{opacity:0;transform:translateY(10px) scale(.996) rotate(-.8deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+.link-note{animation:note-in 340ms cubic-bezier(.05,.7,.1,1) backwards}
 .note-wrap:nth-child(2) .link-note{animation-delay:40ms}
 .note-wrap:nth-child(3) .link-note{animation-delay:80ms}
 .note-wrap:nth-child(4) .link-note{animation-delay:120ms}
