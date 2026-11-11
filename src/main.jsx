@@ -97,7 +97,7 @@ function PetCat() {
     <span role="status" className={`cat-speech ${reaction ? 'visible' : ''}`}>{reaction}</span>
     {use3d
       ? <Suspense fallback={<CatSticker pets={pets} awake={awake} onPet={pet} />}>
-          <PetCat3D onPet={pet} petSignal={signal} />
+          <PetCat3D onPet={pet} petSignal={signal} onUnavailable={() => setUse3d(false)} />
         </Suspense>
       : <CatSticker pets={pets} awake={awake} onPet={pet} />}
   </div>;
