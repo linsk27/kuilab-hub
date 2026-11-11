@@ -729,7 +729,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     function triggerPet(now) {
       petAt = now;
       launched = false;
-      squashV -= 1.5;
+      squashV -= 1.0;
       petBoost = 1;
       blinkStart = now;
       nextBlink = now + 2600 + Math.random() * 3600;
@@ -826,17 +826,17 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         const reaction = now - petAt;
         if (!launched && reaction >= 55) {
           launched = true;
-          jumpV += 2.7;
+          jumpV += 4.0;
         }
         if (reaction > 1400) petAt = -1;
       }
 
       // 跳跃与落地挤压
       const previousJump = jumpY;
-      [jumpY, jumpV] = springStep(jumpY, jumpV, 0, 128, 9.2, dt);
+      [jumpY, jumpV] = springStep(jumpY, jumpV, 0, 128, 8.0, dt);
       if (previousJump > 0 && jumpY < 0) {
         jumpY = 0;
-        if (jumpV < -0.45) squashV += 0.9;
+        if (jumpV < -0.45) squashV += 0.6;
         jumpV *= -0.24;
       }
       jumpY = Math.max(0, jumpY);
