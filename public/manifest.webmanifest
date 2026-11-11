@@ -1,0 +1,19 @@
+{
+  "name": "个人中转站",
+  "short_name": "中转站",
+  "description": "一个安静的个人网站入口。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fcfbfc",
+  "theme_color": "#fcfbfc",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

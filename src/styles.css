@@ -72,7 +72,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .gc-compose-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}
 .gc-char-count{font-size:11px;color:#8a7d70}
 .gc-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:22px;font-size:11px;color:#9a8c7d}
-.gc-text-link{background:none;border:0;padding:6px 2px;font-size:11px;color:#9a8c7d;text-decoration:underline;text-underline-offset:3px}
+.gc-text-link{background:none;border:0;padding:6px 2px;font-size:11px;color:#9a8c7d;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;justify-content:center;min-height:34px}
 .gc-author-link{display:inline-flex;align-items:center;gap:6px;background:#faf7f3;border:1px solid #e6e0d7;border-radius:999px;padding:7px 13px;font-size:11px;color:#6f6459;white-space:nowrap}
 .gc-author-link:hover{background:#f3ece2;border-color:#d9cdbd}
 .gc-author-badge{color:#3f6b4c;font-size:11px}
@@ -169,4 +169,50 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .station-page .gc-notice,.station-page .gc-preview-bar{margin:8px 14px}
   .station-page .gc-invite-banner{margin:8px 14px;padding:12px}
   .station-page .gc-invite-banner-text strong{font-size:15px}
+}
+/* ---- 响应式收尾：边角装饰不再撑出横向滚动 ---- */
+.page{overflow-x:hidden;overflow-x:clip}
+.decoration svg,.cat-companion svg{max-width:100%;height:auto}
+.decoration.top-arrow{max-width:65px}
+
+/* ---- 平板/桌面：联络站也变成整屏工作台，消息区独立滚动 ---- */
+@media(min-width:768px){
+  .station-page{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:18px;padding-bottom:16px}
+  .station-page .station-header{flex:0 0 auto;margin-bottom:14px}
+  .station-page .station-workspace{flex:1 1 auto;min-height:0}
+  .station-page .station-workspace>*{min-height:0}
+  .station-page .station-sidebar{overflow-y:auto}
+  .station-page .station-conversation{min-height:0}
+  .station-page .station-messages{flex:1 1 0;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .station-page .station-compose{flex:0 0 auto}
+  .station-page .station-connection-state{min-height:0;overflow-y:auto}
+  .station-page .gc-footer{flex:0 0 auto;margin-top:12px}
+  .station-page .gc-notice,.station-page .gc-preview-bar{flex:0 0 auto}
+  .station-page .gc-invite-banner{flex:0 0 auto}
+}
+
+/* ---- 横屏 / 矮屏：压缩页头与侧栏，保证聊天区可用 ---- */
+@media(max-height:560px){
+  .station-page .station-header{min-height:34px;margin-bottom:6px;font-size:12px}
+  .station-page .station-sidebar{padding:12px 14px}
+  .station-page .station-sidebar>svg{display:none}
+  .station-page .station-sidebar h1{font-size:18px;margin:2px 0 4px}
+  .station-page .station-sidebar>p{display:none}
+  .station-page .station-conversation-heading{padding-top:7px;padding-bottom:7px}
+  .station-page .station-connection-state{padding:14px}
+  .station-page .station-compose{display:flex;align-items:flex-end;gap:8px;padding-top:7px;padding-bottom:7px}
+  .station-page .station-compose textarea{flex:1 1 auto;width:auto;min-width:0;min-height:38px;height:38px;max-height:76px;margin:0}
+  .station-page .station-compose .gc-compose-actions{margin-top:0;flex:0 0 auto;gap:6px}
+  .station-page .station-compose .gc-compose-actions .gc-primary{min-width:0;padding:8px 12px;font-size:13px}
+  .station-page .gc-build-line{display:none}
+  .station-page .gc-author-sidebar{max-height:32vh}
+}
+
+/* ---- 触屏设备触控目标不小于 36~40px（含平板） ---- */
+@media(max-width:1024px){
+  .station-page .gc-text-link{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 6px}
+  .station-page .gc-text-button{min-height:36px!important;padding:6px 8px}
+  .station-page .gc-author-link{min-height:36px;padding:8px 14px}
+  .station-page .gc-dialog-actions .gc-text-link{min-height:40px}
+  .station-page .gc-join-entry .gc-text-link{min-height:40px}
 }
