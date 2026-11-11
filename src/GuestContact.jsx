@@ -509,7 +509,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
       const data = await rpc('author_login', { pass: loginPass });
       if (!data.ok || !data.token) { const err = new Error('服务未返回登录令牌'); err.code = 'bad_response'; throw err; }
       try { localStorage.setItem(AUTHOR_KEY, JSON.stringify({ token: data.token })); } catch { /* 仍可在本次会话内使用 */ }
-      setToken(data.token); setView('author'); setAuthorTab('chat');
+      setToken(data.token); setView('author');
       setLoginOpen(false); setLoginPass(''); setNotice('');
     } catch (e) { setLoginError(rpcErrorText(e)); }
     finally { setLoginBusy(false); }
@@ -522,7 +522,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
     finally {
       clearAuthorToken(); setToken(''); setView('guest'); setPreviewAsGuest(false);
       setAuthorSpaces([]); setAuthorMessages([]); setSelectedSpace(''); selectedSpaceRef.current = '';
-      setAuthorTab('chat'); setAuthorText(''); setAuthorError(''); setAuthorBusy('');
+      setAuthorText(''); setAuthorError(''); setAuthorBusy('');
     }
   }
   async function refreshConversation(space) {
