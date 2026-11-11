@@ -77,6 +77,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .gc-author-link:hover{background:#f3ece2;border-color:#d9cdbd}
 .gc-author-badge{color:#3f6b4c;font-size:11px}
 .gc-build{font-size:10px;color:#b3a89b;margin-left:4px;letter-spacing:.02em}
+.gc-build-line{font-size:10px;color:#b3a89b;margin:6px 0 0;letter-spacing:.02em}
 @media(hover:hover) and (pointer:fine){.gc-text-link:hover{color:#6d5c4d}}
 .gc-tabs{display:flex;gap:6px;margin:22px 0 4px;border-bottom:1px solid #e8e2d9}
 .gc-tab{flex:1;min-width:0;min-height:40px;background:none;border:0;border-bottom:2px solid transparent;color:#8b7c6d;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

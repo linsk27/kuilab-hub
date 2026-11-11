@@ -718,6 +718,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
             <button type="button" className="sample-toggle" onClick={previewGuest}>访客预览</button>
             <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出登录</button>
           </div>
+          {buildTag && <p className="gc-build-line">构建 {buildTag}</p>}
         </aside>
         <section className="station-conversation" aria-label="作者会话">
           {authorTab === 'devices' ? (
