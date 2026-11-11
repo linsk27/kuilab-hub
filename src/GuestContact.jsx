@@ -39,6 +39,13 @@ function makeSecret() {
   if (raw.length >= 64) return raw.slice(0, 64);
   return Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
 }
+// 邀请链接跟随当前入口路径（/ 或 /hub），避免落到可能被缓存的旧地址。
+function inviteBaseUrl() {
+  try {
+    const base = location.pathname.replace(/\/+$/, '');
+    return `${location.origin}${base}/`;
+  } catch { return `${location.origin}/`; }
+}
 function cmpId(a, b) {
   try { const x = BigInt(a), y = BigInt(b); return x < y ? -1 : x > y ? 1 : 0; }
   catch { return String(a).localeCompare(String(b), 'en', { numeric: true }); }
@@ -368,7 +375,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   }
 
   // 作者主动创建邀请空间：作者生成链接发给对方，对方加入后即可互通。
-  const authorInviteLink = authorInviteData?.code ? `${location.origin}/?invite=${authorInviteData.code}#/chat` : '';
+  const authorInviteLink = authorInviteData?.code ? `${inviteBaseUrl()}?invite=${authorInviteData.code}#/chat` : '';
   function openAuthorInvite() {
     setAuthorInviteTitle(`作者邀请 · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`);
     setAuthorInviteData(null); setAuthorInviteError(''); setAuthorInviteCopied(false); setAuthorInviteOpen(true);
@@ -401,7 +408,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   }
 
   // 邀请：邀请码只来自 guest_invite_create 返回值。
-  const inviteLink = inviteData?.code ? `${location.origin}/?invite=${inviteData.code}#/chat` : '';
+  const inviteLink = inviteData?.code ? `${inviteBaseUrl()}?invite=${inviteData.code}#/chat` : '';
   function closeInvite() { setInviteOpen(false); setInviteError(''); setCopied(false); }
   async function createInvite() {
     if (!guest || inviteBusy) return;

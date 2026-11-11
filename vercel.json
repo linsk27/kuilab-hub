@@ -23,10 +23,20 @@
     {
       "source": "/index.html",
       "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/hub",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/hub/",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
     }
   ],
   "rewrites": [
     { "source": "/chat", "destination": "/index.html" },
-    { "source": "/chat/", "destination": "/index.html" }
+    { "source": "/chat/", "destination": "/index.html" },
+    { "source": "/hub", "destination": "/index.html" },
+    { "source": "/hub/", "destination": "/index.html" }
   ]
 }

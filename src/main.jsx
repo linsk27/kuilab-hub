@@ -141,7 +141,7 @@ function App({ managing }) {
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
           <div className="profile-flourish" aria-hidden="true"><ArrowBendUpRight size={47} weight="thin" /></div>
           <p className="welcome">Make yourself at home.</p>
-          <a className="station-entry" href="#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span>联络站</span><ArrowUpRight size={15} aria-hidden="true" /></a>
+          <a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span>联络站</span><ArrowUpRight size={15} aria-hidden="true" /></a>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           <header className="flex items-center justify-between"><h2 id="links-title">All Links<span className="heading-period">.</span></h2><span className="tiny-note">a few places to find me</span></header>
@@ -178,7 +178,7 @@ function Router() {
   const callback = new URLSearchParams(location.search).has('provider');
   // #/author 是给作者本人保存的低调书签：直接打开口令框，口令只由服务端校验。
   const authorEntry = route === '#/author';
-  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || authorEntry || callback
+  return /^\/(chat|hub)\/?$/.test(location.pathname) || route === '#/chat' || authorEntry || callback
     ? <GuestContact openAuthorLogin={authorEntry} />
     : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
 }
