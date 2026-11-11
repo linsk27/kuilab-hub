@@ -41,22 +41,66 @@ function readDraft() {
 function serializeLinks(links) {
   return JSON.stringify(links.map(({ icon, ...link }) => link), null, 2);
 }
+const PetCat3D = lazy(() => import('./PetCat3D'));
+
+function CatSticker({ pets, awake, onPet }) {
+  return <button className="cat-sticker cat-button" onClick={onPet}
+    aria-label={`摸摸小猫，已经摸了 ${pets} 次`} title="摸摸我">
+    <span className="cat-heart" aria-hidden="true">{awake ? '♡' : 'z z'}</span>
+    <Cat size={65} weight={awake ? 'duotone' : 'thin'} aria-hidden="true" />
+  </button>;
+}
+
 function PetCat() {
   const [pets, setPets] = useState(0);
   const [awake, setAwake] = useState(false);
   const [reaction, setReaction] = useState('');
+  const [signal, setSignal] = useState(0);
+  const [use3d, setUse3d] = useState(false);
   const timer = useRef(null);
+
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // 支持 WebGL 且没有开启「减少动态效果」时，空闲后加载 3D 猫；失败或降级时保留原来的贴纸猫。
+  useEffect(() => {
+    let alive = true;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const webgl = (() => {
+      try {
+        const probe = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext && (probe.getContext('webgl2') || probe.getContext('webgl')));
+      } catch { return false; }
+    })();
+    if (!webgl || reduce) return undefined;
+    const enable = () => { if (alive) setUse3d(true); };
+    const useIdle = typeof window.requestIdleCallback === 'function';
+    const handle = useIdle ? window.requestIdleCallback(enable, { timeout: 2200 }) : window.setTimeout(enable, 1200);
+    return () => {
+      alive = false;
+      if (useIdle) window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+    };
+  }, []);
+
   function pet(event) {
     const next = pets + 1;
-    setPets(next); setAwake(true);
+    setPets(next); setAwake(true); setSignal(next);
     setReaction(next % 5 === 0 ? '呼噜呼噜，喜欢你。' : ['喵，欢迎回来。', '今天也要好好休息。', '摸摸收到啦。', '陪你翻一页。'][(next - 1) % 4]);
-    if (event.detail > 0 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (event?.detail > 0 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       event.currentTarget.animate([{ transform: 'rotate(6deg) translateY(0)' }, { transform: 'rotate(-5deg) translateY(-8px)' }, { transform: 'rotate(6deg) translateY(0)' }], { duration: 240 });
     }
-    clearTimeout(timer.current); timer.current = setTimeout(() => { setReaction(''); setAwake(false); }, 3500);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { setReaction(''); setAwake(false); }, 3500);
   }
-  return <div className="cat-companion"><span role="status" className={`cat-speech ${reaction ? 'visible' : ''}`}>{reaction}</span><button className="cat-sticker cat-button" onClick={pet} aria-label={`摸摸小猫，已经摸了 ${pets} 次`} title="摸摸我"><span className="cat-heart" aria-hidden="true">{awake ? '♡' : 'z z'}</span><Cat size={65} weight={awake ? 'duotone' : 'thin'} aria-hidden="true" /></button></div>;
+
+  return <div className={`cat-companion ${use3d ? 'is-3d' : ''}`}>
+    <span role="status" className={`cat-speech ${reaction ? 'visible' : ''}`}>{reaction}</span>
+    {use3d
+      ? <Suspense fallback={<CatSticker pets={pets} awake={awake} onPet={pet} />}>
+          <PetCat3D onPet={pet} petSignal={signal} />
+        </Suspense>
+      : <CatSticker pets={pets} awake={awake} onPet={pet} />}
+  </div>;
 }
 function App({ managing }) {
   const dialog = useRef(null);

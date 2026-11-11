@@ -249,3 +249,33 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 @media(max-width:767px) and (prefers-reduced-motion:reduce){
   .cat-companion{position:fixed}
 }
+
+/* ---- 3D 小猫 ---- */
+.cat-companion.is-3d{width:132px;height:152px;right:-24px;bottom:-8px}
+.pet-3d{width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent}
+.pet-3d:active{cursor:grabbing}
+.pet-3d:focus-visible{outline:2px solid var(--focus);outline-offset:4px;border-radius:12px}
+.pet-3d canvas{display:block}
+@media(max-width:767px){
+  .cat-companion.is-3d{width:104px;height:120px;right:6px;bottom:calc(8px + env(safe-area-inset-bottom))}
+}
+
+/* ---- 页面之间淡入淡出（支持的浏览器生效，其他忽略） ---- */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:vt-out 160ms ease both}
+::view-transition-new(root){animation:vt-in 220ms ease both}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0}}
+
+/* ---- 便签卡片依次入场 ---- */
+@keyframes note-in{from{opacity:0;transform:translateY(10px) rotate(-.8deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
+.link-note{animation:note-in 420ms cubic-bezier(.2,.7,.3,1) backwards}
+.note-wrap:nth-child(2) .link-note{animation-delay:40ms}
+.note-wrap:nth-child(3) .link-note{animation-delay:80ms}
+.note-wrap:nth-child(4) .link-note{animation-delay:120ms}
+.note-wrap:nth-child(5) .link-note{animation-delay:160ms}
+.note-wrap:nth-child(6) .link-note{animation-delay:200ms}
+
+/* ---- 消息气泡入场 ---- */
+@keyframes bubble-in{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
+.station-message{animation:bubble-in 220ms ease backwards}
