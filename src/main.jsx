@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check } from '@phosphor-icons/react';
 import './styles.css';
-import ContactStation from './ContactStation';
+import GuestContact from './GuestContact';
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -176,6 +176,6 @@ function Router() {
     return () => window.removeEventListener('hashchange', update);
   }, []);
   const callback = new URLSearchParams(location.search).has('provider');
-  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || callback ? <ContactStation /> : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
+  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || callback ? <GuestContact /> : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
