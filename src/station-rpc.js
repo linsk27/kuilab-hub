@@ -3,6 +3,16 @@ import { cloud } from './station-cloud';
 // 新联络站后端只有一个入口函数：station_rpc(p_action, p_payload)。
 // 成功时 data 是 jsonb 对象；失败时 data 形如 {ok:false,error}。
 const RPC_NAME = 'station_rpc';
+const PROXY_PATH = '/api/station';
+const CLOUD_HOST = 'paper-personal-hub.app.workbuddy.host';
+
+// 云端数据面按 Origin 白名单放行：只认应用自有域名和本地开发地址。
+// 部署到 kuilab.cn / Vercel 预览域名时，改由同源的 /api/station 转发。
+function useProxy() {
+  if (typeof location === 'undefined') return false;
+  const host = location.hostname.toLowerCase();
+  return !/^(localhost|127\.0\.0\.1)$/.test(host) && host !== CLOUD_HOST;
+}
 
 export function rpcErrorText(error) {
   const business = error?.business;
@@ -18,6 +28,8 @@ export function rpcErrorText(error) {
   }
   const code = String(error?.code || error?.kind || '');
   const message = String(error?.message || '');
+  if (code === 'upstream_unavailable') return '云服务暂时不可用，请稍后再试。';
+  if (code === 'origin_not_allowed') return '当前域名未获授权，请联系站点维护者。';
   if (/quota|exhaust|limit/i.test(code)) return '云服务额度不足或请求过于频繁，请稍后重试。';
   if (/42501|unauthenticated|invalid_grant/i.test(code)) return '登录已失效或没有访问权限，请重新操作。';
   // 后端函数/表还没建好时，PostgREST 会返回英文的 schema cache 报错，转成可理解的提示。
@@ -36,14 +48,47 @@ function normalizeData(raw) {
   return data;
 }
 
-export async function rpc(action, payload = {}) {
-  let result;
+async function callProxy(action, payload) {
+  let response;
   try {
-    result = await cloud.database.rpc(RPC_NAME, { p_action: action, p_payload: payload });
-  } catch (e) {
-    const err = new Error(String(e?.message || e || 'network'));
+    response = await fetch(PROXY_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, payload }),
+      cache: 'no-store',
+    });
+  } catch {
+    const err = new Error('proxy_network');
     err.code = 'network';
     throw err;
+  }
+  let parsed;
+  try { parsed = JSON.parse(await response.text()); }
+  catch {
+    const err = new Error('服务返回格式异常');
+    err.code = 'bad_response';
+    throw err;
+  }
+  if (!response.ok) {
+    const err = new Error(String(parsed?.error || 'proxy_error'));
+    err.code = String(parsed?.error || 'proxy_error');
+    throw err;
+  }
+  return { data: parsed, error: null };
+}
+
+export async function rpc(action, payload = {}) {
+  let result;
+  if (useProxy()) {
+    result = await callProxy(action, payload);
+  } else {
+    try {
+      result = await cloud.database.rpc(RPC_NAME, { p_action: action, p_payload: payload });
+    } catch (e) {
+      const err = new Error(String(e?.message || e || 'network'));
+      err.code = 'network';
+      throw err;
+    }
   }
   if (!result || result.error) {
     const upstream = result?.error;
