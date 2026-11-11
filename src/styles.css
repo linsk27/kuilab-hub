@@ -28,6 +28,11 @@
 .gc-status-unknown .gc-status-dot{background:#d8b26a}
 @keyframes gc-pulse{0%,100%{box-shadow:0 0 0 0 rgba(79,154,99,.35)}50%{box-shadow:0 0 0 5px rgba(79,154,99,0)}}
 .gc-notice{margin:-8px 0 18px;padding:11px 15px;border:1px solid #e9dfd3;background:#fbf7ef;border-radius:6px;font-size:12px;line-height:1.8;color:#7d6956;overflow-wrap:anywhere}
+.gc-identity{font-size:11px;white-space:nowrap;padding:4px 9px;border:1px solid #e6e0d7;border-radius:999px;background:#faf7f3;color:#8a7d70}
+.gc-identity-author{color:#3f6b4c;background:#f1f7f0;border-color:#d5e6d2}
+.gc-identity-preview{color:#8a6a3f;background:#fbf4e8;border-color:#e8d9bd}
+.gc-preview-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:-8px 0 18px;padding:11px 15px;border:1px solid #e8d9bd;background:#fbf4e8;border-radius:6px;font-size:12px;line-height:1.8;color:#7a6242;overflow-wrap:anywhere}
+.gc-preview-bar button{background:#fffaf0;border:1px solid #ddc9a4;border-radius:999px;padding:6px 12px;font-size:11px;color:#7a6242;white-space:nowrap}
 .gc-sidebar-note{margin-top:28px;font-size:12px;line-height:1.9;color:#857668}
 .gc-sidebar-note p{margin:0 0 10px}
 .gc-disclaimer{margin-top:26px;max-width:440px;text-align:left;padding:13px 15px;border:1px dashed #e0d4c6;border-radius:6px;background:#fdfaf5;color:#7a6a5b;font-size:11px;line-height:1.9}
@@ -54,7 +59,7 @@
 .gc-inbox-title{display:flex;align-items:center;gap:8px;font-size:12px;color:#5f554c;overflow-wrap:anywhere}
 .gc-inbox-preview{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .gc-unread{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#b4635a;color:#fff;font-size:10px;line-height:1}
-.gc-author-actions{margin-top:14px}
+.gc-author-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .station-private-embed{flex:1;min-height:0;overflow:auto}
 .station-private-embed .station-page{padding:0;background:transparent}
 .station-private-embed .station-header{display:none}

@@ -68,11 +68,14 @@ function Disclaimer({ compact }) {
   return <div className={`gc-disclaimer ${compact ? 'compact' : ''}`} role="note">
     <p>留言内容云端可见，请勿发送密码等敏感信息。</p>
     <p>访客暂不支持附件（平台要求登录）。</p>
+    {!compact && <p>顶部「作者在线」说的是作者有没有开着页面，不是在判断你是谁。</p>}
   </div>;
 }
 
 export default function GuestContact({ openAuthorLogin = false }) {
   const [view, setView] = useState('guest');           // 'guest' | 'author'
+  // 作者本人自测用：暂时忽略本机作者令牌、停掉心跳，以真正的访客视角看页面。
+  const [previewAsGuest, setPreviewAsGuest] = useState(false);
   const [token, setToken] = useState('');
   const [checking, setChecking] = useState(false);     // 刷新后 author_check 恢复中
   const [notice, setNotice] = useState('');            // 跨视图提示（会话失效、恢复失败等）
@@ -288,7 +291,18 @@ export default function GuestContact({ openAuthorLogin = false }) {
     finally { setGuestBusy(''); }
   }
 
-  function openLogin() { setLoginPass(''); setLoginError(''); setLoginOpen(true); }
+  // 预览期间不清除本机作者令牌：刷新页面仍会回到作者工作台，避免误把自己踢下线。
+  function previewGuest() {
+    setPreviewAsGuest(true); setView('guest');
+    setNotice(''); setGuestError(''); setPresenceError(''); setLoginOpen(false);
+  }
+  function exitPreview() {
+    setPreviewAsGuest(false); setView('author'); setLoginOpen(false); setNotice('');
+  }
+  function openLogin() {
+    if (previewAsGuest && token) { exitPreview(); return; }
+    setLoginPass(''); setLoginError(''); setLoginOpen(true);
+  }
   async function submitLogin(event) {
     event.preventDefault();
     if (!loginPass || loginBusy) return;
@@ -308,7 +322,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
     try { await rpc('author_logout', { token }); }
     catch (e) { setNotice(`已退出登录，但云端注销未完成：${rpcErrorText(e)}`); }
     finally {
-      clearAuthorToken(); setToken(''); setView('guest');
+      clearAuthorToken(); setToken(''); setView('guest'); setPreviewAsGuest(false);
       setAuthorSpaces([]); setAuthorMessages([]); setSelectedSpace(''); selectedSpaceRef.current = '';
       setAuthorTab('chat'); setAuthorText(''); setAuthorError(''); setAuthorBusy('');
     }
@@ -372,16 +386,23 @@ export default function GuestContact({ openAuthorLogin = false }) {
     <header className="station-header">
       <a href="./">← Personal Hub</a>
       <span className="gc-header-right">
+        <span className={`gc-identity ${view === 'author' ? 'gc-identity-author' : previewAsGuest ? 'gc-identity-preview' : ''}`}>
+          {view === 'author' ? '作者身份 · 已验证' : previewAsGuest ? '访客预览中' : '访客视角'}
+        </span>
         {view === 'author'
-          ? <StatusPill tone="on" label="作者在线" />
+          ? <StatusPill tone="on" label="作者在线（本页）" />
           : <StatusPill
               tone={online === true ? 'on' : online === false ? 'off' : 'unknown'}
-              label={online === true ? '作者在线' : online === false ? '作者暂时离开' : '正在确认作者状态…'} />}
+              label={online === true ? '作者现在在线' : online === false ? '作者暂时离开' : '正在确认作者状态…'} />}
         <span className="gc-header-title">联络站</span>
       </span>
     </header>
 
     {(notice || checking) && <p className="gc-notice" role="status">{checking ? '正在恢复作者会话…' : notice}</p>}
+    {previewAsGuest && <p className="gc-preview-bar" role="status">
+      <span>正在以访客视角预览 · 本页已暂停作者心跳，刷新页面会回到作者工作台</span>
+      <button type="button" onClick={exitPreview}>返回作者工作台 →</button>
+    </p>}
 
     {view === 'guest' ? (
       <main className="station-workspace gc-guest-workspace">
@@ -392,6 +413,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
           <div className="gc-sidebar-note">
             <p>这里不需要登录。点一下「发起联络」，就能给作者留言。</p>
             <p>联络凭据只保存在这台浏览器，刷新页面还能接着聊。</p>
+            <p>顶部状态表示作者是否开着页面，与你的身份无关。</p>
           </div>
         </aside>
         <section className="station-conversation" aria-label="访客联络">
@@ -455,9 +477,10 @@ export default function GuestContact({ openAuthorLogin = false }) {
             {!authorSpaces.length && <p>还没有访客发起联络。页面会自动检查新消息。</p>}
           </div>}
           <div className="gc-author-actions">
+            <button type="button" className="sample-toggle" onClick={previewGuest}>以访客身份预览</button>
             <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出作者登录</button>
           </div>
-          <p className="station-private-note">会话每 5 秒自动刷新，在线状态每 20 秒自动维持。切换到后台标签页时会暂停请求，回来后自动补上。</p>
+          <p className="station-private-note">「以访客身份预览」用于自己测试：临时暂停心跳、切到访客视角，本机登录不会被清除。会话每 5 秒自动刷新，在线状态每 20 秒自动维持。切换到后台标签页时会暂停请求，回来后自动补上。</p>
         </aside>
         <section className="station-conversation" aria-label="作者会话">
           {authorTab === 'devices' ? (
@@ -494,7 +517,9 @@ export default function GuestContact({ openAuthorLogin = false }) {
     <footer className="gc-footer">
       <span>联络站 · 留言会保存在云端</span>
       {view === 'guest'
-        ? <button type="button" className="gc-author-link" onClick={openLogin}>我是作者 · 进入后台 <span aria-hidden="true">→</span></button>
+        ? previewAsGuest
+          ? <button type="button" className="gc-author-link" onClick={exitPreview}>返回作者工作台 <span aria-hidden="true">→</span></button>
+          : <button type="button" className="gc-author-link" onClick={openLogin}>我是作者 · 进入后台 <span aria-hidden="true">→</span></button>
         : <span className="gc-author-badge">已验证作者身份</span>}
     </footer>
 
