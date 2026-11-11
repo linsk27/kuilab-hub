@@ -7,6 +7,7 @@ import ContactStation from './ContactStation';
 const GUEST_KEY = 'personal-hub-guest-v1';
 const AUTHOR_KEY = 'personal-hub-author-v1';
 const MAX_BODY = 4000;
+const MAX_TITLE = 60;
 
 function readGuest() {
   try {
@@ -64,12 +65,24 @@ function Bubble({ message, mine }) {
 function StatusPill({ tone, label }) {
   return <span className={`gc-status gc-status-${tone}`} role="status"><span className="gc-status-dot" aria-hidden="true" />{label}</span>;
 }
-function Disclaimer({ compact }) {
-  return <div className={`gc-disclaimer ${compact ? 'compact' : ''}`} role="note">
-    <p>留言内容云端可见，请勿发送密码等敏感信息。</p>
-    <p>访客暂不支持附件（平台要求登录）。</p>
-    {!compact && <p>顶部「作者在线」说的是作者有没有开着页面，不是在判断你是谁。</p>}
-  </div>;
+// 受控原生 dialog：open 由父级 state 驱动，配合 dialog.open 守卫避免 StrictMode 下重复 showModal。
+function Dialog({ open, onClose, className = 'detail-dialog', labelledBy, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    else if (!open && dialog.open) dialog.close();
+  }, [open]);
+  return <dialog ref={ref} className={className} aria-labelledby={labelledBy}
+    onCancel={event => { event.preventDefault(); onClose?.(); }}>
+    {children}
+  </dialog>;
+}
+
+function redeemErrorText(e) {
+  if (e?.business === 'invalid_invite') return '邀请码无效、已过期或次数已用完，请向对方索取新的邀请。';
+  return rpcErrorText(e);
 }
 
 export default function GuestContact({ openAuthorLogin = false }) {
@@ -103,11 +116,57 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const [loginError, setLoginError] = useState('');
   const [loginBusy, setLoginBusy] = useState(false);
 
+  // 创建空间（B）
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState('');
+
+  // 作者主动创建邀请空间（作者创建链接）
+  const [authorInviteOpen, setAuthorInviteOpen] = useState(false);
+  const [authorInviteTitle, setAuthorInviteTitle] = useState('');
+  const [authorInviteBusy, setAuthorInviteBusy] = useState(false);
+  const [authorInviteData, setAuthorInviteData] = useState(null);
+  const [authorInviteError, setAuthorInviteError] = useState('');
+  const [authorInviteCopied, setAuthorInviteCopied] = useState(false);
+
+  // 邀请面板（C）
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteData, setInviteData] = useState(null);   // { code, expires_at, uses_left }，仅来自服务端
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // 手动输入邀请码加入（C）
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinBusy, setJoinBusy] = useState(false);
+  const [joinError, setJoinError] = useState('');
+
+  // URL 邀请 ?invite=<CODE>#/chat（C）
+  const [pendingInvite, setPendingInvite] = useState(() => {
+    try { return new URLSearchParams(location.search).get('invite') || ''; }
+    catch { return ''; }
+  });
+  const [inviteJoinBusy, setInviteJoinBusy] = useState(false);
+  const [inviteJoinError, setInviteJoinError] = useState('');
+
   const loginDialog = useRef(null);
   const guestPending = useRef(null);
   const authorPending = useRef(null);
   const selectedSpaceRef = useRef('');
+  const guestListRef = useRef(null);
+  const authorListRef = useRef(null);
+  const guestStick = useRef(true);
+  const authorStick = useRef(true);
   useEffect(() => { selectedSpaceRef.current = selectedSpace; }, [selectedSpace]);
+  // 新消息到达时贴到底部；用户手动上翻查看历史时不打扰。
+  useEffect(() => { const el = guestListRef.current; if (el && guestStick.current) el.scrollTop = el.scrollHeight; }, [guestMessages.length]);
+  useEffect(() => { const el = authorListRef.current; if (el && authorStick.current) el.scrollTop = el.scrollHeight; }, [authorMessages.length, selectedSpace]);
+  function trackStick(event, ref) {
+    const el = event.currentTarget;
+    ref.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
 
   // 刷新页面自动恢复作者登录，无需再次输入口令 —— 这就是服务自启动。
   useEffect(() => {
@@ -251,25 +310,148 @@ export default function GuestContact({ openAuthorLogin = false }) {
     return () => { alive = false; clearInterval(readTimer); clearInterval(beatTimer); document.removeEventListener('visibilitychange', onVisible); };
   }, [view, token]);
 
-  // 打开访客联络空间。secret 由前端生成，连同 space/title 一起存本地以便刷新恢复。
-  async function openGuest() {
-    if (guestBusy) return;
-    setGuestBusy('open'); setGuestError('');
+  function persistGuest(next) {
+    try { localStorage.setItem(GUEST_KEY, JSON.stringify(next)); } catch { /* 仍可在本次会话内使用 */ }
+    setGuest(next); setGuestMessages([]); setGuestText(''); setGuestError(''); guestPending.current = null;
+  }
+  function defaultTitle() {
+    return `访客联络 · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+  }
+  // 清掉 URL 里的 invite 参数，但保留 hash（#/chat 仍由路由识别）。
+  function cleanInviteParam() {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete('invite');
+      history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    } catch { /* 忽略地址改写失败 */ }
+  }
+
+  // 创建空间：点击大按钮后先弹表单，名称即「创建时的编辑」。
+  function openCreate() {
+    setCreateTitle(defaultTitle()); setCreateError(''); setCreateOpen(true);
+  }
+  function closeCreate() { if (!createBusy) setCreateOpen(false); }
+  async function submitCreate(event) {
+    event.preventDefault();
+    const title = createTitle.trim();
+    if (!title || createBusy) return;
+    if (title.length > MAX_TITLE) { setCreateError(`空间名称最多 ${MAX_TITLE} 字。`); return; }
+    setCreateBusy(true); setCreateError('');
     try {
       const secret = makeSecret();
-      const title = `访客联络 · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
       const data = await rpc('guest_open', { secret, title });
       if (!data.space) { const err = new Error('服务未返回联络空间'); err.code = 'bad_response'; throw err; }
-      const next = { space: data.space, secret, title };
-      try { localStorage.setItem(GUEST_KEY, JSON.stringify(next)); } catch { /* 仍可在本次会话内使用 */ }
-      setGuest(next); setGuestMessages([]); setGuestText(''); guestPending.current = null;
-    } catch (e) { setGuestError(rpcErrorText(e)); }
-    finally { setGuestBusy(''); }
+      persistGuest({ space: data.space, secret, title });
+      setCreateOpen(false);
+      setPendingInvite(null);
+    } catch (e) { setCreateError(rpcErrorText(e)); }
+    finally { setCreateBusy(false); }
   }
+
   function endGuest() {
     try { localStorage.removeItem(GUEST_KEY); } catch { /* 忽略存储限制 */ }
     setGuest(null); setGuestMessages([]); setGuestText(''); setGuestError(''); guestPending.current = null;
+    setCreateOpen(false); setInviteOpen(false); setInviteData(null);
+    setJoinOpen(false); setJoinCode(''); setInviteError('');
   }
+
+  // 作者主动创建邀请空间：作者生成链接发给对方，对方加入后即可互通。
+  const authorInviteLink = authorInviteData?.code ? `${location.origin}/?invite=${authorInviteData.code}#/chat` : '';
+  function openAuthorInvite() {
+    setAuthorInviteTitle(`作者邀请 · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`);
+    setAuthorInviteData(null); setAuthorInviteError(''); setAuthorInviteCopied(false); setAuthorInviteOpen(true);
+  }
+  function closeAuthorInvite() { if (!authorInviteBusy) setAuthorInviteOpen(false); }
+  async function submitAuthorInvite(event) {
+    event.preventDefault();
+    const title = authorInviteTitle.trim();
+    if (!title || authorInviteBusy || !token) return;
+    if (title.length > MAX_TITLE) { setAuthorInviteError(`空间名称最多 ${MAX_TITLE} 字。`); return; }
+    setAuthorInviteBusy(true); setAuthorInviteError('');
+    try {
+      const data = await rpc('author_space_create', { token, title });
+      if (!data || typeof data.code !== 'string' || !data.code) {
+        const err = new Error('服务未返回邀请码'); err.code = 'bad_response'; throw err;
+      }
+      setAuthorInviteData({ code: data.code, space: data.space, title: data.title || title, expires_at: data.expires_at || '', uses_left: data.uses_left });
+    } catch (e) {
+      if (e?.business === 'unauthorized' || e?.business === 'invalid_pass') {
+        clearAuthorToken(); setToken(''); setView('guest'); setAuthorInviteOpen(false);
+        setNotice('作者会话已失效，请重新登录。'); return;
+      }
+      setAuthorInviteError(rpcErrorText(e));
+    } finally { setAuthorInviteBusy(false); }
+  }
+  async function copyAuthorInvite() {
+    if (!authorInviteLink) return;
+    try { await navigator.clipboard.writeText(authorInviteLink); setAuthorInviteCopied(true); setAuthorInviteError(''); }
+    catch { setAuthorInviteCopied(false); setAuthorInviteError('自动复制失败，请手动选中链接复制。'); }
+  }
+
+  // 邀请：邀请码只来自 guest_invite_create 返回值。
+  const inviteLink = inviteData?.code ? `${location.origin}/?invite=${inviteData.code}#/chat` : '';
+  function closeInvite() { setInviteOpen(false); setInviteError(''); setCopied(false); }
+  async function createInvite() {
+    if (!guest || inviteBusy) return;
+    setInviteBusy(true); setInviteError(''); setCopied(false);
+    try {
+      const data = await rpc('guest_invite_create', { space: guest.space, secret: guest.secret });
+      if (!data || typeof data.code !== 'string' || !data.code) {
+        const err = new Error('服务未返回邀请码'); err.code = 'bad_response'; throw err;
+      }
+      setInviteData({ code: data.code, expires_at: data.expires_at || '', uses_left: data.uses_left });
+    } catch (e) { setInviteError(rpcErrorText(e)); }
+    finally { setInviteBusy(false); }
+  }
+  function openInvite() {
+    if (!guest) return;
+    setInviteData(null); setInviteError(''); setCopied(false); setInviteOpen(true);
+    createInvite();
+  }
+  async function copyInvite() {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true); setInviteError('');
+    } catch {
+      setCopied(false);
+      setInviteError('自动复制失败，请手动选中上方链接复制。');
+    }
+  }
+
+  // 手动输入邀请码加入。
+  function toggleJoin() { setJoinOpen(previous => !previous); setJoinError(''); }
+  async function submitJoin(event) {
+    event.preventDefault();
+    const code = joinCode.trim();
+    if (!code || joinBusy) return;
+    setJoinBusy(true); setJoinError('');
+    try {
+      const secret = makeSecret();
+      const data = await rpc('guest_invite_redeem', { code, secret });
+      if (!data.space) { const err = new Error('服务未返回联络空间'); err.code = 'bad_response'; throw err; }
+      persistGuest({ space: data.space, secret, title: data.title || '访客联络' });
+      setJoinOpen(false); setJoinCode('');
+      cleanInviteParam(); setPendingInvite(null);
+    } catch (e) { setJoinError(redeemErrorText(e)); }
+    finally { setJoinBusy(false); }
+  }
+
+  // URL 邀请：用自己的高熵 secret 兑换并切换空间。
+  function dismissInvite() { setPendingInvite(null); setInviteJoinError(''); }
+  async function redeemFromUrl() {
+    if (inviteJoinBusy || !pendingInvite) return;
+    setInviteJoinBusy(true); setInviteJoinError('');
+    try {
+      const secret = makeSecret();
+      const data = await rpc('guest_invite_redeem', { code: pendingInvite, secret });
+      if (!data.space) { const err = new Error('服务未返回联络空间'); err.code = 'bad_response'; throw err; }
+      persistGuest({ space: data.space, secret, title: data.title || '访客联络' });
+      cleanInviteParam(); setPendingInvite(null);
+    } catch (e) { setInviteJoinError(redeemErrorText(e)); }
+    finally { setInviteJoinBusy(false); }
+  }
+
   async function sendGuest(event) {
     event.preventDefault();
     const body = guestText.trim();
@@ -407,67 +589,96 @@ export default function GuestContact({ openAuthorLogin = false }) {
 
     {(notice || checking) && <p className="gc-notice" role="status">{checking ? '正在恢复作者会话…' : notice}</p>}
     {previewAsGuest && <p className="gc-preview-bar" role="status">
-      <span>正在以访客视角预览 · 本页已暂停作者心跳，刷新页面会回到作者工作台</span>
+      <span>访客预览中，刷新可回到作者工作台</span>
       <button type="button" onClick={exitPreview}>返回作者工作台 →</button>
     </p>}
 
     {view === 'guest' ? (
-      <main className="station-workspace gc-guest-workspace">
-        <aside className="station-sidebar">
-          <ChatCircle size={30} weight="light" />
-          <h1>联络站</h1>
-          <p>留一句话，等作者回来。</p>
-          <div className="gc-sidebar-note">
-            <p>这里不需要登录。点一下「发起联络」，就能给作者留言。</p>
-            <p>联络凭据只保存在这台浏览器，刷新页面还能接着聊。</p>
-            <p>顶部状态表示作者是否开着页面，与你的身份无关。</p>
+      <>
+        {pendingInvite && <div className="gc-invite-banner" role="region" aria-label="加入邀请">
+          <div className="gc-invite-banner-text">
+            <strong>有人邀请你加入联络空间</strong>
+            {guest && <p>你当前已有一个联络空间，加入后会切换到对方的空间。</p>}
           </div>
-        </aside>
-        <section className="station-conversation" aria-label="访客联络">
-          <div className="station-conversation-heading">
-            <h2>{guest ? guest.title : '给作者留句话'}</h2>
-            <span>{guest ? '已建立联络' : '尚未发起联络'}</span>
-            {guest && <button type="button" className="small-control gc-text-button" onClick={endGuest}>结束本次联络 / 新建联络</button>}
+          <div className="gc-invite-banner-actions">
+            <button type="button" className="gc-primary" disabled={inviteJoinBusy} onClick={redeemFromUrl}>
+              {inviteJoinBusy ? '加入中…' : '加入'}
+            </button>
+            <button type="button" className="gc-text-link" onClick={dismissInvite}>忽略</button>
           </div>
-          {!guest ? (
-            <div className="station-connection-state">
-              <ChatCircle size={42} weight="thin" />
-              <h3>不用注册，直接说</h3>
-              <p>点下面的按钮创建一个临时联络空间，作者上线后就能看到并回复。</p>
-              <button type="button" className="small-control gc-primary" disabled={!!guestBusy} onClick={openGuest}>
-                {guestBusy === 'open' ? '正在创建…' : '发起联络'}
-              </button>
-              <Disclaimer />
+          {inviteJoinError && <p role="alert" className="form-error">{inviteJoinError}</p>}
+        </div>}
+
+        <main className="station-workspace gc-guest-workspace">
+          <aside className="station-sidebar">
+            <ChatCircle size={30} weight="light" />
+            <h1>联络站</h1>
+            <p>留一句话，等作者回来。</p>
+          </aside>
+          <section className="station-conversation" aria-label="访客联络">
+            <div className="station-conversation-heading gc-heading">
+              <div className="gc-heading-main">
+                <h2>{guest ? guest.title : '给作者留句话'}</h2>
+              </div>
+              {guest && <div className="gc-heading-actions">
+                <button type="button" className="small-control gc-text-button" onClick={openInvite}>邀请</button>
+                <button type="button" className="small-control gc-text-button" onClick={endGuest}>结束</button>
+              </div>}
             </div>
-          ) : (
-            <div className="station-messages" aria-label="消息记录" aria-live="polite">
-              {!guestMessages.length && <div className="station-empty-message">联络已建立。写下第一句话吧，作者上线后会回复。</div>}
-              {guestMessages.map(message => <Bubble key={message.id} message={message} mine={message.sender === 'guest'} />)}
+            {!guest ? (
+              <div className="station-connection-state gc-create-state">
+                <button type="button" className="gc-primary-large" onClick={openCreate}>＋ 创建联络空间</button>
+                <p className="gc-create-hint">无需注册 · 留言云端可见</p>
+                <div className="gc-join-entry">
+                  {!joinOpen ? (
+                    <button type="button" className="gc-text-link" onClick={toggleJoin}>输入邀请码加入</button>
+                  ) : (
+                    <form className="gc-join-form" onSubmit={submitJoin}>
+                      <label htmlFor="gc-join-code">邀请码</label>
+                      <input id="gc-join-code" className="gc-input" value={joinCode} maxLength={128}
+                        placeholder="粘贴 64 位邀请码" autoComplete="off"
+                        onChange={event => { setJoinCode(event.target.value); setJoinError(''); }} />
+                      <div className="gc-dialog-actions">
+                        <button type="button" className="gc-text-link" onClick={toggleJoin}>取消</button>
+                        <button type="submit" className="small-control gc-primary" disabled={joinBusy || !joinCode.trim()}>
+                          {joinBusy ? '加入中…' : '加入'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                  {joinError && <p role="alert" className="form-error">{joinError}</p>}
+                </div>
+              </div>
+            ) : (
+              <div className="station-messages" aria-label="消息记录" aria-live="polite" ref={guestListRef}
+                onScroll={event => trackStick(event, guestStick)}>
+                {!guestMessages.length && <div className="station-empty-message">联络已建立，写下第一句话吧。</div>}
+                {guestMessages.map(message => <Bubble key={message.id} message={message} mine={message.sender === 'guest'} />)}
+              </div>
+            )}
+            <div className="station-feedback">
+              <p role="alert" className="form-error">{guestError || presenceError}</p>
             </div>
-          )}
-          <div className="station-feedback">
-            <p role="alert" className="form-error">{guestError || presenceError}</p>
-          </div>
-          {guest && <form className="station-compose" onSubmit={sendGuest}>
-            <label htmlFor="gc-guest-message">留言</label>
-            <textarea id="gc-guest-message" rows={3} maxLength={MAX_BODY} value={guestText} disabled={!!guestBusy}
-              onChange={event => setGuestText(event.target.value)} placeholder="想说的话…（最多 4000 字）" />
-            <Disclaimer compact />
-            <div className="gc-compose-actions">
-              <span className="gc-char-count">{guestText.length} / {MAX_BODY}</span>
-              <button className="small-control gc-primary" disabled={!!guestBusy || !guestText.trim()}>
-                {guestBusy === 'send' ? '正在发送…' : '发送'}
-              </button>
-            </div>
-          </form>}
-        </section>
-      </main>
+            {guest && <form className="station-compose" onSubmit={sendGuest}>
+              <label htmlFor="gc-guest-message">留言</label>
+              <textarea id="gc-guest-message" rows={3} maxLength={MAX_BODY} value={guestText} disabled={!!guestBusy}
+                onChange={event => setGuestText(event.target.value)} placeholder="写点什么…" />
+              <div className="gc-compose-actions">
+                <span className="gc-char-count">{guestText.length} / {MAX_BODY}</span>
+                <button className="small-control gc-primary" disabled={!!guestBusy || !guestText.trim()}>
+                  {guestBusy === 'send' ? '正在发送…' : '发送'}
+                </button>
+              </div>
+            </form>}
+          </section>
+        </main>
+      </>
     ) : (
       <main className="station-workspace">
         <aside className="station-sidebar gc-author-sidebar">
           <ChatCircle size={30} weight="light" />
           <h1>作者工作台</h1>
-          <p>已通过口令验证 · 会话自动刷新，无需手动上线。</p>
+          <p>已验证 · 自动刷新</p>
           <div className="gc-tabs" role="tablist" aria-label="作者视图">
             <button type="button" role="tab" aria-selected={authorTab === 'chat'} className={`gc-tab ${authorTab === 'chat' ? 'selected' : ''}`} onClick={() => setAuthorTab('chat')}>联络会话</button>
             <button type="button" role="tab" aria-selected={authorTab === 'devices'} className={`gc-tab ${authorTab === 'devices' ? 'selected' : ''}`} onClick={() => setAuthorTab('devices')}>设备空间</button>
@@ -481,13 +692,13 @@ export default function GuestContact({ openAuthorLogin = false }) {
               <small className="gc-inbox-preview">{item.preview || '（暂无消息）'}</small>
               <small>{formatTime(item.last_at)} · {Number(item.count) || 0} 条</small>
             </button>)}
-            {!authorSpaces.length && <p>还没有访客发起联络。页面会自动检查新消息。</p>}
+            {!authorSpaces.length && <p>还没有访客发起联络。</p>}
           </div>}
           <div className="gc-author-actions">
-            <button type="button" className="sample-toggle" onClick={previewGuest}>以访客身份预览</button>
-            <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出作者登录</button>
+            <button type="button" className="sample-toggle" onClick={openAuthorInvite}>＋ 新建邀请</button>
+            <button type="button" className="sample-toggle" onClick={previewGuest}>访客预览</button>
+            <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出登录</button>
           </div>
-          <p className="station-private-note">「以访客身份预览」用于自己测试：临时暂停心跳、切到访客视角，本机登录不会被清除。会话每 5 秒自动刷新，在线状态每 20 秒自动维持。切换到后台标签页时会暂停请求，回来后自动补上。</p>
         </aside>
         <section className="station-conversation" aria-label="作者会话">
           {authorTab === 'devices' ? (
@@ -498,7 +709,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
                 <h2>{currentSpaceTitle || '选择一个会话'}</h2>
                 <span>{authorError ? '连接异常' : '自动刷新中'}</span>
               </div>
-              <div className="station-messages" aria-label="消息记录" aria-live="polite">
+              <div className="station-messages" aria-label="消息记录" aria-live="polite" ref={authorListRef}
+                onScroll={event => trackStick(event, authorStick)}>
                 {!selectedSpace && <div className="station-empty-message">左侧选择一个会话，或等待访客发起联络。</div>}
                 {selectedSpace && !authorMessages.length && <div className="station-empty-message">这个会话还没有消息。</div>}
                 {authorMessages.map(message => <Bubble key={message.id} message={message} mine={message.sender === 'author'} />)}
@@ -536,14 +748,101 @@ export default function GuestContact({ openAuthorLogin = false }) {
           <h2>作者登录</h2>
           <button type="button" className="small-control" onClick={() => setLoginOpen(false)}>关闭</button>
         </div>
-        <p>输入作者口令，由服务端校验身份。访客无需登录，直接点「发起联络」就能留言。</p>
+        <p className="gc-dialog-hint">输入作者口令登录。</p>
         <label htmlFor="gc-author-pass">口令</label>
         <input id="gc-author-pass" type="password" autoComplete="current-password" required value={loginPass}
           onChange={event => { setLoginPass(event.target.value); setLoginError(''); }} />
         <p role="alert" className="form-error">{loginError}</p>
-        <button className="small-control gc-primary" disabled={loginBusy}>{loginBusy ? '登录中…' : '登录'}</button>
-        <p className="gc-login-hint">登录后本页会自动保持在线；把 <code>#/author</code> 存为书签，下次打开直接回到这里。</p>
+        <div className="gc-dialog-actions">
+          <button className="small-control gc-primary" disabled={loginBusy}>{loginBusy ? '登录中…' : '登录'}</button>
+        </div>
       </form>
     </dialog>
+
+    {/* 创建空间：名称可编辑，即「创建时的编辑」 */}
+    <Dialog open={createOpen} onClose={closeCreate} labelledBy="gc-create-title-h">
+      <form className="dialog-inner station-modal-form" onSubmit={submitCreate}>
+        <div className="station-dialog-heading">
+          <h2 id="gc-create-title-h">创建联络空间</h2>
+          <button type="button" className="small-control" onClick={closeCreate}>关闭</button>
+        </div>
+        <label htmlFor="gc-create-title">空间名称</label>
+        <input id="gc-create-title" maxLength={MAX_TITLE} value={createTitle}
+          onChange={event => { setCreateTitle(event.target.value); setCreateError(''); }} />
+        <p className="gc-dialog-hint">名称之后可修改。</p>
+        <p role="alert" className="form-error">{createError}</p>
+        <div className="gc-dialog-actions">
+          <button type="button" className="gc-text-link" onClick={closeCreate}>取消</button>
+          <button type="submit" className="small-control gc-primary" disabled={createBusy || !createTitle.trim()}>
+            {createBusy ? '正在创建…' : '创建'}
+          </button>
+        </div>
+      </form>
+    </Dialog>
+
+    {/* 作者主动创建邀请链接 */}
+    <Dialog open={authorInviteOpen} onClose={closeAuthorInvite} labelledBy="gc-author-invite-h">
+      <form className="dialog-inner station-modal-form" onSubmit={submitAuthorInvite}>
+        <div className="station-dialog-heading">
+          <h2 id="gc-author-invite-h">新建邀请链接</h2>
+          <button type="button" className="small-control" onClick={closeAuthorInvite}>关闭</button>
+        </div>
+        <label htmlFor="gc-author-invite-title">空间名称</label>
+        <input id="gc-author-invite-title" maxLength={MAX_TITLE} value={authorInviteTitle}
+          onChange={event => { setAuthorInviteTitle(event.target.value); setAuthorInviteError(''); }} />
+        {authorInviteData && <>
+          <label htmlFor="gc-author-invite-link">邀请链接</label>
+          <input id="gc-author-invite-link" className="gc-input gc-invite-link" readOnly value={authorInviteLink}
+            onFocus={event => event.target.select()} aria-label="作者邀请链接" />
+          <div className="gc-invite-meta">
+            <span>{authorInviteData.expires_at ? `有效期至 ${formatTime(authorInviteData.expires_at)}` : '24 小时内有效'}</span>
+            <span>剩余 {authorInviteData.uses_left ?? '—'} 次</span>
+          </div>
+        </>}
+        <p role="alert" className="form-error">{authorInviteError}</p>
+        <div className="gc-dialog-actions">
+          {authorInviteData
+            ? <>
+                <button type="button" className="small-control" onClick={submitAuthorInvite} disabled={authorInviteBusy}>重新生成</button>
+                <button type="button" className="small-control gc-primary" onClick={copyAuthorInvite}>
+                  {authorInviteCopied ? '已复制' : '复制链接'}
+                </button>
+              </>
+            : <button type="submit" className="small-control gc-primary" disabled={authorInviteBusy || !authorInviteTitle.trim()}>
+                {authorInviteBusy ? '正在创建…' : '创建邀请'}
+              </button>}
+        </div>
+      </form>
+    </Dialog>
+
+    {/* 邀请面板：链接与邀请码均来自 guest_invite_create 返回值 */}
+    <Dialog open={inviteOpen} onClose={closeInvite} labelledBy="gc-invite-title-h">
+      <div className="dialog-inner station-modal-form">
+        <div className="station-dialog-heading">
+          <h2 id="gc-invite-title-h">邀请加入空间</h2>
+          <button type="button" className="small-control" onClick={closeInvite}>关闭</button>
+        </div>
+        <p className="gc-dialog-hint">把链接发给对方，对方即可加入一起留言。</p>
+        {inviteBusy && <p className="gc-dialog-hint">正在生成邀请链接…</p>}
+        {inviteData && <>
+          <label htmlFor="gc-invite-link">邀请链接</label>
+          <input id="gc-invite-link" className="gc-input gc-invite-link" readOnly value={inviteLink}
+            onFocus={event => event.target.select()} aria-label="邀请链接" />
+          <div className="gc-invite-meta">
+            <span>有效期至 {inviteData.expires_at ? formatTime(inviteData.expires_at) : '24 小时内'}</span>
+            <span>剩余 {inviteData.uses_left ?? '—'} 次</span>
+          </div>
+        </>}
+        <p role="alert" className="form-error">{inviteError}</p>
+        <div className="gc-dialog-actions">
+          <button type="button" className="small-control" onClick={createInvite} disabled={inviteBusy}>
+            {inviteData ? '重新生成' : '生成邀请链接'}
+          </button>
+          {inviteData && <button type="button" className="small-control gc-primary" onClick={copyInvite}>
+            {copied ? '已复制' : '复制链接'}
+          </button>}
+        </div>
+      </div>
+    </Dialog>
   </div>;
 }

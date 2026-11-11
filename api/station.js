@@ -12,8 +12,9 @@ const MAX_BODY = 20000;
 const ACTIONS = new Set([
   'presence',
   'author_login', 'author_check', 'author_heartbeat', 'author_logout',
-  'author_inbox', 'author_read', 'author_reply',
+  'author_inbox', 'author_read', 'author_reply', 'author_space_create',
   'guest_open', 'guest_post', 'guest_read',
+  'guest_rename', 'guest_invite_create', 'guest_invite_redeem',
 ]);
 
 function hostOf(value) {
