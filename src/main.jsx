@@ -4,7 +4,7 @@ import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, 
 import './styles.css';
 import ContactStation from './ContactStation';
 
-// Add or remove entries here. An omitted URL opens an honest, editable preview.
+// 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
   { name: 'Vercel Projects', detail: 'Little ideas, brought to life.', icon: BookmarkSimple, color: 'sand', url: null },
   { name: 'GitHub', detail: 'Code, experiments & curiosities.', icon: GithubLogo, color: 'blue', url: null },
@@ -21,11 +21,23 @@ const pages = {
 };
 const STORAGE_KEY = 'personal-hub-links-v1';
 const PAGE_SIZE = 6;
-function readLinks() {
+function parseLinks(data) {
+  if (!Array.isArray(data)) throw Error('链接数据格式错误');
+  return data.map((link, index) => {
+    if (!link || typeof link.name !== 'string' || !link.name.trim() || typeof link.url !== 'string') throw Error('链接数据格式错误');
+    const url = new URL(link.url);
+    if (!['http:', 'https:'].includes(url.protocol)) throw Error('链接网址格式错误');
+    return { id: typeof link.id === 'string' ? link.id : `published-${index}`, name: link.name, url: url.href, detail: typeof link.detail === 'string' ? link.detail : '', color: ['sand', 'pink', 'blue'].includes(link.color) ? link.color : 'sand', icon: BookmarkSimple };
+  });
+}
+function readDraft() {
   try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return Array.isArray(data) ? data.filter(x => x && typeof x.id === 'string' && typeof x.name === 'string' && typeof x.url === 'string' && /^https?:\/\//i.test(x.url)).map(x => ({ ...x, icon: BookmarkSimple })) : [];
-  } catch { return []; }
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data === null ? null : parseLinks(JSON.parse(data));
+  } catch { return null; }
+}
+function serializeLinks(links) {
+  return JSON.stringify(links.map(({ icon, ...link }) => link), null, 2);
 }
 function PetCat() {
   const [pets, setPets] = useState(0);
@@ -44,10 +56,31 @@ function PetCat() {
   }
   return <div className="cat-companion"><span role="status" className={`cat-speech ${reaction ? 'visible' : ''}`}>{reaction}</span><button className="cat-sticker cat-button" onClick={pet} aria-label={`摸摸小猫，已经摸了 ${pets} 次`} title="摸摸我"><span className="cat-heart" aria-hidden="true">{awake ? '♡' : 'z z'}</span><Cat size={65} weight={awake ? 'duotone' : 'thin'} aria-hidden="true" /></button></div>;
 }
-function App() {
+function App({ managing }) {
   const dialog = useRef(null);
   const editor = useRef(null);
-  const [savedLinks, setSavedLinks] = useState(readLinks);
+  const [publishedLinks, setPublishedLinks] = useState([]);
+  const [draft, setDraft] = useState(null);
+  const [loadState, setLoadState] = useState('loading');
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const response = await fetch(`${import.meta.env.BASE_URL}links.json`, { signal: controller.signal, cache: 'no-cache' });
+        if (!response.ok) throw Error('无法读取公开链接');
+        const published = parseLinks(await response.json());
+        if (controller.signal.aborted) return;
+        setPublishedLinks(published);
+        setDraft(managing ? readDraft() : null);
+        setLoadState('ready');
+      } catch {
+        if (!controller.signal.aborted) setLoadState('error');
+      }
+    }
+    load();
+    return () => controller.abort();
+  }, [managing]);
+  const savedLinks = managing ? (draft ?? publishedLinks) : publishedLinks;
   const [page, setPage] = useState(1);
   const [showSamples, setShowSamples] = useState(false);
   const [formError, setFormError] = useState('');
@@ -57,7 +90,7 @@ function App() {
   const currentPage = Math.min(page, pageCount);
   const visibleLinks = links.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   function persist(next) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next.map(({ icon, ...link }) => link))); setSavedLinks(next); return true; }
+    try { localStorage.setItem(STORAGE_KEY, serializeLinks(next)); setDraft(next); setFormError(''); return true; }
     catch { setFormError('浏览器无法保存。请检查存储权限或可用空间。'); return false; }
   }
   function addLink(event) {
@@ -72,7 +105,16 @@ function App() {
     if (persist(next)) { setShowSamples(false); setPage(Math.ceil(next.length / PAGE_SIZE)); editor.current.close(); event.currentTarget.reset(); setNotice('链接已添加，并保存在当前浏览器。'); }
   }
   function removeLink(id) {
-    if (persist(savedLinks.filter(x => x.id !== id))) setNotice('链接已移除。');
+    if (persist(savedLinks.filter(x => x.id !== id))) setNotice('已从浏览器草稿移除，公开页未改变。');
+  }
+  function exportLinks() {
+    const url = URL.createObjectURL(new Blob([`${serializeLinks(savedLinks)}\n`], { type: 'application/json' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'links.json';
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice('已导出 links.json。替换项目 public/links.json 并重新部署后，所有访客才会看到更新。');
   }
   const [content, setContent] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -86,32 +128,33 @@ function App() {
     catch { setCopied(false); }
   }
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
-    <a href="#links" className="skip-link">Skip to links</a>
+    <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
     <div className="composition relative w-full">
       <div className="decoration cloud" aria-hidden="true"><Cloud size={43} weight="thin" /></div>
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
       <div className="decoration top-arrow" aria-hidden="true"><ArrowBendUpRight size={65} weight="thin" /></div>
-      <main className="paper-shell grid" aria-label="Personal Hub">
+      {managing && <div className="management-banner"><strong>链接管理 · 浏览器草稿</strong><a href="#/">退出管理，返回公开页 <ArrowUpRight size={16} aria-hidden="true" /></a></div>}
+      <main className="paper-shell grid" aria-label={managing ? 'Personal Hub 链接管理' : 'Personal Hub'}>
         <aside className="profile flex flex-col items-center text-center">
-          <div className="portrait-wrap relative"><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/Create_one_original_delicate_a_2026-11-11T07-07-21.png`} alt="Original anime portrait of a silver-haired young woman" width="160" height="160" /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
+          <div className="portrait-wrap relative"><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.svg`} alt="Original anime portrait of a silver-haired young woman" width="160" height="160" /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
           <h1>Personal Hub</h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
           <div className="profile-flourish" aria-hidden="true"><ArrowBendUpRight size={47} weight="thin" /></div>
           <p className="welcome">Make yourself at home.</p>
-          <a className="station-entry" href="#/chat" aria-label="进入站内联络站"><ChatCircle size={22} weight="light" aria-hidden="true" /><span><strong>联络站</strong><small>消息与文件，随手传</small></span><ArrowUpRight size={16} aria-hidden="true" /></a>
-          <p className="station-caption">站内应用 · 设备间消息与文件同步</p>
+          <a className="station-entry" href="#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span>联络站</span><ArrowUpRight size={15} aria-hidden="true" /></a>
         </aside>
-        <section id="links" className="links-panel" aria-labelledby="links-title">
+        <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           <header className="flex items-center justify-between"><h2 id="links-title">All Links<span className="heading-period">.</span></h2><span className="tiny-note">a few places to find me</span></header>
-          <div className="link-toolbar"><button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="sample-toggle" onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回我的链接' : '查看示例样式'}</button></div>
+          {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
-          <div className="link-wall grid">
+          {loadState !== 'ready' && <p className="links-load-state" role="status">{loadState === 'loading' ? '正在加载公开链接…' : '公开链接加载失败，请刷新重试。'}</p>}
+          <div className="link-wall grid" aria-busy={loadState === 'loading'}>
             {visibleLinks.map(({ id, name, detail, icon: Icon, color, url }, index) => {
               const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3>{name}</h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
-              return <div className="note-wrap" key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{!showSamples && <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>}</div>;
+              return <div className="note-wrap" key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>}</div>;
             })}
           </div>
-          {!links.length && <div className="empty-links"><BookmarkSimple size={30} weight="thin" /><h3>从第一个链接开始。</h3><p>把作品、文章和喜欢的地方，慢慢收集在这里。</p><button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button></div>}
+          {loadState === 'ready' && !links.length && <div className="empty-links"><BookmarkSimple size={30} weight="thin" /><h3>{managing ? '从第一个链接开始。' : '链接正在慢慢收集中。'}</h3><p>{managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。'}</p>{managing && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}</div>}
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
@@ -121,7 +164,7 @@ function App() {
       <PetCat />
       <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => open(name)}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
     </div>
-    <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张，更多链接会自动翻页。仅保存在当前浏览器，清除网站数据后会丢失。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>
+    {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
     <dialog ref={dialog} className="detail-dialog" onClick={e => { if (e.target === e.currentTarget) dialog.current.close(); }}><div className="dialog-inner"><div className="flex justify-between items-start gap-6"><h2>{content?.title}</h2><button className="close-button" onClick={() => dialog.current.close()} aria-label="Close dialog"><X size={20} /></button></div><h3>{content?.paragraphs[0]}</h3>{content?.paragraphs.slice(1).map(p => <p key={p}>{p}</p>)}<button className="copy-button inline-flex items-center gap-2" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Link copied' : 'Copy this page link'}</button><span className="sr-only" role="status">{copied ? 'Page link copied to clipboard' : ''}</span></div></dialog>
   </div>;
 }
@@ -133,6 +176,6 @@ function Router() {
     return () => window.removeEventListener('hashchange', update);
   }, []);
   const callback = new URLSearchParams(location.search).has('provider');
-  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || callback ? <ContactStation /> : <App />;
+  return /^\/chat\/?$/.test(location.pathname) || route === '#/chat' || callback ? <ContactStation /> : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
