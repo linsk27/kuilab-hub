@@ -381,6 +381,13 @@ export default function GuestContact({ openAuthorLogin = false }) {
     if (item.space !== selectedSpace && count > base) unread[item.space] = count - base;
   });
   const currentSpaceTitle = authorSpaces.find(item => item.space === selectedSpace)?.title || '';
+  // 页脚显示当前实际加载的构建资源哈希，方便一眼确认浏览器拿到的是哪一版。
+  const buildTag = (() => {
+    try {
+      const script = document.querySelector('script[type="module"][src]');
+      return script?.src.match(/index-([A-Za-z0-9_-]+)\.js/)?.[1]?.slice(0, 7) || '';
+    } catch { return ''; }
+  })();
 
   return <div className="station-page min-h-dvh">
     <header className="station-header">
@@ -515,7 +522,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
     )}
 
     <footer className="gc-footer">
-      <span>联络站 · 留言会保存在云端</span>
+      <span>联络站 · 留言会保存在云端{buildTag && <span className="gc-build"> · 构建 {buildTag}</span>}</span>
       {view === 'guest'
         ? previewAsGuest
           ? <button type="button" className="gc-author-link" onClick={exitPreview}>返回作者工作台 <span aria-hidden="true">→</span></button>
