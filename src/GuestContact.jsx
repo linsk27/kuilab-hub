@@ -157,8 +157,20 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const selectedSpaceRef = useRef('');
   const guestListRef = useRef(null);
   const authorListRef = useRef(null);
+  const guestInputRef = useRef(null);
+  const authorInputRef = useRef(null);
   const guestStick = useRef(true);
   const authorStick = useRef(true);
+  // 手机端输入框随内容自动增高，最多两行半，避免挤占消息区。
+  function growComposer(event) {
+    const el = event.currentTarget;
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    if (!el.value) { el.style.height = ''; return; }
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+  }
+  useEffect(() => { if (guestInputRef.current && !guestText) guestInputRef.current.style.height = ''; }, [guestText]);
+  useEffect(() => { if (authorInputRef.current && !authorText) authorInputRef.current.style.height = ''; }, [authorText]);
   useEffect(() => { selectedSpaceRef.current = selectedSpace; }, [selectedSpace]);
   // 新消息到达时贴到底部；用户手动上翻查看历史时不打扰。
   useEffect(() => { const el = guestListRef.current; if (el && guestStick.current) el.scrollTop = el.scrollHeight; }, [guestMessages.length]);
@@ -571,7 +583,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
     } catch { return ''; }
   })();
 
-  return <div className="station-page min-h-dvh">
+  return <div className="station-page min-h-dvh" data-view={view}>
     <header className="station-header">
       <a href="./">← Personal Hub</a>
       <span className="gc-header-right">
@@ -661,8 +673,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
             </div>
             {guest && <form className="station-compose" onSubmit={sendGuest}>
               <label htmlFor="gc-guest-message">留言</label>
-              <textarea id="gc-guest-message" rows={3} maxLength={MAX_BODY} value={guestText} disabled={!!guestBusy}
-                onChange={event => setGuestText(event.target.value)} placeholder="写点什么…" />
+              <textarea id="gc-guest-message" ref={guestInputRef} rows={3} maxLength={MAX_BODY} value={guestText} disabled={!!guestBusy}
+                onChange={event => { setGuestText(event.target.value); growComposer(event); }} placeholder="写点什么…" />
               <div className="gc-compose-actions">
                 <span className="gc-char-count">{guestText.length} / {MAX_BODY}</span>
                 <button className="small-control gc-primary" disabled={!!guestBusy || !guestText.trim()}>
@@ -718,8 +730,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
               <div className="station-feedback"><p role="alert" className="form-error">{authorError}</p></div>
               <form className="station-compose" onSubmit={sendAuthor}>
                 <label htmlFor="gc-author-reply">回复访客</label>
-                <textarea id="gc-author-reply" rows={3} maxLength={MAX_BODY} value={authorText} disabled={!selectedSpace || !!authorBusy}
-                  onChange={event => setAuthorText(event.target.value)} placeholder="写下回复…（最多 4000 字）" />
+                <textarea id="gc-author-reply" ref={authorInputRef} rows={3} maxLength={MAX_BODY} value={authorText} disabled={!selectedSpace || !!authorBusy}
+                  onChange={event => { setAuthorText(event.target.value); growComposer(event); }} placeholder="写下回复…" />
                 <div className="gc-compose-actions">
                   <span className="gc-char-count">{authorText.length} / {MAX_BODY}</span>
                   <button className="small-control gc-primary" disabled={!selectedSpace || !!authorBusy || !authorText.trim()}>
