@@ -216,3 +216,27 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .station-page .gc-dialog-actions .gc-text-link{min-height:40px}
   .station-page .gc-join-entry .gc-text-link{min-height:40px}
 }
+
+/* ---- 邀请二维码 ---- */
+.gc-qr{display:flex;justify-content:center;margin:12px 0 2px;padding:10px;border:1px solid #ece5db;border-radius:8px;background:#fffdf9}
+.gc-qr img{width:168px;height:168px;border-radius:4px}
+@media(max-width:375px){.gc-qr img{width:140px;height:140px}}
+
+/* ---- 404 页面 ---- */
+.not-found{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:#fdfdfc}
+.not-found-card{width:min(100%,420px);text-align:center;padding:40px 28px;border:1px solid #ece5db;border-radius:14px;background:#fffdf9;box-shadow:0 12px 40px rgba(93,85,76,.08)}
+.not-found-code{font-family:Georgia,serif;font-size:56px;line-height:1;color:#e3d6c8;letter-spacing:.06em}
+.not-found h1{font-family:Georgia,serif;font-size:24px;margin:10px 0 8px;color:#5a4a3c}
+.not-found p{font-size:13px;line-height:1.9;color:#8a7b6d;margin:0 0 22px}
+.not-found-home{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:10px 20px;border-radius:9px;background:#4a3f35;color:#fffdf9;font-size:13px;text-decoration:none}
+@media(hover:hover) and (pointer:fine){.not-found-home:hover{background:#362d25}}
+
+/* ---- 联络站加载占位 ---- */
+.route-loading{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;color:#8a7b6d;font-size:13px;background:#fdfdfc}
+
+/* ---- 链接顺序调整 ---- */
+.move-links{position:absolute;left:7px;bottom:7px;display:flex;flex-direction:column;gap:4px;z-index:2}
+.move-link{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:1px solid #e2d9cd;border-radius:6px;background:#fffdf9;color:#7a6a5b;font-size:12px;line-height:1}
+.move-link:disabled{opacity:.3;cursor:default}
+@media(hover:hover) and (pointer:fine){.move-link:hover:not(:disabled){background:#f4ece2;border-color:#d8cabb}}
+@media(max-width:767px){.move-link{width:30px;height:30px;font-size:13px}}

@@ -89,6 +89,24 @@ function redeemErrorText(e) {
   if (e?.business === 'invalid_invite') return '邀请码无效、已过期或次数已用完，请向对方索取新的邀请。';
   return rpcErrorText(e);
 }
+// 邀请二维码按需加载 qrcode，只在打开邀请面板时才下载这段代码。
+function InviteQr({ link, alt }) {
+  const [src, setSrc] = useState('');
+  useEffect(() => {
+    let alive = true;
+    if (!link) { setSrc(''); return undefined; }
+    (async () => {
+      try {
+        const { default: QRCode } = await import('qrcode');
+        const url = await QRCode.toDataURL(link, { margin: 1, width: 360, color: { dark: '#4a3f35', light: '#fffdf9' } });
+        if (alive) setSrc(url);
+      } catch { if (alive) setSrc(''); }
+    })();
+    return () => { alive = false; };
+  }, [link]);
+  if (!src) return null;
+  return <div className="gc-qr"><img src={src} alt={alt} width="168" height="168" /></div>;
+}
 
 export default function GuestContact({ openAuthorLogin = false }) {
   const [view, setView] = useState('guest');           // 'guest' | 'author'
@@ -112,6 +130,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const [authorText, setAuthorText] = useState('');
   const [authorError, setAuthorError] = useState('');
   const [authorBusy, setAuthorBusy] = useState('');
+  const [stats, setStats] = useState(null);            // 访问统计（仅作者可见）
   const [seen, setSeen] = useState({});                // 各会话已读消息数基准
 
   // 作者书签 #/author 直接打开登录框；已保存令牌时不弹，交给自动恢复进入工作台。
@@ -324,6 +343,16 @@ export default function GuestContact({ openAuthorLogin = false }) {
     const onVisible = () => { if (!document.hidden) { beat(); poll(); } };
     document.addEventListener('visibilitychange', onVisible);
     return () => { alive = false; clearInterval(readTimer); clearInterval(beatTimer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [view, token]);
+
+  // 作者进入工作台后取一次访问统计（今日 / 近 7 天）。
+  useEffect(() => {
+    if (view !== 'author' || !token) return undefined;
+    let alive = true;
+    rpc('author_stats', { token })
+      .then(data => { if (alive) setStats(data); })
+      .catch(() => { /* 统计失败不影响使用 */ });
+    return () => { alive = false; };
   }, [view, token]);
 
   function persistGuest(next) {
@@ -579,6 +608,13 @@ export default function GuestContact({ openAuthorLogin = false }) {
     if (item.space !== selectedSpace && count > base) unread[item.space] = count - base;
   });
   const currentSpaceTitle = authorSpaces.find(item => item.space === selectedSpace)?.title || '';
+  const totalUnread = Object.values(unread).reduce((sum, n) => sum + n, 0);
+  // 作者在别的标签页时，用标题上的数字提醒有新留言。
+  useEffect(() => {
+    const base = '个人中转站';
+    document.title = view === 'author' && totalUnread > 0 ? `(${totalUnread}) 联络站` : base;
+    return () => { document.title = base; };
+  }, [view, totalUnread]);
   // 页脚显示当前实际加载的构建资源哈希，方便一眼确认浏览器拿到的是哪一版。
   const buildTag = (() => {
     try {
@@ -712,6 +748,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
             <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出登录</button>
           </div>
           {buildTag && <p className="gc-build-line">构建 {buildTag}</p>}
+          {stats && <p className="gc-build-line">今日访问 {Number(stats.today) || 0} · 近 7 天 {Number(stats.week) || 0}</p>}
         </aside>
         <section className="station-conversation" aria-label="作者会话">
           <>
@@ -807,6 +844,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
             <span>{authorInviteData.expires_at ? `有效期至 ${formatTime(authorInviteData.expires_at)}` : '24 小时内有效'}</span>
             <span>剩余 {authorInviteData.uses_left ?? '—'} 次</span>
           </div>
+          <InviteQr link={authorInviteLink} alt="作者邀请二维码" />
         </>}
         <p role="alert" className="form-error">{authorInviteError}</p>
         <div className="gc-dialog-actions">
@@ -841,6 +879,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
             <span>有效期至 {inviteData.expires_at ? formatTime(inviteData.expires_at) : '24 小时内'}</span>
             <span>剩余 {inviteData.uses_left ?? '—'} 次</span>
           </div>
+          <InviteQr link={inviteLink} alt="邀请二维码" />
         </>}
         <p role="alert" className="form-error">{inviteError}</p>
         <div className="gc-dialog-actions">

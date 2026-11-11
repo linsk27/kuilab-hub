@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check } from '@phosphor-icons/react';
+import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
 import './styles.css';
-import GuestContact from './GuestContact';
+
+// 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
+const GuestContact = lazy(() => import('./GuestContact'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -107,6 +109,14 @@ function App({ managing }) {
   function removeLink(id) {
     if (persist(savedLinks.filter(x => x.id !== id))) setNotice('已从浏览器草稿移除，公开页未改变。');
   }
+  function moveLink(id, direction) {
+    const list = [...savedLinks];
+    const from = list.findIndex(x => x.id === id);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= list.length) return;
+    [list[from], list[to]] = [list[to], list[from]];
+    if (persist(list)) setNotice('顺序已调整。导出 links.json 并重新部署后，公开页才会同步。');
+  }
   function exportLinks() {
     const url = URL.createObjectURL(new Blob([`${serializeLinks(savedLinks)}\n`], { type: 'application/json' }));
     const anchor = document.createElement('a');
@@ -151,7 +161,14 @@ function App({ managing }) {
           <div className="link-wall grid" aria-busy={loadState === 'loading'}>
             {visibleLinks.map(({ id, name, detail, icon: Icon, color, url }, index) => {
               const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3>{name}</h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
-              return <div className="note-wrap" key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>}</div>;
+              const at = savedLinks.findIndex(x => x.id === id);
+              return <div className="note-wrap" key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <>
+                <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>
+                {savedLinks.length > 1 && <div className="move-links">
+                  <button className="move-link" aria-label={`上移 ${name}`} disabled={at <= 0} onClick={() => moveLink(id, -1)}>↑</button>
+                  <button className="move-link" aria-label={`下移 ${name}`} disabled={at >= savedLinks.length - 1} onClick={() => moveLink(id, 1)}>↓</button>
+                </div>}
+              </>}</div>;
             })}
           </div>
           {loadState === 'ready' && !links.length && <div className="empty-links"><BookmarkSimple size={30} weight="thin" /><h3>{managing ? '从第一个链接开始。' : '链接正在慢慢收集中。'}</h3><p>{managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。'}</p>{managing && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}</div>}
@@ -168,6 +185,16 @@ function App({ managing }) {
     <dialog ref={dialog} className="detail-dialog" onClick={e => { if (e.target === e.currentTarget) dialog.current.close(); }}><div className="dialog-inner"><div className="flex justify-between items-start gap-6"><h2>{content?.title}</h2><button className="close-button" onClick={() => dialog.current.close()} aria-label="Close dialog"><X size={20} /></button></div><h3>{content?.paragraphs[0]}</h3>{content?.paragraphs.slice(1).map(p => <p key={p}>{p}</p>)}<button className="copy-button inline-flex items-center gap-2" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Link copied' : 'Copy this page link'}</button><span className="sr-only" role="status">{copied ? 'Page link copied to clipboard' : ''}</span></div></dialog>
   </div>;
 }
+function NotFound() {
+  return <div className="not-found">
+    <div className="not-found-card">
+      <span className="not-found-code" aria-hidden="true">404</span>
+      <h1>这一页走丢了</h1>
+      <p>可能是链接写错了，或者它已经被收进抽屉里。</p>
+      <a className="not-found-home" href="/"><House size={16} weight="light" aria-hidden="true" />回到首页</a>
+    </div>
+  </div>;
+}
 function Router() {
   const [route, setRoute] = useState(() => location.hash);
   useEffect(() => {
@@ -175,11 +202,31 @@ function Router() {
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
   }, []);
+  // 每次会话只上报一次访问，用于作者后台看今日/近 7 天访问量；不采集 IP、UA 等个人信息。
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('ph-tracked')) return;
+      sessionStorage.setItem('ph-tracked', '1');
+    } catch { return; }
+    const path = location.pathname.startsWith('/hub') || location.hash.startsWith('#/chat') ? '/hub' : '/';
+    fetch('/api/station', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'track_visit', payload: { path } }),
+      cache: 'no-store',
+    }).catch(() => { /* 统计失败不影响页面 */ });
+  }, []);
   const callback = new URLSearchParams(location.search).has('provider');
   // #/author 是给作者本人保存的低调书签：直接打开口令框，口令只由服务端校验。
   const authorEntry = route === '#/author';
-  return /^\/(chat|hub)\/?$/.test(location.pathname) || route === '#/chat' || authorEntry || callback
-    ? <GuestContact openAuthorLogin={authorEntry} />
-    : <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
+  const path = location.pathname.replace(/\/+$/, '') || '/';
+  if (!['/', '/index.html', '/chat', '/hub'].includes(path) && !callback) return <NotFound />;
+  const station = /^\/(chat|hub)$/.test(path) || route === '#/chat' || authorEntry || callback;
+  if (station) {
+    return <Suspense fallback={<div className="route-loading" role="status">正在打开联络站…</div>}>
+      <GuestContact openAuthorLogin={authorEntry} />
+    </Suspense>;
+  }
+  return <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);

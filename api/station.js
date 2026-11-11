@@ -10,9 +10,9 @@ const MAX_BODY = 20000;
 
 // 只允许联络站已经定义好的动作，避免这个入口被当成任意数据库代理。
 const ACTIONS = new Set([
-  'presence',
+  'presence', 'track_visit',
   'author_login', 'author_check', 'author_heartbeat', 'author_logout',
-  'author_inbox', 'author_read', 'author_reply', 'author_space_create',
+  'author_inbox', 'author_read', 'author_reply', 'author_space_create', 'author_stats',
   'guest_open', 'guest_post', 'guest_read',
   'guest_rename', 'guest_invite_create', 'guest_invite_redeem',
 ]);
