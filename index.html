@@ -9,8 +9,9 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- 小猫的分层素材合成一张雪碧图；表情帧挂载后再取，招手帧等指针靠近 -->
+    <!-- 小猫：待机分层图 + 表情帧。表情帧和 JS 并行拉，第一次点它时就不用等 -->
     <link rel="preload" as="image" href="/cat/cat-sprite.webp" />
+    <link rel="preload" as="image" href="/cat/cat-face.webp" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="个人中转站" />
     <meta property="og:description" content="一个安静的个人网站入口。" />
