@@ -70,7 +70,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       faceReady.current = true;
       const p = pendingFace.current;
       pendingFace.current = null;
-      if (p && performance.now() - p.at < 1800) showFace(p.name, p.hold);
+      if (p && performance.now() - p.at < 2500) showFace(p.name, p.hold);
     };
     faceImg.src = '/cat/cat-face.webp';
     if (faceImg.complete) faceReady.current = true;

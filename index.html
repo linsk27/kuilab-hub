@@ -11,7 +11,7 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- 小猫：待机分层图 + 表情帧。表情帧和 JS 并行拉，第一次点它时就不用等 -->
     <link rel="preload" as="image" href="/cat/cat-sprite.webp" />
-    <link rel="preload" as="image" href="/cat/cat-face.webp" />
+    <link rel="preload" as="image" href="/cat/cat-face.webp" fetchpriority="high" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="个人中转站" />
     <meta property="og:description" content="一个安静的个人网站入口。" />
