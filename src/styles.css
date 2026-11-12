@@ -285,16 +285,19 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .pet-2d-sway{position:absolute;inset:0;display:block;transform-origin:50% 93%}
 .pet-2d.is-ready .pet-2d-stage{opacity:1}
 .pet-2d-layer{position:absolute;inset:0;pointer-events:none;will-change:transform}
-/* 头 / 身 / 举爪帧 / 闭眼帧 / 头影 拼成一张 2×3 雪碧图：一次请求就够，跨洋链路下差别很大 */
+/* 头 / 身 / 闭眼帧 / 头影 拼成一张 2×2 雪碧图：首屏只要这一张。
+   举手那一帧单独一张（cat-sprite-up.webp），等你把指针停在猫身上才用得上，延后加载。 */
 .pet-2d-sprite{position:absolute;inset:0;display:block;pointer-events:none;
-  background-image:url(/cat/cat-sprite.webp);background-size:200% 300%;background-repeat:no-repeat}
+  background-image:url(/cat/cat-sprite.webp);background-size:200% 200%;background-repeat:no-repeat}
 .pet-2d-sprite-head{background-position:0 0}
 .pet-2d-sprite-body{background-position:100% 0}
-.pet-2d-sprite-head-up{background-position:0 50%}
-.pet-2d-sprite-body-up{background-position:100% 50%}
 .pet-2d-sprite-blink{background-position:0 100%;opacity:0;transition:opacity 60ms linear}
 .pet-2d-sprite-blink.on{opacity:1}
 .pet-2d-sprite-shadow{background-position:100% 100%}
+.pet-2d-sprite-head-up,
+.pet-2d-sprite-body-up{background-image:url(/cat/cat-sprite-up.webp);background-size:200% 100%}
+.pet-2d-sprite-head-up{background-position:0 0}
+.pet-2d-sprite-body-up{background-position:100% 0}
 
 /* 表情层：三张官方表情稿贴在脸上，脖子往下渐隐，所以不会跟身体打架 */
 .pet-2d-face{position:absolute;inset:0;pointer-events:none;opacity:0;

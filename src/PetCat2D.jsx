@@ -27,6 +27,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const stateRef = useRef(null);
   const lastWaveAt = useRef(-1e9);
   const lastTouchAt = useRef(-1e9);
+  const upWarmRef = useRef(false);
   const onPetRef = useRef(onPet);
   onPetRef.current = onPet;
 
@@ -41,18 +42,32 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [ready, setReady] = useState(false);
 
   // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入；
-  // 表情和手臂也是背景图，必须提前拉，否则第一次点它时表情要等半秒才出来
+  // 表情也是背景图，必须提前拉，否则第一次点它时表情要等半秒才出来。
+  // 举手那一帧单独一张图，等首屏空了再拉——它只在指针停在猫身上时才用得到。
   useEffect(() => {
     const probe = new Image();
     probe.onload = () => setReady(true);
     probe.onerror = () => setReady(true);
     probe.src = '/cat/cat-sprite.webp';
     if (probe.complete) setReady(true);
-    ['/cat/cat-faces.webp'].forEach(src => {
+
+    const warm = src => {
       const img = new Image();
       img.decoding = 'async';
       img.src = src;
-    });
+    };
+    warm('/cat/cat-faces.webp');
+
+    let upTimer = 0;
+    if ('requestIdleCallback' in window) {
+      const idle = window.requestIdleCallback(() => warm('/cat/cat-sprite-up.webp'), { timeout: 2500 });
+      return () => {
+        window.cancelIdleCallback?.(idle);
+        window.clearTimeout(upTimer);
+      };
+    }
+    upTimer = window.setTimeout(() => warm('/cat/cat-sprite-up.webp'), 1600);
+    return () => window.clearTimeout(upTimer);
   }, []);
 
   // ---- 主循环：拖拽倾斜 + 视线跟随 + 投影联动 ----
@@ -223,6 +238,12 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       hoverWander = 0;
       hpx = event.clientX;
       hpy = event.clientY;
+      // 指针一进来就抢在 1.4 秒之前把举手帧拉下来
+      if (!upWarmRef.current) {
+        upWarmRef.current = true;
+        const img = new Image();
+        img.src = '/cat/cat-sprite-up.webp';
+      }
       window.clearTimeout(hoverTimer);
       hoverTimer = window.setTimeout(() => {
         // 在这 1.4 秒里如果指针还在划来划去，说明只是路过，不招手
