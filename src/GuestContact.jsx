@@ -196,6 +196,9 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const authorPending = useRef(null);
   const drafts = useRef(null);
   if (!drafts.current) drafts.current = readDrafts();
+  // 会话消息在内存里留一份：切回上一个会话时先显示旧内容，再用接口结果补齐，
+  // 不会出现「这个会话还没有消息」的闪空。
+  const authorCache = useRef({});
   const selectedSpaceRef = useRef('');
   const guestListRef = useRef(null);
   const authorListRef = useRef(null);
@@ -229,6 +232,10 @@ export default function GuestContact({ openAuthorLogin = false }) {
   // 进入 / 切换访客联络：把上次没发出去的内容放回输入框
   useEffect(() => { setGuestText(loadDraft('guest', guest?.space)); }, [guest?.space]);
   useEffect(() => { selectedSpaceRef.current = selectedSpace; }, [selectedSpace]);
+  // 当前会话的消息随时写回缓存；切走时留存，切回来直接复用
+  useEffect(() => {
+    if (selectedSpace) authorCache.current[selectedSpace] = authorMessages;
+  }, [authorMessages, selectedSpace]);
   // 新消息到达时贴到底部；用户手动上翻查看历史时不打扰。
   useEffect(() => { const el = guestListRef.current; if (el && guestStick.current) el.scrollTop = el.scrollHeight; }, [guestMessages.length]);
   useEffect(() => { const el = authorListRef.current; if (el && authorStick.current) el.scrollTop = el.scrollHeight; }, [authorMessages.length, selectedSpace]);
@@ -352,7 +359,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
         if (nextSpace !== selectedSpaceRef.current) {
           selectedSpaceRef.current = nextSpace;
           setSelectedSpace(nextSpace);
-          setAuthorMessages([]);
+          setAuthorMessages(authorCache.current[nextSpace] || []);
           setAuthorText(loadDraft('author', nextSpace));
         }
         if (nextSpace) {
@@ -610,7 +617,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
       saveDraft('author', selectedSpaceRef.current, authorText);
     }
     selectedSpaceRef.current = space;
-    setSelectedSpace(space); setAuthorMessages([]);
+    setSelectedSpace(space); setAuthorMessages(authorCache.current[space] || []);
     setAuthorText(loadDraft('author', space));
     const item = authorSpaces.find(row => row.space === space);
     if (item) setSeen(previous => ({ ...previous, [space]: Number(item.count) || 0 }));

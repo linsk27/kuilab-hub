@@ -8,3 +8,6 @@ dist/
 *.bak
 .DS_Store
 Thumbs.db
+
+# 本地作者端预览测试页（用 mock 数据跑 UI，不参与构建）
+preview-test/

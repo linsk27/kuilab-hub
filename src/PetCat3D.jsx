@@ -548,7 +548,11 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         matHead,
       );
       ear.scale.z = 0.5;
-      pivot.add(ear);
+      // 耳片统一进一个叶片组：整组压矮一点、放宽一点，头看起来更圆更 Q
+      const blade = new Group();
+      blade.scale.set(1.06, 0.86, 1);
+      blade.add(ear);
+      pivot.add(blade);
 
       const innerShape = new Shape();
       innerShape.moveTo(-0.092, 0.055);
@@ -559,7 +563,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       const inner = new Mesh(innerGeo, matPink);
       inner.position.set(0, 0, 0.082);
       inner.rotation.x = 0.19;
-      pivot.add(inner);
+      blade.add(inner);
 
       ears.push({ pivot, side, angle: 0, velocity: 0, next: 0 });
     });
