@@ -698,8 +698,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         new Vector3(side * 0.155, 0.345, -0.018),
       ]);
       const pivot = new Group();
-      pivot.position.set(side * 0.235, 0.285, -0.02);
-      pivot.rotation.z = side * -0.26;
+      pivot.position.set(side * 0.262, 0.262, -0.02);
+      pivot.rotation.z = side * -0.34;
       pivot.rotation.x = -0.05;
       head.add(pivot);
 
@@ -708,16 +708,16 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       pivot.add(blade);
 
       const ear = new Mesh(
-        tintGeometry(taperedTube(spine, u => lerp(0.215, 0.03, Math.pow(u, 0.7)), 26, 16), [0.32, 0.313, 0.31]),
+        tintGeometry(taperedTube(spine, u => lerp(0.165, 0.028, Math.pow(u, 0.72)), 26, 16), [0.32, 0.313, 0.31]),
         matHead,
       );
       ear.scale.z = 0.78;
       blade.add(ear);
 
       const innerShape = new Shape();
-      innerShape.moveTo(-0.07, 0.045);
-      innerShape.lineTo(0.07, 0.045);
-      innerShape.lineTo(side * 0.1, 0.245);
+      innerShape.moveTo(-0.062, 0.04);
+      innerShape.lineTo(0.062, 0.04);
+      innerShape.lineTo(side * 0.092, 0.225);
       innerShape.closePath();
       const inner = new Mesh(tintGeometry(new ShapeGeometry(innerShape, 4), [1, 1, 1]), matPink);
       inner.position.set(0, -0.01, 0.098);
@@ -729,7 +729,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     // ---- 米色渔夫帽：帽冠 + 软帽檐 + 帽带 + 两片叶子 ----
     const hat = new Group();
-    hat.position.set(0, 0.3, 0.03);
+    hat.position.set(0, 0.315, 0.02);
     hat.rotation.z = 0.07;
     hat.rotation.x = -0.06;
     head.add(hat);
@@ -738,41 +738,36 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     // 不再是“圆柱 + 圆盘”两块硬边拼起来。
     // 帽冠：一条母线车削，帽顶到帽墙根部连续
     const crownProfile = [
-      [0.0, 0.25], [0.07, 0.247], [0.13, 0.236], [0.17, 0.215],
-      [0.192, 0.185], [0.203, 0.135], [0.207, 0.075], [0.21, 0.02], [0.212, 0.004],
+      [0.0, 0.302], [0.032, 0.3], [0.072, 0.293], [0.106, 0.279],
+      [0.131, 0.258], [0.149, 0.226], [0.159, 0.18], [0.164, 0.11],
+      [0.166, 0.04], [0.167, 0.012],
     ];
     const hatGeo = new LatheGeometry(crownProfile.map(([r, y]) => new Vector2(r, y)), 64);
     hatGeo.computeVertexNormals();
     const hatBody = new Mesh(hatGeo, matHat);
     hat.add(hatBody);
 
-    // 帽檐：不是正圆盘。两侧（耳朵所在方向）收窄并向上翻，
-    // 前后（z 方向）放开成正常的宽檐——这样帽檐正好绕开耳朵，不会穿模。
-    function buildBrimGeometry(innerR, outerFront, outerSide, dropFront, liftSide, thickness) {
-      const SEGMENTS = 72;
-      const RINGS = 5;
+    // 帽檐：沿头球曲率往下垂的“裙边”，不是一块平板。
+    // 外沿落在球面外侧一点点，所以看起来是搭在头上，不会浮空也不会切进去。
+    function buildBrimGeometry(innerR, outerR, thickness, hatY) {
+      const SEGMENTS = 84;
+      const RINGS = 6;
+      const HEAD_R = 0.4;
       const positions = [];
       const indices = [];
-      const radiusAt = theta => {
-        const s = Math.abs(Math.sin(theta));
-        return outerSide + (outerFront - outerSide) * Math.pow(s, 0.8);
-      };
-      const heightAt = theta => {
-        const s = Math.abs(Math.sin(theta));
-        return -liftSide - (dropFront - liftSide) * Math.pow(s, 1.2);
-      };
-      // 上表面 + 下表面
+      const surfaceY = r => Math.sqrt(Math.max(HEAD_R * HEAD_R - r * r, 0));
+      const yInner = surfaceY(innerR) + 0.012 - hatY;
+      const yOuter = surfaceY(outerR) - 0.012 - hatY;
       for (let side = 0; side < 2; side += 1) {
         const yOffset = side === 0 ? 0 : -thickness;
         for (let i = 0; i <= SEGMENTS; i += 1) {
           const theta = (i / SEGMENTS) * Math.PI * 2;
-          const rOuter = radiusAt(theta);
-          const yOuter = heightAt(theta);
+          // 布料起伏：让檐口不是完美的圆，像软帽
+          const wave = Math.sin(theta * 3.0) * 0.006 + Math.cos(theta * 5.0) * 0.003;
           for (let j = 0; j <= RINGS; j += 1) {
             const t = j / RINGS;
-            const r = innerR + (rOuter - innerR) * t;
-            // 檐口略微上卷
-            const y = yOuter * Math.pow(t, 1.15) + 0.002 * Math.sin(t * Math.PI) + yOffset;
+            const r = innerR + (outerR - innerR) * t;
+            const y = yInner + (yOuter - yInner) * Math.pow(t, 0.85) + wave * Math.pow(t, 2) + yOffset;
             positions.push(Math.cos(theta) * r, y, Math.sin(theta) * r);
           }
         }
@@ -788,7 +783,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
           }
         }
       }
-      // 檐口外沿把上下两片缝起来
+      // 檐口把上下两片缝起来
       for (let i = 0; i < SEGMENTS; i += 1) {
         const topA = i * (RINGS + 1) + RINGS;
         const topB = (i + 1) * (RINGS + 1) + RINGS;
@@ -802,12 +797,12 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       geo.computeVertexNormals();
       return geo;
     }
-    const brimMesh = new Mesh(buildBrimGeometry(0.205, 0.335, 0.335, 0.07, 0.07, 0.022), matHat);
+    const brimMesh = new Mesh(buildBrimGeometry(0.155, 0.268, 0.022, 0.315), matHat);
     hat.add(brimMesh);
 
     // 帽带：贴在帽墙上的一圈窄带，半径与帽墙一致，不再像套了个呼啦圈
     const bandProfile = [
-      [0.196, 0.07], [0.203, 0.064], [0.205, 0.05], [0.203, 0.034], [0.196, 0.028],
+      [0.15, 0.078], [0.157, 0.072], [0.159, 0.056], [0.157, 0.04], [0.15, 0.032],
     ];
     const bandGeo = new LatheGeometry(bandProfile.map(([r, y]) => new Vector2(r, y)), 48);
     const band = new Mesh(bandGeo, matHatBand);
@@ -816,9 +811,9 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     // 叶子：两片扁椭球，从帽带右侧探出来
     [0.0, 1.0].forEach((k) => {
       const leaf = new Mesh(new SphereGeometry(1, 14, 10), matLeaf);
-      leaf.scale.set(0.085, 0.028, 0.045);
-      leaf.position.set(0.2 + k * 0.03, 0.05 + k * 0.045, 0.1 + k * 0.02);
-      leaf.rotation.set(k * 0.5 - 0.2, -0.5 + k * 0.4, 0.5 - k * 0.9);
+      leaf.scale.set(0.07, 0.022, 0.038);
+      leaf.position.set(0.13 + k * 0.035, 0.075 + k * 0.03, 0.09 + k * 0.01);
+      leaf.rotation.set(k * 0.4 - 0.15, -0.7 + k * 0.5, 0.7 - k * 1.0);
       hat.add(leaf);
     });
     // ---- 尾巴：逐帧变形的管状几何，半径连续、法线解析，一个 draw call ----
