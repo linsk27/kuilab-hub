@@ -134,20 +134,20 @@ export default function PetCat2D({ onPet, petSignal = 0, onUnavailable }) {
           <img
             ref={imgRef}
             className="pet-2d-img"
-            src="/cat/small-cat.png"
+            src="/cat/small-cat.webp"
             alt=""
             draggable="false"
-            width="588"
-            height="640"
+            width="456"
+            height="496"
           />
           <img
             className={`pet-2d-img pet-2d-blink ${blink ? 'on' : ''}`}
-            src="/cat/small-cat-blink.png"
+            src="/cat/small-cat-blink.webp"
             alt=""
             aria-hidden="true"
             draggable="false"
-            width="588"
-            height="640"
+            width="456"
+            height="496"
           />
         </span>
       </span>
