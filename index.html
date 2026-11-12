@@ -9,10 +9,8 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- 小猫的四层素材提前并行拉，否则会排队加载，首屏要等 7 秒 -->
-    <link rel="preload" as="image" href="/cat/cat-body.webp" />
-    <link rel="preload" as="image" href="/cat/cat-head.webp" />
-    <link rel="preload" as="image" href="/cat/cat-head-shadow.webp" />
+    <!-- 小猫的四层素材合成一张雪碧图，提前拉一次就够 -->
+    <link rel="preload" as="image" href="/cat/cat-sprite.webp" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="个人中转站" />
     <meta property="og:description" content="一个安静的个人网站入口。" />

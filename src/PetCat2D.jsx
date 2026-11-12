@@ -32,6 +32,15 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [purring, setPurring] = useState(false);
   const [ready, setReady] = useState(false);
 
+  // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入
+  useEffect(() => {
+    const probe = new Image();
+    probe.onload = () => setReady(true);
+    probe.onerror = () => setReady(true);
+    probe.src = '/cat/cat-sprite.webp';
+    if (probe.complete) setReady(true);
+  }, []);
+
   // ---- 主循环：拖拽倾斜 + 视线跟随 + 投影联动 ----
   useEffect(() => {
     const host = hostRef.current;
@@ -278,7 +287,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
           onPetRef.current?.();
         }
       }}
-      onError={() => setReady(true)}
     >
       <span className="pet-2d-cast" ref={castRef} aria-hidden="true" />
       <span className="pet-2d-contact" ref={contactRef} aria-hidden="true" />
@@ -288,49 +296,17 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
           <span className="pet-2d-breathe">
             <span className="pet-2d-sway">
             <span className="pet-2d-layer pet-2d-body" ref={bodyRef}>
-              <img
-                className="pet-2d-img"
-                src="/cat/cat-body.webp"
-                alt=""
-                draggable="false"
-                width="456"
-                height="568"
-                decoding="async"
-                onLoad={() => setReady(true)}
-              />
+              <span className="pet-2d-sprite pet-2d-sprite-body" />
             </span>
 
             <span className="pet-2d-layer pet-2d-head" ref={headRef}>
               <span className="pet-2d-head-motion">
                 {/* 头压在身上的落影：既是接触阴影，也顺便兜住歪头时颈部可能露出的缝 */}
-                <img
-                  className="pet-2d-img pet-2d-head-shadow"
-                  src="/cat/cat-head-shadow.webp"
-                  alt=""
+                <span className="pet-2d-sprite pet-2d-sprite-shadow" aria-hidden="true" />
+                <span className="pet-2d-sprite pet-2d-sprite-head" />
+                <span
+                  className={`pet-2d-sprite pet-2d-sprite-blink ${blinking ? 'on' : ''}`}
                   aria-hidden="true"
-                  draggable="false"
-                  width="456"
-                  height="568"
-                  decoding="async"
-                />
-                <img
-                  className="pet-2d-img"
-                  src="/cat/cat-head.webp"
-                  alt=""
-                  draggable="false"
-                  width="456"
-                  height="568"
-                  decoding="async"
-                />
-                <img
-                  className={`pet-2d-img pet-2d-blink ${blinking ? 'on' : ''}`}
-                  src="/cat/cat-head-blink.webp"
-                  alt=""
-                  aria-hidden="true"
-                  draggable="false"
-                  width="456"
-                  height="568"
-                  decoding="async"
                 />
               </span>
             </span>
