@@ -66,11 +66,17 @@ function sdTaperedCapsule(px, py, pz, ax, ay, az, bx, by, bz, r1, r2) {
 // 这里把前腿拆成两根独立柱子，胸口收窄、后腿做鼓包，正面才有猫的坐姿轮廓。
 export function bodySdf(x, y, z) {
   // 臀部与下腹
-  let d = sdEllipsoid(x, y, z, 0, 0.29, -0.03, 0.33, 0.3, 0.34);
+  let d = sdEllipsoid(x, y, z, 0, 0.29, -0.03, 0.355, 0.3, 0.35);
   // 肚子：往后收，别把两条前腿之间的缝填平
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.45, 0.06, 0.285, 0.27, 0.25), 0.16);
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.45, 0.06, 0.3, 0.27, 0.26), 0.16);
   // 胸：比臀窄，略向前
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.72, 0.07, 0.275, 0.26, 0.245), 0.2);
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.72, 0.07, 0.285, 0.26, 0.25), 0.2);
+  // 颈毛：一圈交错的小毛团，长毛猫那圈围脖，同时把脖子和身体连起来
+  for (let i = 0; i < 9; i += 1) {
+    const a = (i / 9) * Math.PI * 2;
+    const bump = 0.88 + Math.sin(i * 2.3) * 0.022;
+    d = smin(d, sdEllipsoid(x, y, z, Math.cos(a) * 0.195, bump, Math.sin(a) * 0.175 + 0.02, 0.115, 0.1, 0.1), 0.075);
+  }
   // 颈肩：从胸直接顺上去，不要留一圈台阶
   d = smin(d, sdEllipsoid(x, y, z, 0, 0.9, 0.02, 0.215, 0.15, 0.2), 0.18);
   // 后腿：两侧的鼓包，露一点膝盖
@@ -98,16 +104,16 @@ export function bodySdf(x, y, z) {
 export function headSdf(x, y, z) {
   const [hx, hy, hz] = HEAD_CENTER;
   // 颅用圆角盒：顶部略平、两侧饱满，比纯椭球更像猫
-  let d = sdRoundBox(x, y, z, hx, hy + 0.02, hz, 0.135, 0.092, 0.118, 0.23);
+  let d = sdEllipsoid(x, y, z, hx, hy + 0.03, hz - 0.005, 0.182, 0.162, 0.162);
   // 额与鼻梁
   d = smin(d, sdEllipsoid(x, y, z, hx, hy + 0.07, hz + 0.1, 0.26, 0.2, 0.24), 0.12);
   d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.06, hz + 0.26, 0.075, 0.13, 0.09), 0.07);
   // 腮：只做一点点鼓，位置抬高到眼睛下方，别坠成腮帮子
-  d = smin(d, sdSphere(x, y, z, hx + 0.218, hy - 0.062, hz + 0.085, 0.104), 0.14);
-  d = smin(d, sdSphere(x, y, z, hx - 0.218, hy - 0.062, hz + 0.085, 0.104), 0.14);
+  d = smin(d, sdSphere(x, y, z, hx + 0.23, hy - 0.062, hz + 0.085, 0.108), 0.14);
+  d = smin(d, sdSphere(x, y, z, hx - 0.23, hy - 0.062, hz + 0.085, 0.108), 0.14);
   // 颊毛：两团往下垂的松软毛毛，长毛猫的典型轮廓
-  d = smin(d, sdEllipsoid(x, y, z, hx + 0.225, hy - 0.16, hz + 0.1, 0.1, 0.13, 0.1), 0.09);
-  d = smin(d, sdEllipsoid(x, y, z, hx - 0.225, hy - 0.16, hz + 0.1, 0.1, 0.13, 0.1), 0.09);
+  d = smin(d, sdEllipsoid(x, y, z, hx + 0.235, hy - 0.16, hz + 0.1, 0.105, 0.135, 0.105), 0.09);
+  d = smin(d, sdEllipsoid(x, y, z, hx - 0.235, hy - 0.16, hz + 0.1, 0.105, 0.135, 0.105), 0.09);
   // 下颌：收窄，让下巴是弧线而不是方下巴
   d = smin(d, sdSphere(x, y, z, hx + 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
   d = smin(d, sdSphere(x, y, z, hx - 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
@@ -321,7 +327,9 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
   const count = positions.length / 3;
   if (!count) return null;
 
-  smoothPositions(positions, indices);
+  // 两遍拉普拉斯：一遍后体素台阶还会剩一点，缩小看就是“粗糙”
+  smoothPositions(positions, indices, 0.34);
+  smoothPositions(positions, indices, 0.22);
 
   const positionArray = new Float32Array(positions);
   const normalArray = new Float32Array(count * 3);

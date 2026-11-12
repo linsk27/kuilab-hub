@@ -151,11 +151,13 @@ function makeEyeCanvas(size = 160) {
   ctx.arc(c, c, c - 1, 0, Math.PI * 2);
   ctx.fill();
   // 虹膜
+  // 天蓝色虹膜：中心偏浅青，边缘收深，外圈一圈深蓝
   const iris = ctx.createRadialGradient(c, c * 0.94, c * 0.1, c, c, c * 0.86);
-  iris.addColorStop(0, '#e3b779');
-  iris.addColorStop(0.52, '#c48d48');
-  iris.addColorStop(0.84, '#8d5c2d');
-  iris.addColorStop(1, '#4a2f1a');
+  iris.addColorStop(0, '#b6e6f8');
+  iris.addColorStop(0.42, '#7cc6e8');
+  iris.addColorStop(0.78, '#4b93c2');
+  iris.addColorStop(0.94, '#2f6a92');
+  iris.addColorStop(1, '#1d3f57');
   ctx.fillStyle = iris;
   ctx.beginPath();
   ctx.arc(c, c, c * 0.86, 0, Math.PI * 2);
@@ -163,8 +165,8 @@ function makeEyeCanvas(size = 160) {
   // 放射纤维
   for (let i = 0; i < 96; i += 1) {
     const angle = Math.random() * Math.PI * 2;
-    const bright = Math.random() > 0.55;
-    ctx.strokeStyle = `rgba(${bright ? '255,228,186' : '92,60,32'},${0.05 + Math.random() * 0.11})`;
+    const bright = Math.random() > 0.5;
+    ctx.strokeStyle = `rgba(${bright ? '226,246,255' : '30,74,104'},${0.05 + Math.random() * 0.12})`;
     ctx.lineWidth = 0.6 + Math.random() * 0.9;
     ctx.beginPath();
     ctx.moveTo(c + Math.cos(angle) * c * 0.26, c + Math.sin(angle) * c * 0.26);
@@ -174,15 +176,15 @@ function makeEyeCanvas(size = 160) {
   // 竖瞳
   ctx.fillStyle = '#0d0906';
   ctx.beginPath();
-  ctx.ellipse(c, c, c * 0.16, c * 0.58, 0, 0, Math.PI * 2);
+  ctx.ellipse(c, c, c * 0.135, c * 0.56, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,240,220,0.18)';
+  ctx.fillStyle = 'rgba(226,246,255,0.22)';
   ctx.beginPath();
   ctx.ellipse(c, c * 0.72, c * 0.22, c * 0.1, 0, 0, Math.PI * 2);
   ctx.fill();
   // 上眼睑的阴影
   const lid = ctx.createLinearGradient(0, 0, 0, size * 0.46);
-  lid.addColorStop(0, 'rgba(28,19,13,0.34)');
+  lid.addColorStop(0, 'rgba(28,19,13,0.12)');
   lid.addColorStop(1, 'rgba(28,19,13,0)');
   ctx.fillStyle = lid;
   ctx.beginPath();
@@ -510,14 +512,15 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
             ${FUZZ_NOISE}`)
           .replace('#include <begin_vertex>', `#include <begin_vertex>
             vec4 fuzzWorld = modelMatrix * vec4(transformed, 1.0);
-            float fuzzN = vnoise(fuzzWorld.xyz * 34.0) * 0.65 + vnoise(fuzzWorld.xyz * 96.0) * 0.35;
+            float fuzzN = vnoise(fuzzWorld.xyz * 26.0) * 0.82 + vnoise(fuzzWorld.xyz * 74.0) * 0.18;
             vFuzz = fuzzN;
             transformed += normalize(objectNormal) * fuzzOffset * (0.25 + 1.35 * fuzzN);`);
         shader.fragmentShader = shader.fragmentShader
           .replace('#include <common>', '#include <common>\nuniform float fuzzStrength;\nvarying float vFuzz;')
           .replace('#include <dithering_fragment>', `#include <dithering_fragment>
             float fuzzRim = 1.0 - abs(dot(normalize(normal), normalize(vViewPosition)));
-            float fuzzA = smoothstep(0.1, 0.92, fuzzRim) * (0.3 + 1.1 * vFuzz);
+            float fuzzSoft = smoothstep(0.2, 0.8, vFuzz);
+            float fuzzA = smoothstep(0.46, 1.0, fuzzRim) * (0.55 + 0.7 * fuzzSoft);
             gl_FragColor.a *= clamp(fuzzA, 0.0, 1.0) * fuzzStrength;
           `);
       };
@@ -529,8 +532,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     const materials = [];
     // 毛色改由顶点色承载：底色是暖白，靠 AO 与外壳绒毛托出体积
-    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 8.5, 2.25);
-    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 10.5, 1.8);
+    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 8.5, 1.85);
+    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 10.5, 1.5);
     const matPink = furMaterial('#efb9c3', { bump: 0.005, roughness: 0.92, sheen: 0.5, sheenColor: '#ffe6ea' });
     const matNose = new MeshPhysicalMaterial({
       color: '#e6a2ad', roughness: 0.45, metalness: 0, clearcoat: 0.6, clearcoatRoughness: 0.35,
@@ -538,10 +541,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const matMouth = new MeshStandardMaterial({ color: '#c3a49a', roughness: 0.85, metalness: 0 });
     const eyeTexture = new CanvasTexture(makeEyeCanvas());
     eyeTexture.colorSpace = SRGBColorSpace;
-    const matEye = new MeshStandardMaterial({
-      map: eyeTexture, transparent: true, roughness: 0.34, metalness: 0,
-      envMapIntensity: 0.55, depthWrite: false,
-    });
+    const matEye = new MeshBasicMaterial({ map: eyeTexture, transparent: true, depthWrite: false });
     const matHighlight = new MeshBasicMaterial({ color: '#fffdfa' });
     const matCollar = new MeshStandardMaterial({ color: '#d3a6a8', roughness: 0.72, metalness: 0 });
     const matBell = new MeshStandardMaterial({ color: '#d9b26a', roughness: 0.34, metalness: 0.7, envMapIntensity: 1.1 });
@@ -589,8 +589,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const bodyMesh = new Mesh(bodyGeo, matBody);
     bounceGroup.add(bodyMesh);
     // 两层绒毛外壳，把身体剪影晕开
-    bounceGroup.add(makeFuzzShell(bodyGeo, 0.009, 0.55));
-    bounceGroup.add(makeFuzzShell(bodyGeo, 0.022, 0.3));
+    bounceGroup.add(makeFuzzShell(bodyGeo, 0.01, 0.26));
+    bounceGroup.add(makeFuzzShell(bodyGeo, 0.024, 0.12));
 
     const head = new Group();
     head.position.set(HEAD_CENTER[0], HEAD_CENTER[1], HEAD_CENTER[2]);
@@ -601,8 +601,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const headGeo = buildHeadGeometry(0.0135);
     const headMesh = new Mesh(headGeo, matHead);
     head.add(headMesh);
-    head.add(makeFuzzShell(headGeo, 0.007, 0.5));
-    head.add(makeFuzzShell(headGeo, 0.017, 0.26));
+    head.add(makeFuzzShell(headGeo, 0.008, 0.24));
+    head.add(makeFuzzShell(headGeo, 0.018, 0.11));
 
     // 鼻子：猫鼻是上宽下尖的圆角三角形，中间还有一道人中
     const noseShape = new Shape();
@@ -683,7 +683,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       ).normalize();
       return { z, normal };
     }
-    const eyeGeo = buildEyeGeometry(0.086, 0.057);
+    const eyeGeo = buildEyeGeometry(0.089, 0.066);
     const highlightGeo = new SphereGeometry(1, 8, 6);
     const eyeRigs = [];
     [-1, 1].forEach(side => {
@@ -691,7 +691,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       const ey = 0.038;
       const surface = headSurfacePoint(ex, ey);
       const rig = new Group();
-      rig.position.set(ex + surface.normal.x * 0.004, ey + surface.normal.y * 0.004, surface.z + surface.normal.z * 0.004);
+      rig.position.set(ex + surface.normal.x * 0.022, ey + surface.normal.y * 0.022, surface.z + surface.normal.z * 0.022);
       head.add(rig);
 
       const eye = new Mesh(eyeGeo, matEye);
@@ -699,15 +699,11 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       eye.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), surface.normal);
       rig.add(eye);
 
+      // 高光留一颗小的：眼睛变小后，原来的高光球几乎盖住虹膜
       const spec = new Mesh(highlightGeo, matHighlight);
-      spec.position.set(side * 0.02, 0.018, 0.012);
-      spec.scale.setScalar(0.0105);
+      spec.position.set(side * 0.02, 0.016, 0.012);
+      spec.scale.setScalar(0.0058);
       rig.add(spec);
-
-      const spark = new Mesh(highlightGeo, matHighlight);
-      spark.position.set(side * -0.022, -0.014, 0.01);
-      spark.scale.setScalar(0.0055);
-      rig.add(spark);
 
       eyeRigs.push(rig);
     });
@@ -720,30 +716,30 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     [-1, 1].forEach(side => {
       const spine = new CatmullRomCurve3([
         new Vector3(0, 0, 0),
-        new Vector3(side * 0.07, 0.25, -0.006),
-        new Vector3(side * 0.155, 0.48, -0.018),
+        new Vector3(side * 0.078, 0.21, -0.006),
+        new Vector3(side * 0.158, 0.385, -0.018),
       ]);
       const pivot = new Group();
-      pivot.position.set(side * 0.175, 0.1, -0.03);
+      pivot.position.set(side * 0.186, 0.1, -0.03);
       pivot.rotation.z = side * -0.16;
       pivot.rotation.x = -0.04;
       head.add(pivot);
 
       const ear = new Mesh(
-        tintGeometry(taperedTube(spine, u => lerp(0.205, 0.014, Math.pow(u, 0.95)), 20, 14), [0.95, 0.93, 0.91]),
+        tintGeometry(taperedTube(spine, u => lerp(0.225, 0.013, Math.pow(u, 0.98)), 20, 14), [0.95, 0.93, 0.91]),
         matHead,
       );
       ear.scale.z = 0.5;
       // 耳片统一进一个叶片组：整组压矮一点、放宽一点，头看起来更圆更 Q
       const blade = new Group();
-      blade.scale.set(1.02, 0.98, 1);
+      blade.scale.set(0.97, 0.94, 1);
       blade.add(ear);
       pivot.add(blade);
 
       const innerShape = new Shape();
-      innerShape.moveTo(-0.088, 0.06);
-      innerShape.lineTo(0.088, 0.06);
-      innerShape.lineTo(side * 0.122, 0.39);
+      innerShape.moveTo(-0.095, 0.055);
+      innerShape.lineTo(0.095, 0.055);
+      innerShape.lineTo(side * 0.128, 0.315);
       innerShape.closePath();
       const innerGeo = tintGeometry(new ShapeGeometry(innerShape, 4), [1, 1, 1]);
       const inner = new Mesh(innerGeo, matPink);
