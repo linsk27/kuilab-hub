@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   Scene, PerspectiveCamera, WebGLRenderer, Group, Mesh,
-  BoxGeometry, SphereGeometry, ConeGeometry, CapsuleGeometry, CylinderGeometry,
+  BoxGeometry, SphereGeometry, CylinderGeometry, Shape, ShapeGeometry,
   CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute,
   Vector3, CatmullRomCurve3, MathUtils, Color,
   MeshStandardMaterial, MeshPhysicalMaterial, MeshBasicMaterial,
@@ -9,6 +9,7 @@ import {
   RepeatWrapping, ACESFilmicToneMapping,
   HemisphereLight, DirectionalLight,
 } from 'three';
+import { buildBodyGeometry, buildHeadGeometry, HEAD_CENTER } from './catSculpt';
 
 // ---------------------------------------------------------------------------
 // 这套模型不依赖外部资产：形状、贴图、环境全部运行时生成。
@@ -72,9 +73,8 @@ function roundedBox(width, height, depth, radius, segments = 5) {
   return geometry;
 }
 
-// 顶点色渐变：底部略暗偏暖，顶部接近白。比纯单色多一层体积感，
-// 又不依赖额外贴图或灯光，成本只有一次几何遍历。
-function shadeGeometry(geometry, bottom = 0.86) {
+// 给几何体写入统一色调 + 高度渐变，配合 material.vertexColors 使用
+function tintGeometry(geometry, tint, bottom = 0.86) {
   geometry.computeBoundingBox();
   const box = geometry.boundingBox;
   const position = geometry.attributes.position;
@@ -83,9 +83,9 @@ function shadeGeometry(geometry, bottom = 0.86) {
   for (let i = 0; i < position.count; i += 1) {
     const t = (position.getY(i) - box.min.y) / span;
     const f = bottom + (1 - bottom) * Math.pow(t, 0.8);
-    colors[i * 3] = f;
-    colors[i * 3 + 1] = f * 0.988;
-    colors[i * 3 + 2] = f * 0.972;
+    colors[i * 3] = tint[0] * f;
+    colors[i * 3 + 1] = tint[1] * f;
+    colors[i * 3 + 2] = tint[2] * f;
   }
   geometry.setAttribute('color', new BufferAttribute(colors, 3));
   return geometry;
@@ -321,7 +321,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.93;
+    renderer.toneMappingExposure = 0.9;
 
     const canvas = renderer.domElement;
     canvas.style.width = '100%';
@@ -351,23 +351,28 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const blushTexture = makeBlushTexture();
 
     function furMaterial(color, options = {}) {
-      return new MeshStandardMaterial({
+      const base = {
         color: new Color(color),
-        map: furMap,
-        roughnessMap: furRough,
-        bumpMap: furBump,
         bumpScale: options.bump ?? 0.019,
         roughness: options.roughness ?? 1,
         metalness: 0,
         vertexColors: true,
         envMapIntensity: options.env ?? 0.42,
-      });
+      };
+      // 雕刻网格的 UV 不连续，贴图会被撕开；这类表面用哑光纯色更干净
+      if (options.doubleSide) base.side = 2;
+      if (options.textured !== false) {
+        base.map = furMap;
+        base.roughnessMap = furRough;
+        base.bumpMap = furBump;
+      }
+      return new MeshStandardMaterial(base);
     }
 
     const materials = [];
-    const matBody = furMaterial('#e3cab5');
-    const matHead = furMaterial('#eddccb');
-    const matLight = furMaterial('#fbf4ec', { bump: 0.009 });
+    // 毛色改由顶点色承载：底色接近白，白斑与身体色都写进顶点
+    const matBody = furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 });
+    const matHead = furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 });
     const matPink = furMaterial('#e8a7b1', { bump: 0.006, roughness: 0.9 });
     const matNose = new MeshPhysicalMaterial({
       color: '#d48792', roughness: 0.42, metalness: 0, clearcoat: 0.85, clearcoatRoughness: 0.3,
@@ -377,8 +382,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       color: '#cbb8a6', roughness: 0.85, metalness: 0, transparent: true, opacity: 0.8,
     });
     const matEye = new MeshPhysicalMaterial({
-      color: '#3a2b24', roughness: 0.1, metalness: 0, clearcoat: 1,
-      clearcoatRoughness: 0.05, envMapIntensity: 1.8,
+      color: '#3c2d26', roughness: 0.16, metalness: 0, clearcoat: 0.55,
+      clearcoatRoughness: 0.1, envMapIntensity: 0.9,
     });
     const matHighlight = new MeshBasicMaterial({ color: '#fffdfa' });
     const matCollar = new MeshStandardMaterial({ color: '#d3a6a8', roughness: 0.72, metalness: 0 });
@@ -386,19 +391,19 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const matBellSlit = new MeshStandardMaterial({ color: '#8c6f3d', roughness: 0.5, metalness: 0.35 });
     const matShadow = new MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: 1, depthWrite: false, color: '#6d5747' });
     materials.push(
-      matBody, matHead, matLight, matPink, matNose, matMouth, matWhisker,
+      matBody, matHead, matPink, matNose, matMouth, matWhisker,
       matEye, matHighlight, matCollar, matBell, matBellSlit, matShadow,
     );
 
     // ---- 光源 + 环境 ----
-    scene.add(new HemisphereLight(0xfff7ee, 0xe3d5c5, 0.62));
-    const keyLight = new DirectionalLight(0xfff4e8, 1.85);
-    keyLight.position.set(2.3, 3.4, 2.9);
+    scene.add(new HemisphereLight(0xfff7ee, 0xd8c7b4, 0.36));
+    const keyLight = new DirectionalLight(0xfff2e2, 2.35);
+    keyLight.position.set(2.1, 3.6, 2.6);
     scene.add(keyLight);
-    const fillLight = new DirectionalLight(0xe6eef7, 0.8);
+    const fillLight = new DirectionalLight(0xdfe9f5, 0.45);
     fillLight.position.set(-2.8, 1.6, -1.4);
     scene.add(fillLight);
-    const bounceLight = new DirectionalLight(0xfff0e2, 0.36);
+    const bounceLight = new DirectionalLight(0xffeeda, 0.22);
     bounceLight.position.set(0.4, -1.2, 2.2);
     scene.add(bounceLight);
 
@@ -418,76 +423,30 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     shadow.position.set(0, 0.012, 0.03);
     scene.add(shadow);
 
-    // ---- 身体 ----
-    const haunchGeo = shadeGeometry(new SphereGeometry(1, 18, 14), 0.88);
-    [-1, 1].forEach(side => {
-      const haunch = new Mesh(haunchGeo, matBody);
-      haunch.position.set(side * 0.29, 0.34, 0);
-      haunch.scale.set(0.38, 0.34, 0.42);
-      bounceGroup.add(haunch);
-    });
+    // ---- 身体与头：先定义体积，再多边形化，交界处是融合而非拼接 ----
+    const bodyMesh = new Mesh(buildBodyGeometry(0.027), matBody);
+    bounceGroup.add(bodyMesh);
 
-    const torsoGeo = shadeGeometry(roundedBox(0.84, 0.92, 0.74, 0.31, 5), 0.84);
-    const torso = new Mesh(torsoGeo, matBody);
-    torso.position.set(0, 0.66, 0);
-    bounceGroup.add(torso);
-
-    const chestGeo = shadeGeometry(roundedBox(0.5, 0.54, 0.28, 0.24, 4), 0.9);
-    const chest = new Mesh(chestGeo, matLight);
-    chest.position.set(0, 0.54, 0.3);
-    bounceGroup.add(chest);
-
-    const legGeo = shadeGeometry(new CapsuleGeometry(0.1, 0.3, 4, 10), 0.86);
-    const pawGeo = shadeGeometry(new SphereGeometry(1, 14, 10), 0.9);
-    [-1, 1].forEach(side => {
-      const leg = new Mesh(legGeo, matBody);
-      leg.position.set(side * 0.215, 0.27, 0.27);
-      bounceGroup.add(leg);
-      const paw = new Mesh(pawGeo, matLight);
-      paw.position.set(side * 0.215, 0.075, 0.335);
-      paw.scale.set(0.145, 0.08, 0.175);
-      bounceGroup.add(paw);
-    });
-
-    // ---- 头部 ----
     const head = new Group();
-    head.position.set(0, 1.47, 0.03);
+    head.position.set(HEAD_CENTER[0], HEAD_CENTER[1], HEAD_CENTER[2]);
     bounceGroup.add(head);
 
-    const skullGeo = shadeGeometry(roundedBox(0.86, 0.78, 0.74, 0.28, 5), 0.82);
-    const skull = new Mesh(skullGeo, matHead);
-    head.add(skull);
+    const headMesh = new Mesh(buildHeadGeometry(0.021), matHead);
+    head.add(headMesh);
 
-    // 腮部绒毛：把脸拉宽，比纯球更像猫
-    const cheekGeo = shadeGeometry(roundedBox(0.3, 0.26, 0.26, 0.1, 3), 0.84);
-    [-1, 1].forEach(side => {
-      const cheek = new Mesh(cheekGeo, matHead);
-      cheek.position.set(side * 0.34, -0.06, 0.15);
-      cheek.rotation.z = side * -0.18;
-      cheek.rotation.y = side * 0.12;
-      head.add(cheek);
-    });
-
-    // 嘴部用椭球而不是方盒，避免在脸上留下一条直边
-    const muzzleGeo = shadeGeometry(new SphereGeometry(1, 22, 16), 0.88);
-    const muzzle = new Mesh(muzzleGeo, matLight);
-    muzzle.position.set(0, -0.168, 0.315);
-    muzzle.scale.set(0.165, 0.108, 0.088);
-    head.add(muzzle);
-
-    const nose = new Mesh(roundedBox(0.082, 0.058, 0.05, 0.02, 2), matNose);
-    nose.position.set(0, -0.085, 0.405);
-    nose.rotation.x = -0.18;
+    const nose = new Mesh(roundedBox(0.088, 0.062, 0.048, 0.022, 2), matNose);
+    nose.position.set(0, -0.128, 0.392);
+    nose.rotation.x = -0.26;
     head.add(nose);
 
     // 嘴线：从鼻子下方分叉的两条细管
     [-1, 1].forEach(side => {
       const mouthCurve = new CatmullRomCurve3([
-        new Vector3(0, -0.128, 0.405),
-        new Vector3(side * 0.035, -0.163, 0.402),
-        new Vector3(side * 0.075, -0.168, 0.392),
+        new Vector3(0, -0.185, 0.378),
+        new Vector3(side * 0.03, -0.212, 0.372),
+        new Vector3(side * 0.072, -0.214, 0.352),
       ]);
-      head.add(new Mesh(taperedTube(mouthCurve, () => 0.0095, 8, 4), matMouth));
+      head.add(new Mesh(taperedTube(mouthCurve, () => 0.009, 8, 4), matMouth));
     });
 
     // ---- 眼睛：每只眼单独成组，眨眼时绕自身中心压扁 ----
@@ -496,21 +455,21 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const eyeRigs = [];
     [-1, 1].forEach(side => {
       const rig = new Group();
-      rig.position.set(side * 0.205, 0.045, 0.318);
+      rig.position.set(side * 0.208, 0.03, 0.3);
       head.add(rig);
 
       const eye = new Mesh(eyeGeo, matEye);
-      eye.scale.set(0.1, 0.115, 0.082);
+      eye.scale.set(0.117, 0.128, 0.088);
       rig.add(eye);
 
       const spec = new Mesh(highlightGeo, matHighlight);
-      spec.position.set(side * 0.028, 0.046, 0.058);
-      spec.scale.setScalar(0.023);
+      spec.position.set(side * 0.032, 0.052, 0.062);
+      spec.scale.setScalar(0.02);
       rig.add(spec);
 
       const spark = new Mesh(highlightGeo, matHighlight);
       spark.position.set(side * -0.028, -0.032, 0.055);
-      spark.scale.setScalar(0.012);
+      spark.scale.setScalar(0.01);
       rig.add(spark);
 
       eyeRigs.push(rig);
@@ -522,44 +481,55 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     materials.push(matBlush);
     [-1, 1].forEach(side => {
       const blush = new Mesh(blushGeo, matBlush);
-      blush.position.set(side * 0.315, -0.095, 0.295);
-      blush.rotation.y = side * 0.55;
+      blush.position.set(side * 0.305, -0.075, 0.25);
+      blush.rotation.y = side * 0.7;
       blush.rotation.z = side * 0.1;
       blush.scale.set(1, 0.72, 1);
       head.add(blush);
     });
 
-    // ---- 耳朵：外耳 + 内耳，前后错开，有厚度感 ----
+    // ---- 耳朵：变半径管做锥形，底部圆润、尖端收细，仍可独立抖动 ----
     const ears = [];
-    const earGeo = shadeGeometry(new ConeGeometry(0.185, 0.33, 16, 1, false), 0.86);
-    const innerEarGeo = shadeGeometry(new ConeGeometry(0.1, 0.19, 14, 1, false), 0.8);
     [-1, 1].forEach(side => {
+      const spine = new CatmullRomCurve3([
+        new Vector3(0, 0, 0),
+        new Vector3(side * 0.06, 0.27, -0.006),
+        new Vector3(side * 0.15, 0.52, -0.018),
+      ]);
       const pivot = new Group();
-      pivot.position.set(side * 0.27, 0.36, -0.015);
-      pivot.rotation.z = side * -0.26;
-      pivot.rotation.x = -0.06;
+      pivot.position.set(side * 0.225, 0.1, -0.035);
+      pivot.rotation.z = side * -0.2;
+      pivot.rotation.x = -0.04;
       head.add(pivot);
 
-      const ear = new Mesh(earGeo, matHead);
-      ear.position.y = 0.14;
-      ear.scale.z = 0.58;
+      const ear = new Mesh(
+        tintGeometry(taperedTube(spine, u => lerp(0.2, 0.015, Math.pow(u, 0.78)), 20, 14), [0.93, 0.85, 0.78]),
+        matHead,
+      );
+      ear.scale.z = 0.5;
       pivot.add(ear);
 
-      const inner = new Mesh(innerEarGeo, matPink);
-      inner.position.set(0, 0.12, 0.052);
-      inner.scale.z = 0.4;
+      const innerShape = new Shape();
+      innerShape.moveTo(-0.092, 0.055);
+      innerShape.lineTo(0.092, 0.055);
+      innerShape.lineTo(side * 0.122, 0.415);
+      innerShape.closePath();
+      const innerGeo = tintGeometry(new ShapeGeometry(innerShape, 4), [1, 1, 1]);
+      const inner = new Mesh(innerGeo, matPink);
+      inner.position.set(0, 0, 0.082);
+      inner.rotation.x = 0.19;
       pivot.add(inner);
 
       ears.push({ pivot, side, angle: 0, velocity: 0, next: 0 });
     });
 
-    // ---- 项圈：贴身的窄带，不是悬空的圆环；铃铛挂在正前方 ----
-    const collar = new Mesh(new CylinderGeometry(0.345, 0.385, 0.078, 40, 1, true), matCollar);
-    collar.position.set(0, 1.0, 0.02);
+    // ---- 项圈：贴着颈部的一圈窄带；铃铛挂在正前方 ----
+    const collar = new Mesh(new CylinderGeometry(0.208, 0.232, 0.07, 40, 1, true), matCollar);
+    collar.position.set(0, 1.09, 0.03);
     bounceGroup.add(collar);
 
     const bellPivot = new Group();
-    bellPivot.position.set(0, 0.972, 0.4);
+    bellPivot.position.set(0, 1.015, 0.245);
     bounceGroup.add(bellPivot);
     const bell = new Mesh(new SphereGeometry(0.066, 18, 14), matBell);
     bell.position.y = -0.055;
@@ -570,12 +540,12 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     // ---- 尾巴：逐帧变形的管状几何，半径连续、法线解析，一个 draw call ----
     const tailPoints = [
-      new Vector3(0.3, 0.18, -0.3),
-      new Vector3(0.68, 0.15, -0.3),
-      new Vector3(0.9, 0.42, -0.1),
-      new Vector3(0.86, 0.68, 0.12),
-      new Vector3(0.66, 0.8, 0.28),
-      new Vector3(0.47, 0.72, 0.34),
+      new Vector3(0.3, 0.26, -0.32),
+      new Vector3(0.6, 0.14, -0.34),
+      new Vector3(0.84, 0.16, -0.16),
+      new Vector3(0.9, 0.34, 0.04),
+      new Vector3(0.84, 0.5, 0.2),
+      new Vector3(0.72, 0.57, 0.3),
     ];
     const tailCurve = new CatmullRomCurve3(tailPoints, false, 'catmullrom', 0.5);
     const TAIL_TUBULAR = 36;
@@ -632,7 +602,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     }
     tipGeo.setAttribute('color', new BufferAttribute(tipColors, 3));
     const tailTip = new Mesh(tipGeo, tailMat);
-    tailTip.scale.setScalar(0.047);
+    tailTip.scale.setScalar(0.052);
     bounceGroup.add(tailTip);
 
     const tailCenter = new Vector3();
@@ -658,7 +628,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         if (tailNormal.lengthSq() < 1e-4) tailNormal.set(1, 0, 0);
         tailNormal.normalize();
         tailBinormal.crossVectors(tailTangent, tailNormal).normalize();
-        const radius = lerp(0.098, 0.046, Math.pow(u, 0.9));
+        const radius = lerp(0.125, 0.055, Math.pow(u, 0.92));
         for (let j = 0; j <= TAIL_RADIAL; j += 1) {
           const angle = (j / TAIL_RADIAL) * Math.PI * 2;
           const cos = Math.cos(angle);
@@ -686,13 +656,13 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     // ---- 胡须 ----
     [-1, 1].forEach(side => {
       for (let i = 0; i < 3; i += 1) {
-        const startY = -0.142 - i * 0.02;
+        const startY = -0.145 - i * 0.02;
         const curve = new CatmullRomCurve3([
-          new Vector3(side * 0.125, startY, 0.408),
-          new Vector3(side * 0.32, startY + 0.03 + i * 0.01, 0.42),
-          new Vector3(side * 0.5, startY + 0.052 + i * 0.026, 0.355),
+          new Vector3(side * 0.1, startY, 0.362),
+          new Vector3(side * 0.32, startY + 0.028 + i * 0.006, 0.335),
+          new Vector3(side * 0.52, startY + 0.066 + i * 0.012, 0.262),
         ]);
-        head.add(new Mesh(taperedTube(curve, u => lerp(0.0095, 0.0026, u), 12, 4), matWhisker));
+        head.add(new Mesh(taperedTube(curve, u => lerp(0.009, 0.0024, u), 12, 4), matWhisker));
       }
     });
 
@@ -846,11 +816,10 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       const sxz = 1 - squash * 0.55;
       bounceGroup.scale.set(sxz, sy, sxz);
 
-      // 呼吸：腹部与胸腔不同步
+      // 呼吸：整个躯干轻微起伏，头再单独浮一点
       const breath = Math.sin(time * 1.45);
-      torso.scale.set(1 + breath * 0.007, 1 + breath * 0.012, 1 + breath * 0.009);
-      chest.scale.set(1 + breath * 0.01, 1 + breath * 0.014, 1);
-      head.position.y = 1.47 + breath * 0.006 + jumpV * 0.004;
+      bodyMesh.scale.set(1 + breath * 0.006, 1 + breath * 0.012, 1 + breath * 0.008);
+      head.position.y = HEAD_CENTER[1] + breath * 0.006 + jumpV * 0.004;
 
       // 头部朝向
       const headTargetY = dragging ? 0 : lookX * 0.5;
