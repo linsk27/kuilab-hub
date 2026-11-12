@@ -137,46 +137,63 @@ function taperedTube(curve, radiusAt, tubularSegments = 16, radialSegments = 5) 
   return geometry;
 }
 
-// 布偶眼：深色玻璃珠 + 两颗高光。展板里的眼睛是近黑的暖褐色，
-// 高光很大，靠这两个白点才显得“亮晶晶”。
-function makeEyeCanvas(size = 192) {
+// 布偶眼贴图：给球面用的“正面投影”图。
+// 球的前半球按法线 x/y 直接映射到这张图的圆内，所以中心是虹膜、外圈是眼球边缘。
+function makeEyeCanvas(size = 256) {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   const c = size / 2;
-  // 眼球底色：中心略亮，边缘压深
-  const base = ctx.createRadialGradient(c, c * 0.86, c * 0.05, c, c, c * 0.98);
-  base.addColorStop(0, '#4a3f37');
-  base.addColorStop(0.45, '#2e2621');
-  base.addColorStop(0.86, '#191413');
-  base.addColorStop(1, '#100d0c');
-  ctx.fillStyle = base;
-  ctx.beginPath();
-  ctx.arc(c, c, c - 1, 0, Math.PI * 2);
-  ctx.fill();
-  // 眼下反光：淡淡的暖色弧
-  const bounce = ctx.createRadialGradient(c, c * 1.24, c * 0.05, c, c * 1.24, c * 0.62);
-  bounce.addColorStop(0, 'rgba(255,232,206,0.5)');
-  bounce.addColorStop(1, 'rgba(255,232,206,0)');
-  ctx.fillStyle = bounce;
-  ctx.beginPath();
-  ctx.arc(c, c, c - 1, 0, Math.PI * 2);
-  ctx.fill();
-  // 主高光
-  const hi = ctx.createRadialGradient(c * 0.72, c * 0.62, 0, c * 0.72, c * 0.62, c * 0.3);
+  // 整张填深色：四角会落到眼球侧面，不能留透明
+  ctx.fillStyle = '#0d0b0a';
+  ctx.fillRect(0, 0, size, size);
+
+  // 眼球：中心暖褐，往外迅速收深，形成玻璃珠的体积
+  const ball = ctx.createRadialGradient(c, c * 0.94, c * 0.04, c, c, c * 1.06);
+  ball.addColorStop(0, '#6b5646');
+  ball.addColorStop(0.22, '#4a3b31');
+  ball.addColorStop(0.46, '#2a211c');
+  ball.addColorStop(0.72, '#171210');
+  ball.addColorStop(1, '#0b0908');
+  ctx.fillStyle = ball;
+  ctx.fillRect(0, 0, size, size);
+
+  // 虹膜里的一点点纹理，别让中心太干净
+  for (let i = 0; i < 70; i += 1) {
+    const a = Math.random() * Math.PI * 2;
+    const r0 = c * (0.08 + Math.random() * 0.1);
+    const r1 = r0 + c * 0.1;
+    ctx.strokeStyle = `rgba(${Math.random() > 0.5 ? '160,132,108' : '20,16,14'},${0.05 + Math.random() * 0.08})`;
+    ctx.lineWidth = 0.8 + Math.random();
+    ctx.beginPath();
+    ctx.moveTo(c + Math.cos(a) * r0, c + Math.sin(a) * r0);
+    ctx.lineTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1);
+    ctx.stroke();
+  }
+
+  // 主高光（偏左上），边缘柔一点
+  const hi = ctx.createRadialGradient(c * 0.72, c * 0.74, 0, c * 0.72, c * 0.74, c * 0.2);
   hi.addColorStop(0, 'rgba(255,255,255,1)');
-  hi.addColorStop(0.55, 'rgba(255,255,255,0.9)');
+  hi.addColorStop(0.5, 'rgba(255,255,255,0.92)');
   hi.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hi;
   ctx.beginPath();
-  ctx.arc(c * 0.72, c * 0.62, c * 0.3, 0, Math.PI * 2);
+  ctx.arc(c * 0.72, c * 0.74, c * 0.2, 0, Math.PI * 2);
   ctx.fill();
-  // 副高光
-  ctx.fillStyle = 'rgba(255,252,245,0.85)';
+
+  // 副高光（右下）
+  ctx.fillStyle = 'rgba(255,250,242,0.8)';
   ctx.beginPath();
-  ctx.arc(c * 1.28, c * 1.3, c * 0.1, 0, Math.PI * 2);
+  ctx.arc(c * 1.26, c * 1.28, c * 0.075, 0, Math.PI * 2);
   ctx.fill();
+
+  // 底部反光
+  const bounce = ctx.createRadialGradient(c * 1.05, c * 1.55, 0, c * 1.05, c * 1.55, c * 0.42);
+  bounce.addColorStop(0, 'rgba(214,196,180,0.28)');
+  bounce.addColorStop(1, 'rgba(214,196,180,0)');
+  ctx.fillStyle = bounce;
+  ctx.fillRect(0, 0, size, size);
   return canvas;
 }
 
@@ -399,7 +416,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.76;
+    renderer.toneMappingExposure = 0.86;
 
     const canvas = renderer.domElement;
     canvas.style.width = '100%';
@@ -438,7 +455,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         envMapIntensity: options.env ?? 0.3,
         // sheen 是织物/绒毛的掠射光：白毛在逆光边缘会亮出一层柔光，
         // 这是“塑料感”和“毛茸茸”之间最关键的一层
-        sheen: options.sheen ?? 0.6,
+        sheen: options.sheen ?? 0.12,
         sheenRoughness: options.sheenRough ?? 0.72,
         sheenColor: new Color(options.sheenColor ?? '#fff6ec'),
       };
@@ -489,19 +506,38 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     // 毛色改由顶点色承载：底色是暖白，靠 AO 与外壳绒毛托出体积
     const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 8.5, 0.95);
     const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 10.5, 0.8);
-    const matPink = furMaterial('#efb9c3', { bump: 0.005, roughness: 0.92, sheen: 0.5, sheenColor: '#ffe6ea' });
+    const matPink = furMaterial('#f2c6cd', { bump: 0.005, roughness: 0.94, sheen: 0.4, sheenColor: '#ffeef1' });
     const matNose = new MeshPhysicalMaterial({
       color: '#e6a2ad', roughness: 0.45, metalness: 0, clearcoat: 0.6, clearcoatRoughness: 0.35,
     });
-    const matMouth = new MeshStandardMaterial({ color: '#8d6a5c', roughness: 0.8, metalness: 0 });
+    const matMouth = new MeshStandardMaterial({ color: '#7a5b4d', roughness: 0.85, metalness: 0 });
     const eyeTexture = new CanvasTexture(makeEyeCanvas());
     eyeTexture.colorSpace = SRGBColorSpace;
-    const matEye = new MeshBasicMaterial({ map: eyeTexture, transparent: true, depthWrite: false });
+    // 眼球是真正的球：贴图按「物体法线 x/y」做正面投影，所以从哪个角度看，
+    // 虹膜都朝向前方，而不是一张贴纸浮在脸上。
+    const matEye = new MeshPhysicalMaterial({
+      color: 0xffffff, roughness: 0.42, metalness: 0, clearcoat: 0.12, clearcoatRoughness: 0.5,
+      envMapIntensity: 0.12,
+    });
+    matEye.onBeforeCompile = shader => {
+      shader.uniforms.eyeMap = { value: eyeTexture };
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vEyeNormal;')
+        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvEyeNormal = normalize(objectNormal);');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform sampler2D eyeMap;\nvarying vec3 vEyeNormal;')
+        .replace('#include <map_fragment>', `
+          vec2 eyeUv = clamp(vEyeNormal.xy * 0.5 + 0.5, vec2(0.001), vec2(0.999));
+          vec4 eyeTex = texture2D(eyeMap, eyeUv);
+          diffuseColor.rgb *= eyeTex.rgb;
+        `);
+    };
+    matEye.customProgramCacheKey = () => 'cat-eye-proj';
     const matHighlight = new MeshBasicMaterial({ color: '#fffdfa' });
     // 帽子与叶子：米色帆布 + 橄榄绿
-    const matHat = new MeshStandardMaterial({ color: '#e2d3b4', roughness: 0.95, metalness: 0, vertexColors: false });
-    const matHatBand = new MeshStandardMaterial({ color: '#d6c39f', roughness: 0.95, metalness: 0 });
-    const matLeaf = new MeshStandardMaterial({ color: '#a4b169', roughness: 0.75, metalness: 0 });
+    const matHat = new MeshStandardMaterial({ color: '#c9b48f', roughness: 0.95, metalness: 0, vertexColors: false });
+    const matHatBand = new MeshStandardMaterial({ color: '#b5a077', roughness: 0.95, metalness: 0 });
+    const matLeaf = new MeshStandardMaterial({ color: '#8b9752', roughness: 0.75, metalness: 0 });
     const matShadow = new MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: 0.55, depthWrite: false, color: '#8a7a6c' });
     materials.push(
       matBody, matHead, matPink, matNose, matMouth,
@@ -509,18 +545,18 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     );
 
     // ---- 光源 + 环境 ----
-    scene.add(new HemisphereLight(0xfff7ee, 0xd8c7b4, 0.42));
-    const keyLight = new DirectionalLight(0xfff2e2, 0.9);
+    scene.add(new HemisphereLight(0xfff7ee, 0xd8c7b4, 0.3));
+    const keyLight = new DirectionalLight(0xfff2e2, 0.6);
     keyLight.position.set(2.1, 3.6, 2.6);
     scene.add(keyLight);
-    const fillLight = new DirectionalLight(0xdfe9f5, 0.28);
+    const fillLight = new DirectionalLight(0xdfe9f5, 0.2);
     fillLight.position.set(-2.8, 1.6, -1.4);
     scene.add(fillLight);
     const bounceLight = new DirectionalLight(0xffeeda, 0.22);
     bounceLight.position.set(0.4, -1.2, 2.2);
     scene.add(bounceLight);
     // 背光勾边：白猫压在白色页面上，靠这层冷调轮廓光把剪影与绒毛边缘提出来
-    const rimLight = new DirectionalLight(0xe8f0ff, 0.3);
+    const rimLight = new DirectionalLight(0xe8f0ff, 0.22);
     rimLight.position.set(-1.6, 2.0, -2.8);
     scene.add(rimLight);
 
@@ -606,14 +642,14 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       new Vector3(0, noseY - 0.035, headSurfaceZ(0, noseY - 0.035) + 0.006),
       new Vector3(0, noseY - 0.052, headSurfaceZ(0, noseY - 0.052) + 0.005),
     ]);
-    head.add(new Mesh(taperedTube(philtrum, u => lerp(0.0055, 0.004, u), 6, 4), matMouth));
+    head.add(new Mesh(taperedTube(philtrum, u => lerp(0.0036, 0.0028, u), 6, 4), matMouth));
     [-1, 1].forEach(side => {
       const mouthCurve = new CatmullRomCurve3([
         new Vector3(0, noseY - 0.052, headSurfaceZ(0, noseY - 0.052) + 0.005),
-        new Vector3(side * 0.032, noseY - 0.066, headSurfaceZ(side * 0.032, noseY - 0.066) + 0.004),
-        new Vector3(side * 0.062, noseY - 0.058, headSurfaceZ(side * 0.062, noseY - 0.058) + 0.003),
+        new Vector3(side * 0.028, noseY - 0.06, headSurfaceZ(side * 0.028, noseY - 0.06) + 0.004),
+        new Vector3(side * 0.052, noseY - 0.05, headSurfaceZ(side * 0.052, noseY - 0.05) + 0.003),
       ]);
-      head.add(new Mesh(taperedTube(mouthCurve, () => 0.0055, 8, 4), matMouth));
+      head.add(new Mesh(taperedTube(mouthCurve, () => 0.0036, 10, 4), matMouth));
     });
 
     // ---- 眼睛：Q 版的大圆眼，深色玻璃珠 + 两颗高光 ----
@@ -631,21 +667,22 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       geo.computeVertexNormals();
       return geo;
     }
-    const eyeGeo = buildEyeGeometry(0.092);
+    const eyeGeo = new SphereGeometry(1, 36, 26);
     const eyeRigs = [];
     [-1, 1].forEach(side => {
-      const ex = side * 0.183;
-      const ey = -0.012;
+      const ex = side * 0.172;
+      const ey = 0.0;
       const surface = headSurfacePoint(ex, ey);
       const rig = new Group();
       rig.position.set(
-        ex + surface.normal.x * 0.026,
-        ey + surface.normal.y * 0.026,
-        surface.z + surface.normal.z * 0.026,
+        ex + surface.normal.x * 0.004,
+        ey + surface.normal.y * 0.004,
+        surface.z + surface.normal.z * 0.004,
       );
       head.add(rig);
 
       const eye = new Mesh(eyeGeo, matEye);
+      eye.scale.set(0.085, 0.085, 0.078);
       eye.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), surface.normal);
       rig.add(eye);
 
@@ -671,19 +708,19 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       pivot.add(blade);
 
       const ear = new Mesh(
-        tintGeometry(taperedTube(spine, u => lerp(0.2, 0.03, Math.pow(u, 0.95)), 20, 14), [0.66, 0.645, 0.64]),
+        tintGeometry(taperedTube(spine, u => lerp(0.2, 0.03, Math.pow(u, 0.95)), 20, 14), [0.32, 0.313, 0.31]),
         matHead,
       );
       ear.scale.z = 0.78;
       blade.add(ear);
 
       const innerShape = new Shape();
-      innerShape.moveTo(-0.082, 0.045);
-      innerShape.lineTo(0.082, 0.045);
-      innerShape.lineTo(side * 0.118, 0.285);
+      innerShape.moveTo(-0.07, 0.045);
+      innerShape.lineTo(0.07, 0.045);
+      innerShape.lineTo(side * 0.1, 0.245);
       innerShape.closePath();
       const inner = new Mesh(tintGeometry(new ShapeGeometry(innerShape, 4), [1, 1, 1]), matPink);
-      inner.position.set(0, 0, 0.1);
+      inner.position.set(0, -0.01, 0.098);
       inner.rotation.x = 0.16;
       blade.add(inner);
 
@@ -692,9 +729,9 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     // ---- 米色渔夫帽：帽冠 + 软帽檐 + 帽带 + 两片叶子 ----
     const hat = new Group();
-    hat.position.set(0, 0.352, 0.03);
+    hat.position.set(0, 0.318, 0.03);
     hat.rotation.z = 0.07;
-    hat.rotation.x = -0.1;
+    hat.rotation.x = -0.14;
     head.add(hat);
 
     // 帽体用一条车削母线一次成型：帽顶、帽墙、帽檐、檐口卷边都是连续曲面，
@@ -702,9 +739,9 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const hatProfile = [
       [0.0, 0.235], [0.06, 0.232], [0.115, 0.222], [0.155, 0.203],
       [0.178, 0.175], [0.187, 0.13], [0.19, 0.07], [0.193, 0.022],
-      [0.2, 0.008], [0.25, -0.012], [0.31, -0.044], [0.35, -0.072],
-      [0.375, -0.096], [0.366, -0.11], [0.33, -0.086], [0.28, -0.058],
-      [0.23, -0.03], [0.2, -0.014],
+      [0.2, 0.008], [0.238, -0.006], [0.275, -0.03], [0.302, -0.055],
+      [0.318, -0.074], [0.31, -0.09], [0.286, -0.066], [0.252, -0.04],
+      [0.23, -0.03], [0.195, 0.0], [0.188, 0.012],
     ];
     const hatGeo = new LatheGeometry(hatProfile.map(([r, y]) => new Vector2(r, y)), 64);
     hatGeo.computeVertexNormals();

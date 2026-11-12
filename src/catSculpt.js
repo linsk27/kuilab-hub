@@ -94,10 +94,10 @@ export function headSdf(x, y, z) {
 }
 
 // ---- 毛色 ----
-const FUR_GRAY = [0.52, 0.51, 0.505];
-const FUR_GRAY_DARK = [0.2, 0.19, 0.19];
-const FUR_CREAM = [0.82, 0.77, 0.69];
-const FUR_CREAM_LIGHT = [0.9, 0.86, 0.79];
+const FUR_GRAY = [0.31, 0.303, 0.3];
+const FUR_GRAY_DARK = [0.13, 0.125, 0.125];
+const FUR_CREAM = [0.56, 0.52, 0.44];
+const FUR_CREAM_LIGHT = [0.66, 0.62, 0.55];
 const BLUSH = [1, 0.76, 0.74];
 
 function smoothstep(edge0, edge1, x) {
@@ -146,10 +146,10 @@ function headTint(x, y, z) {
   const [hx, hy, hz] = HEAD_CENTER;
   let color = FUR_GRAY;
   // 口鼻与下巴：一大片奶油色，竖椭圆
-  const mx = (x - hx) / 0.235;
-  const my = (y - (hy - 0.15)) / 0.185;
-  const mz = (z - (hz + 0.3)) / 0.2;
-  const muzzle = smoothstep(1.15, 0.5, Math.sqrt(mx * mx + my * my + mz * mz));
+  const mx = (x - hx) / 0.165;
+  const my = (y - (hy - 0.185)) / 0.125;
+  const mz = (z - (hz + 0.31)) / 0.16;
+  const muzzle = smoothstep(1.12, 0.45, Math.sqrt(mx * mx + my * my + mz * mz));
   color = blend(color, FUR_CREAM_LIGHT, muzzle);
   // 虎斑：展板上只有很淡的几道，缩到 144px 会变成脸上的“折痕”，这里只留一点点
   color = blend(color, FUR_GRAY_DARK, headStripes(x, y, z) * 0.28);
