@@ -293,6 +293,33 @@ function springStep(current, velocity, target, stiffness, damping, dt) {
   return [c, v];
 }
 
+// 三平面投影：雕刻网格的 UV 是断的，用三向投影取噪声就不会被撕开。
+// 只做颜色层的轻微起伏，不改变几何。
+function applyTriplanar(material, texture, scale = 2.2, strength = 1.5) {
+  material.onBeforeCompile = shader => {
+    shader.uniforms.triMap = { value: texture };
+    shader.uniforms.triScale = { value: scale };
+    shader.uniforms.triStrength = { value: strength };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTriPos;\nvarying vec3 vTriNormal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvTriPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvTriNormal = normalize(mat3(modelMatrix) * normal);');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform sampler2D triMap;\nuniform float triScale;\nuniform float triStrength;\nvarying vec3 vTriPos;\nvarying vec3 vTriNormal;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+        vec3 triW = pow(abs(normalize(vTriNormal)), vec3(6.0));
+        triW /= max(triW.x + triW.y + triW.z, 1e-4);
+        vec3 triP = vTriPos * triScale;
+        float triFur = texture2D(triMap, triP.zy).r * triW.x
+                     + texture2D(triMap, triP.xz).r * triW.y
+                     + texture2D(triMap, triP.xy).r * triW.z;
+        diffuseColor.rgb *= 1.0 + (triFur - 0.95) * triStrength;
+      `);
+  };
+  material.customProgramCacheKey = () => 'cat-triplanar';
+  material.needsUpdate = true;
+  return material;
+}
+
 export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
   const hostRef = useRef(null);
   const onPetRef = useRef(onPet);
@@ -371,15 +398,15 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     const materials = [];
     // 毛色改由顶点色承载：底色接近白，白斑与身体色都写进顶点
-    const matBody = furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 });
-    const matHead = furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 });
+    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 }), furMap, 15.0, 2.6);
+    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 }), furMap, 19.0, 1.9);
     const matPink = furMaterial('#e8a7b1', { bump: 0.006, roughness: 0.9 });
     const matNose = new MeshPhysicalMaterial({
       color: '#d48792', roughness: 0.42, metalness: 0, clearcoat: 0.85, clearcoatRoughness: 0.3,
     });
     const matMouth = new MeshStandardMaterial({ color: '#a97f70', roughness: 0.7, metalness: 0 });
     const matWhisker = new MeshStandardMaterial({
-      color: '#cbb8a6', roughness: 0.85, metalness: 0, transparent: true, opacity: 0.8,
+      color: '#c2ad99', roughness: 0.85, metalness: 0, transparent: true, opacity: 0.55,
     });
     const matEye = new MeshPhysicalMaterial({
       color: '#3c2d26', roughness: 0.16, metalness: 0, clearcoat: 0.55,
@@ -424,14 +451,14 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     scene.add(shadow);
 
     // ---- 身体与头：先定义体积，再多边形化，交界处是融合而非拼接 ----
-    const bodyMesh = new Mesh(buildBodyGeometry(0.027), matBody);
+    const bodyMesh = new Mesh(buildBodyGeometry(0.023), matBody);
     bounceGroup.add(bodyMesh);
 
     const head = new Group();
     head.position.set(HEAD_CENTER[0], HEAD_CENTER[1], HEAD_CENTER[2]);
     bounceGroup.add(head);
 
-    const headMesh = new Mesh(buildHeadGeometry(0.021), matHead);
+    const headMesh = new Mesh(buildHeadGeometry(0.0175), matHead);
     head.add(headMesh);
 
     const nose = new Mesh(roundedBox(0.088, 0.062, 0.048, 0.022, 2), matNose);
@@ -602,7 +629,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     }
     tipGeo.setAttribute('color', new BufferAttribute(tipColors, 3));
     const tailTip = new Mesh(tipGeo, tailMat);
-    tailTip.scale.setScalar(0.052);
+    tailTip.scale.setScalar(0.045);
     bounceGroup.add(tailTip);
 
     const tailCenter = new Vector3();
@@ -656,13 +683,13 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     // ---- 胡须 ----
     [-1, 1].forEach(side => {
       for (let i = 0; i < 3; i += 1) {
-        const startY = -0.145 - i * 0.02;
+        const startY = -0.135 - i * 0.018;
         const curve = new CatmullRomCurve3([
-          new Vector3(side * 0.1, startY, 0.362),
-          new Vector3(side * 0.32, startY + 0.028 + i * 0.006, 0.335),
-          new Vector3(side * 0.52, startY + 0.066 + i * 0.012, 0.262),
+          new Vector3(side * 0.095, startY, 0.363),
+          new Vector3(side * 0.26, startY + 0.012 - i * 0.004, 0.35),
+          new Vector3(side * 0.42, startY - 0.012 - i * 0.012, 0.3),
         ]);
-        head.add(new Mesh(taperedTube(curve, u => lerp(0.009, 0.0024, u), 12, 4), matWhisker));
+        head.add(new Mesh(taperedTube(curve, u => lerp(0.0042, 0.0011, u), 12, 4), matWhisker));
       }
     });
 
