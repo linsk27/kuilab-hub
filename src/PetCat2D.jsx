@@ -27,9 +27,12 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   onPetRef.current = onPet;
 
   const seenSignal = useRef(petSignal);
+  const faceTimer = useRef(0);
+  const petCount = useRef(0);
   const [blink, setBlink] = useState(false);
   const [act, setAct] = useState('');
   const [purring, setPurring] = useState(false);
+  const [face, setFace] = useState('');
   const [ready, setReady] = useState(false);
 
   // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入
@@ -53,7 +56,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const s = {
-      dragging: false, moved: 0, lastX: 0, lastY: 0, lastT: 0,
+      dragging: false, moved: 0, purred: false, lastX: 0, lastY: 0, lastT: 0,
       ty: 0, tx: 0, y: 0, x: 0, vy: 0, vx: 0,
       gx: 0, gy: 0, gtx: 0, gty: 0,
       hover: 0, hoverT: 0,
@@ -120,6 +123,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       if (event.button !== undefined && event.button > 0) return;
       s.dragging = true;
       s.moved = 0;
+      s.purred = false;
       s.lastX = event.clientX;
       s.lastY = event.clientY;
       s.lastT = performance.now();
@@ -127,6 +131,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       // 按住不动 = 摸它，会眯眼打呼
       pressTimer = window.setTimeout(() => {
         if (s.moved < 12) {
+          s.purred = true;      // 长按算抚摸，松手时不要再当成“点了一下”
           setPurring(true);
           onPetRef.current?.();
         }
@@ -151,8 +156,14 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       s.dragging = false;
       window.clearTimeout(pressTimer);
       setPurring(false);
-      if (s.moved < 6) {
+      if (s.moved < 6 && !s.purred) {
         s.lift = 1;
+        // 第五次摸它才给笑脸，其余是“被点了一下”的惊讶
+        petCount.current += 1;
+        const happy = petCount.current % 5 === 0;
+        setFace(happy ? 'happy' : 'surprised');
+        window.clearTimeout(faceTimer.current);
+        faceTimer.current = window.setTimeout(() => setFace(''), happy ? 2200 : 1300);
         onPetRef.current?.();
       }
       s.ty = 0;
@@ -224,6 +235,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       alive = false;
       window.clearTimeout(off);
       window.clearTimeout(on);
+      window.clearTimeout(faceTimer.current);
     };
   }, []);
 
@@ -257,10 +269,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     if (petSignal === seenSignal.current) return;
     seenSignal.current = petSignal;
     // 每摸三次，它先抬手挥两下
-    if (petSignal > 0 && petSignal % 3 === 0) {
-      setAct('wave');
-      window.setTimeout(() => setAct(current => (current === 'wave' ? '' : current)), 1500);
-    }
     const wrap = wrapRef.current;
     if (!wrap || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     wrap.getAnimations().forEach(animation => animation.cancel());
@@ -285,6 +293,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       aria-label="摸摸小猫：单击会跳，按住会打呼，拖动可以转动"
       title="摸摸我"
       data-act={act || undefined}
+      data-face={purring ? 'shy' : face || undefined}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -317,6 +326,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
                   className={`pet-2d-sprite pet-2d-sprite-blink ${blinking ? 'on' : ''}`}
                   aria-hidden="true"
                 />
+                <span className="pet-2d-face" aria-hidden="true" />
               </span>
             </span>
             </span>
