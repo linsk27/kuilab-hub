@@ -260,26 +260,91 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .cat-companion{position:fixed}
 }
 
-/* ---- 2D 小猫（IP 渲染图 + CSS 动效） ---- */
-.cat-companion.is-2d{width:152px;height:166px;right:-30px;bottom:-10px}
-.pet-2d{position:relative;width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent;display:flex;align-items:flex-end;justify-content:center}
+/* ---- 2D 小猫（IP 渲染图分层 + 阴影伪 3D） ---- */
+/* 头、身、投影是三层，各自能被 JS 独立驱动：
+   身体转动时头会多探出一点（视差），投影随之收窄变形，靠这三者的差速“骗”出体积。 */
+.cat-companion.is-2d{width:150px;height:187px;right:-26px;bottom:-10px}
+.pet-2d{position:relative;width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent}
 .pet-2d:active{cursor:grabbing}
-.pet-2d:focus-visible{outline:2px solid var(--focus);outline-offset:4px;border-radius:12px}
-.pet-2d-tilt{width:100%;display:flex;justify-content:center;transform-style:preserve-3d;will-change:transform}
-.pet-2d-breathe{position:relative;display:block;width:100%;animation:cat-breathe 4.6s ease-in-out infinite;transform-origin:50% 96%}
-.pet-2d-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
-.pet-2d-blink{position:absolute;inset:0;opacity:0;transition:opacity 55ms linear}
+.pet-2d:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:14px}
+
+/* 地面：远处的大软影 + 脚底的小深影，两层差速才有“离地/贴地”的区别 */
+.pet-2d-cast{position:absolute;left:0;right:0;bottom:-2px;width:70%;height:14px;margin:0 auto;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 50%,rgba(84,66,50,.34),rgba(84,66,50,.14) 56%,rgba(84,66,50,0) 76%);
+  filter:blur(2.6px);pointer-events:none;will-change:transform,opacity}
+.pet-2d-contact{position:absolute;left:0;right:0;bottom:1px;width:38%;height:7px;margin:0 auto;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 50%,rgba(68,52,38,.5),rgba(68,52,38,.16) 58%,rgba(68,52,38,0) 74%);
+  filter:blur(1px);pointer-events:none;will-change:transform,opacity}
+
+.pet-2d-stage-wrap{position:absolute;inset:0;display:block;transform-origin:50% 96%;will-change:transform}
+.pet-2d-stage{position:relative;display:block;width:100%;height:100%;transform-style:preserve-3d;transform-origin:50% 92%;will-change:transform;opacity:0;transition:opacity .3s ease;
+  filter:drop-shadow(0 3px 4px rgba(74,56,40,.18))}
+/* 呼吸必须包住头与身两层：只缩身体的话，脖子那条切口会裂开露出浅色断面 */
+.pet-2d-breathe{position:absolute;inset:0;display:block;transform-origin:50% 96%;animation:cat-breathe 4.6s ease-in-out infinite}
+/* 待机动作主要靠整只猫的倾斜来表达：头单独转多了，颈部切口会错开露出底下的背景 */
+.pet-2d-sway{position:absolute;inset:0;display:block;transform-origin:50% 93%}
+.pet-2d.is-ready .pet-2d-stage{opacity:1}
+.pet-2d-layer{position:absolute;inset:0;pointer-events:none;will-change:transform}
+.pet-2d-layer img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;
+  user-select:none;-webkit-user-drag:none}
+/* 切口的柔影加在整只猫上（stage），不能加在头层上，否则切面会投出一条横黑线 */
+.pet-2d-head{transform-origin:50% 57.7%;z-index:2}
+.pet-2d-body{z-index:1}
+.pet-2d-head-motion{position:absolute;inset:0;display:block;transform-origin:50% 57.7%}
+.pet-2d-blink{opacity:0;transition:opacity 60ms linear}
 .pet-2d-blink.on{opacity:1}
-.pet-2d-shadow{position:absolute;left:50%;bottom:2px;width:64%;height:13px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse at center,rgba(96,84,72,.26),rgba(96,84,72,.1) 55%,rgba(96,84,72,0) 72%);filter:blur(1px)}
+
+/* 待机小动作：整体先动，头再叠一点点，读起来是“猫在动”而不是“头在飘” */
+.pet-2d[data-act="tilt"] .pet-2d-sway{animation:cat-tilt 1.55s cubic-bezier(.34,1.3,.5,1)}
+.pet-2d[data-act="tilt"] .pet-2d-head-motion{animation:cat-tilt-head 1.55s cubic-bezier(.34,1.3,.5,1)}
+.pet-2d[data-act="perk"] .pet-2d-sway{animation:cat-perk 1.35s ease-in-out}
+.pet-2d[data-act="perk"] .pet-2d-head-motion{animation:cat-perk-head 1.35s ease-in-out}
+.pet-2d[data-act="shake"] .pet-2d-sway{animation:cat-shake .72s ease-in-out}
+.pet-2d.is-purring .pet-2d-stage-wrap{animation:cat-purr .3s ease-in-out infinite}
+
 @keyframes cat-breathe{
   0%,100%{transform:scale(1,1) translateY(0)}
-  45%{transform:scale(1.012,.988) translateY(1px)}
+  45%{transform:scale(1.013,.986) translateY(1px)}
   70%{transform:scale(.997,1.004) translateY(-1px)}
 }
-@media(prefers-reduced-motion:reduce){.pet-2d-breathe{animation:none}}
+@keyframes cat-tilt{
+  0%,100%{transform:rotate(0) translateY(0)}
+  24%,66%{transform:rotate(-3.6deg) translateY(-0.5px)}
+}
+@keyframes cat-tilt-head{
+  0%,100%{transform:rotate(0)}
+  24%,66%{transform:rotate(-1.6deg)}
+}
+@keyframes cat-perk{
+  0%,100%{transform:translateY(0)}
+  26%,58%{transform:translateY(-3.5px)}
+}
+@keyframes cat-perk-head{
+  0%,100%{transform:translateY(0) rotate(0)}
+  26%,58%{transform:translateY(-1.5px) rotate(1deg)}
+}
+@keyframes cat-shake{
+  0%,100%{transform:translateX(0) rotate(0)}
+  14%{transform:translateX(-2.4px) rotate(-1.2deg)}
+  30%{transform:translateX(2.4px) rotate(1.2deg)}
+  46%{transform:translateX(-1.6px) rotate(-.8deg)}
+  62%{transform:translateX(1.2px) rotate(.5deg)}
+  80%{transform:translateX(-.5px)}
+}
+@keyframes cat-purr{
+  0%,100%{transform:translateY(0) scale(1,1)}
+  50%{transform:translateY(1px) scale(1.018,.982)}
+}
+@media(prefers-reduced-motion:reduce){
+  .pet-2d-breathe{animation:none}
+  .pet-2d[data-act] .pet-2d-sway,
+  .pet-2d[data-act] .pet-2d-head-motion{animation:none}
+  .pet-2d.is-purring .pet-2d-stage-wrap{animation:none}
+}
 @media(max-width:767px){
-  .cat-companion.is-2d{width:108px;height:121px;right:-2px;bottom:calc(4px + env(safe-area-inset-bottom))}
-  .pet-2d-shadow{height:10px}
+  .cat-companion.is-2d{width:108px;height:135px;right:2px;bottom:calc(10px + env(safe-area-inset-bottom))}
+  .pet-2d-cast{height:11px}
+  .pet-2d-contact{height:6px}
 }
 
 /* ---- 3D 小猫 ---- */
