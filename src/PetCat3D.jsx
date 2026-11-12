@@ -675,9 +675,9 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       const surface = headSurfacePoint(ex, ey);
       const rig = new Group();
       rig.position.set(
-        ex + surface.normal.x * 0.004,
-        ey + surface.normal.y * 0.004,
-        surface.z + surface.normal.z * 0.004,
+        ex + surface.normal.x * -0.026,
+        ey + surface.normal.y * -0.026,
+        surface.z + surface.normal.z * -0.026,
       );
       head.add(rig);
 
@@ -695,11 +695,11 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       const spine = new CatmullRomCurve3([
         new Vector3(0, 0, 0),
         new Vector3(side * 0.085, 0.2, -0.006),
-        new Vector3(side * 0.145, 0.33, -0.018),
+        new Vector3(side * 0.155, 0.345, -0.018),
       ]);
       const pivot = new Group();
-      pivot.position.set(side * 0.178, 0.245, -0.02);
-      pivot.rotation.z = side * -0.19;
+      pivot.position.set(side * 0.235, 0.285, -0.02);
+      pivot.rotation.z = side * -0.26;
       pivot.rotation.x = -0.05;
       head.add(pivot);
 
@@ -708,7 +708,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       pivot.add(blade);
 
       const ear = new Mesh(
-        tintGeometry(taperedTube(spine, u => lerp(0.2, 0.03, Math.pow(u, 0.95)), 20, 14), [0.32, 0.313, 0.31]),
+        tintGeometry(taperedTube(spine, u => lerp(0.215, 0.03, Math.pow(u, 0.7)), 26, 16), [0.32, 0.313, 0.31]),
         matHead,
       );
       ear.scale.z = 0.78;
@@ -729,28 +729,85 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     // ---- 米色渔夫帽：帽冠 + 软帽檐 + 帽带 + 两片叶子 ----
     const hat = new Group();
-    hat.position.set(0, 0.318, 0.03);
+    hat.position.set(0, 0.3, 0.03);
     hat.rotation.z = 0.07;
-    hat.rotation.x = -0.14;
+    hat.rotation.x = -0.06;
     head.add(hat);
 
     // 帽体用一条车削母线一次成型：帽顶、帽墙、帽檐、檐口卷边都是连续曲面，
     // 不再是“圆柱 + 圆盘”两块硬边拼起来。
-    const hatProfile = [
-      [0.0, 0.235], [0.06, 0.232], [0.115, 0.222], [0.155, 0.203],
-      [0.178, 0.175], [0.187, 0.13], [0.19, 0.07], [0.193, 0.022],
-      [0.2, 0.008], [0.238, -0.006], [0.275, -0.03], [0.302, -0.055],
-      [0.318, -0.074], [0.31, -0.09], [0.286, -0.066], [0.252, -0.04],
-      [0.23, -0.03], [0.195, 0.0], [0.188, 0.012],
+    // 帽冠：一条母线车削，帽顶到帽墙根部连续
+    const crownProfile = [
+      [0.0, 0.25], [0.07, 0.247], [0.13, 0.236], [0.17, 0.215],
+      [0.192, 0.185], [0.203, 0.135], [0.207, 0.075], [0.21, 0.02], [0.212, 0.004],
     ];
-    const hatGeo = new LatheGeometry(hatProfile.map(([r, y]) => new Vector2(r, y)), 64);
+    const hatGeo = new LatheGeometry(crownProfile.map(([r, y]) => new Vector2(r, y)), 64);
     hatGeo.computeVertexNormals();
     const hatBody = new Mesh(hatGeo, matHat);
     hat.add(hatBody);
 
+    // 帽檐：不是正圆盘。两侧（耳朵所在方向）收窄并向上翻，
+    // 前后（z 方向）放开成正常的宽檐——这样帽檐正好绕开耳朵，不会穿模。
+    function buildBrimGeometry(innerR, outerFront, outerSide, dropFront, liftSide, thickness) {
+      const SEGMENTS = 72;
+      const RINGS = 5;
+      const positions = [];
+      const indices = [];
+      const radiusAt = theta => {
+        const s = Math.abs(Math.sin(theta));
+        return outerSide + (outerFront - outerSide) * Math.pow(s, 0.8);
+      };
+      const heightAt = theta => {
+        const s = Math.abs(Math.sin(theta));
+        return -liftSide - (dropFront - liftSide) * Math.pow(s, 1.2);
+      };
+      // 上表面 + 下表面
+      for (let side = 0; side < 2; side += 1) {
+        const yOffset = side === 0 ? 0 : -thickness;
+        for (let i = 0; i <= SEGMENTS; i += 1) {
+          const theta = (i / SEGMENTS) * Math.PI * 2;
+          const rOuter = radiusAt(theta);
+          const yOuter = heightAt(theta);
+          for (let j = 0; j <= RINGS; j += 1) {
+            const t = j / RINGS;
+            const r = innerR + (rOuter - innerR) * t;
+            // 檐口略微上卷
+            const y = yOuter * Math.pow(t, 1.15) + 0.002 * Math.sin(t * Math.PI) + yOffset;
+            positions.push(Math.cos(theta) * r, y, Math.sin(theta) * r);
+          }
+        }
+      }
+      const stride = (SEGMENTS + 1) * (RINGS + 1);
+      for (let side = 0; side < 2; side += 1) {
+        for (let i = 0; i < SEGMENTS; i += 1) {
+          for (let j = 0; j < RINGS; j += 1) {
+            const a = side * stride + i * (RINGS + 1) + j;
+            const b = a + RINGS + 1;
+            if (side === 0) indices.push(a, b, a + 1, b, b + 1, a + 1);
+            else indices.push(a, a + 1, b, b, a + 1, b + 1);
+          }
+        }
+      }
+      // 檐口外沿把上下两片缝起来
+      for (let i = 0; i < SEGMENTS; i += 1) {
+        const topA = i * (RINGS + 1) + RINGS;
+        const topB = (i + 1) * (RINGS + 1) + RINGS;
+        const botA = stride + topA;
+        const botB = stride + topB;
+        indices.push(topA, botA, topB, topB, botA, botB);
+      }
+      const geo = new BufferGeometry();
+      geo.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+    const brimMesh = new Mesh(buildBrimGeometry(0.205, 0.335, 0.335, 0.07, 0.07, 0.022), matHat);
+    hat.add(brimMesh);
+
     // 帽带：贴在帽墙上的一圈窄带，半径与帽墙一致，不再像套了个呼啦圈
     const bandProfile = [
-      [0.181, 0.062], [0.188, 0.058], [0.19, 0.045], [0.188, 0.03], [0.181, 0.026],
+      [0.196, 0.07], [0.203, 0.064], [0.205, 0.05], [0.203, 0.034], [0.196, 0.028],
     ];
     const bandGeo = new LatheGeometry(bandProfile.map(([r, y]) => new Vector2(r, y)), 48);
     const band = new Mesh(bandGeo, matHatBand);
