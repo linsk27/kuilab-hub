@@ -33,6 +33,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
 
   const seenSignal = useRef(petSignal);
   const faceTimer = useRef(0);
+  const faceReady = useRef(false);
+  const pendingFace = useRef(null);
   const petCount = useRef(0);
   const [blink, setBlink] = useState(false);
   const [act, setAct] = useState('');
@@ -40,6 +42,12 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [purring, setPurring] = useState(false);
   const [face, setFace] = useState('');
   const [ready, setReady] = useState(false);
+
+  function showFace(name, hold) {
+    setFace(name);
+    window.clearTimeout(faceTimer.current);
+    faceTimer.current = window.setTimeout(() => setFace(''), hold);
+  }
 
   // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入。
   // 表情帧挂载后就预取（第一次点它时要立刻有反应）；招手帧等指针靠近再取，不急。
@@ -55,7 +63,17 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       img.decoding = 'async';
       img.src = src;
     };
-    warm('/cat/cat-face.webp');
+    // 表情帧是整只猫的一帧，还没下载完就点它的话，先挂起，落地后再补放
+    const faceImg = new Image();
+    faceImg.decoding = 'async';
+    faceImg.onload = () => {
+      faceReady.current = true;
+      const p = pendingFace.current;
+      pendingFace.current = null;
+      if (p && performance.now() - p.at < 1800) showFace(p.name, p.hold);
+    };
+    faceImg.src = '/cat/cat-face.webp';
+    if (faceImg.complete) faceReady.current = true;
 
     let upTimer = 0;
     if ('requestIdleCallback' in window) {
@@ -193,9 +211,10 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         // 第五次摸它才给笑脸，其余是“被点了一下”的惊讶
         petCount.current += 1;
         const happy = petCount.current % 5 === 0;
-        setFace(happy ? 'happy' : 'surprised');
-        window.clearTimeout(faceTimer.current);
-        faceTimer.current = window.setTimeout(() => setFace(''), happy ? 2200 : 1300);
+        const name = happy ? 'happy' : 'surprised';
+        const hold = happy ? 2200 : 1300;
+        if (faceReady.current) showFace(name, hold);
+        else pendingFace.current = { name, hold, at: performance.now() };
         onPetRef.current?.();
       }
       s.ty = 0;
