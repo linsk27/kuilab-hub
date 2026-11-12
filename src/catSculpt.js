@@ -316,7 +316,8 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
   if (!count) return null;
 
   smoothPositions(positions, indices, 0.34);
-  smoothPositions(positions, indices, 0.22);
+  smoothPositions(positions, indices, 0.24);
+  smoothPositions(positions, indices, 0.14);
 
   const positionArray = new Float32Array(positions);
   const normalArray = new Float32Array(count * 3);
@@ -408,11 +409,11 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
   return geometry;
 }
 
-export function buildBodyGeometry(voxel = 0.02) {
+export function buildBodyGeometry(voxel = 0.013) {
   return polygonize(bodySdf, [-0.78, -0.02, -0.62], [0.78, 0.94, 0.62], voxel, [0, 0, 0], bodyTint);
 }
 
-export function buildHeadGeometry(voxel = 0.014) {
+export function buildHeadGeometry(voxel = 0.0105) {
   const [cx, cy, cz] = HEAD_CENTER;
   return polygonize(headSdf, [cx - 0.66, 0.56, cz - 0.56], [cx + 0.66, 1.62, cz + 0.56], voxel, HEAD_CENTER, headTint);
 }

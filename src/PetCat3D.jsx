@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import {
   Scene, PerspectiveCamera, WebGLRenderer, Group, Mesh,
   BoxGeometry, SphereGeometry, CylinderGeometry, Shape, ShapeGeometry,
-  CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute, ExtrudeGeometry,
-  Vector3, CatmullRomCurve3, MathUtils, Color,
+  CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute, ExtrudeGeometry, LatheGeometry,
+  Vector2, Vector3, CatmullRomCurve3, MathUtils, Color,
   MeshStandardMaterial, MeshPhysicalMaterial, MeshBasicMaterial,
   CanvasTexture, SRGBColorSpace, EquirectangularReflectionMapping, PMREMGenerator,
   RepeatWrapping, ACESFilmicToneMapping,
@@ -431,7 +431,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     function furMaterial(color, options = {}) {
       const base = {
         color: new Color(color),
-        bumpScale: options.bump ?? 0.012,
+        bumpScale: options.bump ?? 0.007,
         roughness: options.roughness ?? 1,
         metalness: 0,
         vertexColors: true,
@@ -452,35 +452,11 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       return new MeshPhysicalMaterial(base);
     }
 
-    // 绒毛外壳：同一份雕刻网格沿法线外扩，外扩量按世界坐标噪声起伏，
-    // 掠射角才透出，于是剪影不是一条硬边，而是有毛尖起伏的绒边。
-    // 这是小尺寸下唯一还看得清的“毛感”。
-    const FUZZ_NOISE = `
-      float hash31(vec3 p) {
-        p = fract(p * 0.3183099 + vec3(0.11, 0.17, 0.13));
-        p *= 17.0;
-        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-      }
-      float vnoise(vec3 p) {
-        vec3 i = floor(p);
-        vec3 f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-        float n000 = hash31(i);
-        float n100 = hash31(i + vec3(1.0, 0.0, 0.0));
-        float n010 = hash31(i + vec3(0.0, 1.0, 0.0));
-        float n110 = hash31(i + vec3(1.0, 1.0, 0.0));
-        float n001 = hash31(i + vec3(0.0, 0.0, 1.0));
-        float n101 = hash31(i + vec3(1.0, 0.0, 1.0));
-        float n011 = hash31(i + vec3(0.0, 1.0, 1.0));
-        float n111 = hash31(i + vec3(1.0, 1.0, 1.0));
-        return mix(mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y),
-                   mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y), f.z);
-      }
-    `;
-
+    // 绒毛外壳：同一份雕刻网格沿法线外扩一点点，只在掠射角透出一层极薄的柔光。
+    // 之前用噪声镂空做毛边，放大看是碎的；布偶要的是“干净边缘 + 一点点柔化”。
     function makeFuzzShell(geometry, offset, strength) {
       const material = new MeshPhysicalMaterial({
-        color: new Color('#ece4d9'),
+        color: new Color('#e8dfd2'),
         roughness: 1,
         metalness: 0,
         transparent: true,
@@ -494,22 +470,13 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         shader.uniforms.fuzzOffset = { value: offset };
         shader.uniforms.fuzzStrength = { value: strength };
         shader.vertexShader = shader.vertexShader
-          .replace('#include <common>', `#include <common>
-            uniform float fuzzOffset;
-            varying float vFuzz;
-            ${FUZZ_NOISE}`)
-          .replace('#include <begin_vertex>', `#include <begin_vertex>
-            vec4 fuzzWorld = modelMatrix * vec4(transformed, 1.0);
-            float fuzzN = vnoise(fuzzWorld.xyz * 26.0) * 0.82 + vnoise(fuzzWorld.xyz * 74.0) * 0.18;
-            vFuzz = fuzzN;
-            transformed += normalize(objectNormal) * fuzzOffset * (0.25 + 1.35 * fuzzN);`);
+          .replace('#include <common>', '#include <common>\nuniform float fuzzOffset;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += normalize(objectNormal) * fuzzOffset;');
         shader.fragmentShader = shader.fragmentShader
-          .replace('#include <common>', '#include <common>\nuniform float fuzzStrength;\nvarying float vFuzz;')
+          .replace('#include <common>', '#include <common>\nuniform float fuzzStrength;')
           .replace('#include <dithering_fragment>', `#include <dithering_fragment>
             float fuzzRim = 1.0 - abs(dot(normalize(normal), normalize(vViewPosition)));
-            float fuzzSoft = smoothstep(0.2, 0.8, vFuzz);
-            float fuzzA = smoothstep(0.46, 1.0, fuzzRim) * (0.55 + 0.7 * fuzzSoft);
-            gl_FragColor.a *= clamp(fuzzA, 0.0, 1.0) * fuzzStrength;
+            gl_FragColor.a *= smoothstep(0.55, 1.0, fuzzRim) * fuzzStrength;
           `);
       };
       material.customProgramCacheKey = () => `cat-fuzz-${offset.toFixed(3)}`;
@@ -520,8 +487,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     const materials = [];
     // 毛色改由顶点色承载：底色是暖白，靠 AO 与外壳绒毛托出体积
-    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 8.5, 1.85);
-    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 10.5, 1.5);
+    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 8.5, 0.95);
+    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 10.5, 0.8);
     const matPink = furMaterial('#efb9c3', { bump: 0.005, roughness: 0.92, sheen: 0.5, sheenColor: '#ffe6ea' });
     const matNose = new MeshPhysicalMaterial({
       color: '#e6a2ad', roughness: 0.45, metalness: 0, clearcoat: 0.6, clearcoatRoughness: 0.35,
@@ -535,7 +502,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const matHat = new MeshStandardMaterial({ color: '#e2d3b4', roughness: 0.95, metalness: 0, vertexColors: false });
     const matHatBand = new MeshStandardMaterial({ color: '#d6c39f', roughness: 0.95, metalness: 0 });
     const matLeaf = new MeshStandardMaterial({ color: '#a4b169', roughness: 0.75, metalness: 0 });
-    const matShadow = new MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: 1, depthWrite: false, color: '#6d5747' });
+    const matShadow = new MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: 0.55, depthWrite: false, color: '#8a7a6c' });
     materials.push(
       matBody, matHead, matPink, matNose, matMouth,
       matEye, matHighlight, matHat, matHatBand, matLeaf, matShadow,
@@ -568,28 +535,28 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     cat.add(bounceGroup);
 
     // 接触阴影单独挂在场景上，不跟着猫旋转
-    const shadow = new Mesh(new PlaneGeometry(1.5, 1.15), matShadow);
+    const shadow = new Mesh(new PlaneGeometry(1.7, 1.3), matShadow);
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.set(0, 0.012, 0.04);
     scene.add(shadow);
 
     // ---- 身体：短身圆肚，四肢是融合出来的，不是插上去的 ----
-    const bodyGeo = buildBodyGeometry(0.017);
+    const bodyGeo = buildBodyGeometry(0.013);
     const bodyMesh = new Mesh(bodyGeo, matBody);
     bounceGroup.add(bodyMesh);
-    bounceGroup.add(makeFuzzShell(bodyGeo, 0.008, 0.32));
-    bounceGroup.add(makeFuzzShell(bodyGeo, 0.02, 0.15));
+    bounceGroup.add(makeFuzzShell(bodyGeo, 0.006, 0.3));
+    bounceGroup.add(makeFuzzShell(bodyGeo, 0.016, 0.12));
 
     // ---- 头：比身子还大的圆头 ----
     const head = new Group();
     head.position.set(HEAD_CENTER[0], HEAD_CENTER[1], HEAD_CENTER[2]);
     bounceGroup.add(head);
 
-    const headGeo = buildHeadGeometry(0.0125);
+    const headGeo = buildHeadGeometry(0.0105);
     const headMesh = new Mesh(headGeo, matHead);
     head.add(headMesh);
-    head.add(makeFuzzShell(headGeo, 0.007, 0.3));
-    head.add(makeFuzzShell(headGeo, 0.017, 0.14));
+    head.add(makeFuzzShell(headGeo, 0.005, 0.28));
+    head.add(makeFuzzShell(headGeo, 0.014, 0.11));
 
     // 沿 -Z 方向探到头部的表面深度：眼睛、鼻子这类贴面物件靠它贴准
     function headSurfaceZ(localX, localY) {
@@ -691,7 +658,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       const spine = new CatmullRomCurve3([
         new Vector3(0, 0, 0),
         new Vector3(side * 0.085, 0.2, -0.006),
-        new Vector3(side * 0.132, 0.295, -0.018),
+        new Vector3(side * 0.145, 0.33, -0.018),
       ]);
       const pivot = new Group();
       pivot.position.set(side * 0.178, 0.245, -0.02);
@@ -704,10 +671,10 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       pivot.add(blade);
 
       const ear = new Mesh(
-        tintGeometry(taperedTube(spine, u => lerp(0.185, 0.028, Math.pow(u, 0.95)), 20, 14), [0.66, 0.645, 0.64]),
+        tintGeometry(taperedTube(spine, u => lerp(0.2, 0.03, Math.pow(u, 0.95)), 20, 14), [0.66, 0.645, 0.64]),
         matHead,
       );
-      ear.scale.z = 0.62;
+      ear.scale.z = 0.78;
       blade.add(ear);
 
       const innerShape = new Shape();
@@ -725,23 +692,31 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
 
     // ---- 米色渔夫帽：帽冠 + 软帽檐 + 帽带 + 两片叶子 ----
     const hat = new Group();
-    hat.position.set(0, 0.3, 0.05);
-    hat.rotation.z = 0.05;
-    hat.rotation.x = -0.16;
+    hat.position.set(0, 0.352, 0.03);
+    hat.rotation.z = 0.07;
+    hat.rotation.x = -0.1;
     head.add(hat);
 
-    const crown = new Mesh(new CylinderGeometry(0.2, 0.232, 0.19, 28, 1), matHat);
-    crown.position.y = 0.088;
-    hat.add(crown);
-    const crownTop = new Mesh(new SphereGeometry(0.202, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), matHat);
-    crownTop.position.y = 0.182;
-    crownTop.scale.y = 0.45;
-    hat.add(crownTop);
-    const brim = new Mesh(new CylinderGeometry(0.225, 0.365, 0.048, 36, 1), matHat);
-    brim.position.y = 0.012;
-    hat.add(brim);
-    const band = new Mesh(new CylinderGeometry(0.234, 0.236, 0.055, 28, 1), matHatBand);
-    band.position.y = 0.048;
+    // 帽体用一条车削母线一次成型：帽顶、帽墙、帽檐、檐口卷边都是连续曲面，
+    // 不再是“圆柱 + 圆盘”两块硬边拼起来。
+    const hatProfile = [
+      [0.0, 0.235], [0.06, 0.232], [0.115, 0.222], [0.155, 0.203],
+      [0.178, 0.175], [0.187, 0.13], [0.19, 0.07], [0.193, 0.022],
+      [0.2, 0.008], [0.25, -0.012], [0.31, -0.044], [0.35, -0.072],
+      [0.375, -0.096], [0.366, -0.11], [0.33, -0.086], [0.28, -0.058],
+      [0.23, -0.03], [0.2, -0.014],
+    ];
+    const hatGeo = new LatheGeometry(hatProfile.map(([r, y]) => new Vector2(r, y)), 64);
+    hatGeo.computeVertexNormals();
+    const hatBody = new Mesh(hatGeo, matHat);
+    hat.add(hatBody);
+
+    // 帽带：贴在帽墙上的一圈窄带，半径与帽墙一致，不再像套了个呼啦圈
+    const bandProfile = [
+      [0.181, 0.062], [0.188, 0.058], [0.19, 0.045], [0.188, 0.03], [0.181, 0.026],
+    ];
+    const bandGeo = new LatheGeometry(bandProfile.map(([r, y]) => new Vector2(r, y)), 48);
+    const band = new Mesh(bandGeo, matHatBand);
     hat.add(band);
 
     // 叶子：两片扁椭球，从帽带右侧探出来
@@ -754,11 +729,11 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     });
     // ---- 尾巴：逐帧变形的管状几何，半径连续、法线解析，一个 draw call ----
     const tailPoints = [
-      new Vector3(0.2, 0.34, -0.24),
-      new Vector3(0.4, 0.3, -0.34),
-      new Vector3(0.55, 0.4, -0.3),
-      new Vector3(0.6, 0.56, -0.16),
-      new Vector3(0.54, 0.64, 0.0),
+      new Vector3(0.18, 0.33, -0.22),
+      new Vector3(0.38, 0.29, -0.33),
+      new Vector3(0.52, 0.36, -0.3),
+      new Vector3(0.58, 0.48, -0.18),
+      new Vector3(0.54, 0.56, -0.04),
     ];
     const tailCurve = new CatmullRomCurve3(tailPoints, false, 'catmullrom', 0.5);
     const TAIL_TUBULAR = 36;
@@ -812,16 +787,6 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     tail.frustumCulled = false;
     bounceGroup.add(tail);
 
-    // 尾尖封口，避免看到空心截面
-    const tipGeo = new SphereGeometry(1, 12, 10);
-    const tipColors = new Float32Array(tipGeo.attributes.position.count * 3);
-    for (let i = 0; i < tipColors.length; i += 3) {
-      tipColors[i] = 0.72; tipColors[i + 1] = 0.7; tipColors[i + 2] = 0.69;
-    }
-    tipGeo.setAttribute('color', new BufferAttribute(tipColors, 3));
-    const tailTip = new Mesh(tipGeo, tailMat);
-    tailTip.scale.setScalar(0.045);
-    bounceGroup.add(tailTip);
 
     const tailCenter = new Vector3();
     const tailA = new Vector3();
@@ -846,7 +811,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         if (tailNormal.lengthSq() < 1e-4) tailNormal.set(1, 0, 0);
         tailNormal.normalize();
         tailBinormal.crossVectors(tailTangent, tailNormal).normalize();
-        const radius = lerp(0.105, 0.062, Math.pow(u, 0.9));
+        const radius = lerp(0.135, 0.016, Math.pow(u, 1.9));
         for (let j = 0; j <= TAIL_RADIAL; j += 1) {
           const angle = (j / TAIL_RADIAL) * Math.PI * 2;
           const cos = Math.cos(angle);
@@ -865,10 +830,6 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       }
       tailGeo2.attributes.position.needsUpdate = true;
       tailGeo2.attributes.normal.needsUpdate = true;
-      tailCurve.getPoint(1, tailTip.position);
-      tailTip.position.x += Math.sin(time * 1.25 - 2.1) * 0.021;
-      tailTip.position.y += Math.sin(time * 1.25 - 2.1) * 0.03;
-      tailTip.position.z += Math.sin(time * 0.9 - 1.4) * 0.018;
     }
 
     // ---- 胡须：整组去掉 ----
