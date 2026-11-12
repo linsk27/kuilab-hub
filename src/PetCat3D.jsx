@@ -497,8 +497,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         new Vector3(side * 0.15, 0.52, -0.018),
       ]);
       const pivot = new Group();
-      pivot.position.set(side * 0.225, 0.1, -0.035);
-      pivot.rotation.z = side * -0.2;
+      pivot.position.set(side * 0.198, 0.1, -0.03);
+      pivot.rotation.z = side * -0.16;
       pivot.rotation.x = -0.04;
       head.add(pivot);
 

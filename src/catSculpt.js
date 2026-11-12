@@ -92,13 +92,13 @@ export function bodySdf(x, y, z) {
 export function headSdf(x, y, z) {
   const [hx, hy, hz] = HEAD_CENTER;
   // 颅用圆角盒：顶部略平、两侧饱满，比纯椭球更像猫
-  let d = sdRoundBox(x, y, z, hx, hy + 0.02, hz, 0.145, 0.09, 0.115, 0.235);
+  let d = sdRoundBox(x, y, z, hx, hy + 0.02, hz, 0.135, 0.092, 0.118, 0.23);
   // 额与鼻梁
   d = smin(d, sdEllipsoid(x, y, z, hx, hy + 0.07, hz + 0.1, 0.26, 0.2, 0.24), 0.12);
   d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.06, hz + 0.26, 0.075, 0.13, 0.09), 0.07);
   // 腮：把脸拉宽
-  d = smin(d, sdSphere(x, y, z, hx + 0.3, hy - 0.1, hz + 0.06, 0.155), 0.12);
-  d = smin(d, sdSphere(x, y, z, hx - 0.3, hy - 0.1, hz + 0.06, 0.155), 0.12);
+  d = smin(d, sdSphere(x, y, z, hx + 0.285, hy - 0.1, hz + 0.07, 0.15), 0.12);
+  d = smin(d, sdSphere(x, y, z, hx - 0.285, hy - 0.1, hz + 0.07, 0.15), 0.12);
   // 下颌
   d = smin(d, sdSphere(x, y, z, hx + 0.17, hy - 0.2, hz + 0.17, 0.105), 0.06);
   d = smin(d, sdSphere(x, y, z, hx - 0.17, hy - 0.2, hz + 0.17, 0.105), 0.06);
@@ -340,7 +340,7 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
       occ += Math.max(0, h - d) * weight;
       weight *= 0.72;
     }
-    const ao = Math.max(0.45, 1 - occ * 42);
+    const ao = Math.max(0.5, 1 - occ * 30);
 
     const ax = Math.abs(nx);
     const ay = Math.abs(ny);
