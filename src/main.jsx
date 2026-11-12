@@ -264,8 +264,10 @@ function Router() {
   // #/author 是给作者本人保存的低调书签：直接打开口令框，口令只由服务端校验。
   const authorEntry = route === '#/author';
   const path = location.pathname.replace(/\/+$/, '') || '/';
-  if (!['/', '/index.html', '/chat', '/hub'].includes(path) && !callback) return <NotFound />;
-  const station = /^\/(chat|hub)$/.test(path) || route === '#/chat' || authorEntry || callback;
+  // /hub/chat 这类深链也要能直接打开（历史书签、分享出去的地址），不让它掉到 404
+  const isStationPath = /^\/(chat|hub)(\/.+)?$/.test(path);
+  if (!['/', '/index.html'].includes(path) && !isStationPath && !callback) return <NotFound />;
+  const station = isStationPath || route === '#/chat' || authorEntry || callback;
   if (station) {
     return <Suspense fallback={<div className="route-loading" role="status">正在打开联络站…</div>}>
       <GuestContact openAuthorLogin={authorEntry} />

@@ -36,7 +36,9 @@
   "rewrites": [
     { "source": "/chat", "destination": "/index.html" },
     { "source": "/chat/", "destination": "/index.html" },
+    { "source": "/chat/(.*)", "destination": "/index.html" },
     { "source": "/hub", "destination": "/index.html" },
-    { "source": "/hub/", "destination": "/index.html" }
+    { "source": "/hub/", "destination": "/index.html" },
+    { "source": "/hub/(.*)", "destination": "/index.html" }
   ]
 }
