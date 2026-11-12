@@ -9,7 +9,7 @@ import {
   RepeatWrapping, ACESFilmicToneMapping,
   HemisphereLight, DirectionalLight,
 } from 'three';
-import { buildBodyGeometry, buildHeadGeometry, HEAD_CENTER } from './catSculpt';
+import { buildBodyGeometry, buildHeadGeometry, headSdf, HEAD_CENTER } from './catSculpt';
 
 // ---------------------------------------------------------------------------
 // 这套模型不依赖外部资产：形状、贴图、环境全部运行时生成。
@@ -138,49 +138,72 @@ function taperedTube(curve, radiusAt, tubularSegments = 16, radialSegments = 5) 
 }
 
 // 一套噪声规则，同时供颜色、粗糙度、凹凸使用。
+// 白猫的毛要“顺”：主体是极细的竖向毛丝，方向一致、对比很低，
+// 只提供柔光下的丝绒质感，不能出现深色斑点（那会让白猫显脏）。
 function makeFurCanvas(size = 256) {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f8f8f8';
+  ctx.fillStyle = '#fbfaf8';
   ctx.fillRect(0, 0, size, size);
 
-  // 低频：毛色不匀
-  for (let i = 0; i < 90; i += 1) {
+  // 每笔都在 3×3 个平移位各画一次，跨过边界的毛丝才能接上，
+  // 否则贴图铺开后会看到一条条横向拼缝。
+  const tiled = draw => {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dy = -1; dy <= 1; dy += 1) {
+        ctx.save();
+        ctx.translate(dx * size, dy * size);
+        draw();
+        ctx.restore();
+      }
+    }
+  };
+
+  // 低频：极淡的明暗起伏，让毛面有厚薄
+  for (let i = 0; i < 70; i += 1) {
     const x = Math.random() * size;
     const y = Math.random() * size;
-    const r = 8 + Math.random() * 36;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    const dark = Math.random() > 0.48;
-    g.addColorStop(0, dark ? 'rgba(146,126,110,0.055)' : 'rgba(255,255,255,0.075)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
+    const r = 14 + Math.random() * 44;
+    const dark = Math.random() > 0.5;
+    tiled(() => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, dark ? 'rgba(206,196,186,0.05)' : 'rgba(255,255,255,0.09)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 
-  // 中频：短绒毛，方向略微发散
+  // 主频：细长、略斜的毛丝。4 道覆盖，接缝处自然叠化
   ctx.lineCap = 'round';
-  for (let i = 0; i < 2200; i += 1) {
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const len = 2 + Math.random() * 5;
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.7;
-    ctx.strokeStyle = `rgba(118,98,80,${0.02 + Math.random() * 0.055})`;
-    ctx.lineWidth = 0.7 + Math.random() * 0.7;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
-    ctx.stroke();
+  for (let pass = 0; pass < 4; pass += 1) {
+    for (let i = 0; i < 900; i += 1) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const len = 20 + Math.random() * 26;
+      const lean = (Math.random() - 0.5) * 0.55;
+      const alpha = 0.05 + Math.random() * 0.09;
+      const width = 0.7 + Math.random() * 0.8;
+      tiled(() => {
+        ctx.strokeStyle = `rgba(176,164,152,${alpha})`;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(x + lean * len * 0.4, y + len * 0.5, x + lean * len, y + len);
+        ctx.stroke();
+      });
+    }
   }
 
-  // 高频：逐像素微噪声
+  // 高频：极轻的逐像素颗粒，避免面上一片死白
   const image = ctx.getImageData(0, 0, size, size);
   const data = image.data;
   for (let i = 0; i < data.length; i += 4) {
-    const noise = (Math.random() + Math.random() - 1) * 9;
+    const noise = (Math.random() - 0.5) * 5;
     data[i] = clamp(data[i] + noise, 0, 255);
     data[i + 1] = clamp(data[i + 1] + noise, 0, 255);
     data[i + 2] = clamp(data[i + 2] + noise, 0, 255);
@@ -220,21 +243,6 @@ function makeBlobTexture() {
   g.addColorStop(0.38, 'rgba(0,0,0,0.46)');
   g.addColorStop(0.7, 'rgba(0,0,0,0.16)');
   g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  return new CanvasTexture(canvas);
-}
-
-function makeBlushTexture() {
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, 'rgba(230,146,160,0.5)');
-  g.addColorStop(0.55, 'rgba(230,146,160,0.22)');
-  g.addColorStop(1, 'rgba(230,146,160,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
   return new CanvasTexture(canvas);
@@ -348,7 +356,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.9;
+    renderer.toneMappingExposure = 0.84;
 
     const canvas = renderer.domElement;
     canvas.style.width = '100%';
@@ -375,16 +383,20 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     });
 
     const blobTexture = makeBlobTexture();
-    const blushTexture = makeBlushTexture();
 
     function furMaterial(color, options = {}) {
       const base = {
         color: new Color(color),
-        bumpScale: options.bump ?? 0.019,
+        bumpScale: options.bump ?? 0.012,
         roughness: options.roughness ?? 1,
         metalness: 0,
         vertexColors: true,
-        envMapIntensity: options.env ?? 0.42,
+        envMapIntensity: options.env ?? 0.3,
+        // sheen 是织物/绒毛的掠射光：白毛在逆光边缘会亮出一层柔光，
+        // 这是“塑料感”和“毛茸茸”之间最关键的一层
+        sheen: options.sheen ?? 1,
+        sheenRoughness: options.sheenRough ?? 0.72,
+        sheenColor: new Color(options.sheenColor ?? '#fff6ec'),
       };
       // 雕刻网格的 UV 不连续，贴图会被撕开；这类表面用哑光纯色更干净
       if (options.doubleSide) base.side = 2;
@@ -393,21 +405,83 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         base.roughnessMap = furRough;
         base.bumpMap = furBump;
       }
-      return new MeshStandardMaterial(base);
+      return new MeshPhysicalMaterial(base);
+    }
+
+    // 绒毛外壳：同一份雕刻网格沿法线外扩，外扩量按世界坐标噪声起伏，
+    // 掠射角才透出，于是剪影不是一条硬边，而是有毛尖起伏的绒边。
+    // 这是小尺寸下唯一还看得清的“毛感”。
+    const FUZZ_NOISE = `
+      float hash31(vec3 p) {
+        p = fract(p * 0.3183099 + vec3(0.11, 0.17, 0.13));
+        p *= 17.0;
+        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+      }
+      float vnoise(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float n000 = hash31(i);
+        float n100 = hash31(i + vec3(1.0, 0.0, 0.0));
+        float n010 = hash31(i + vec3(0.0, 1.0, 0.0));
+        float n110 = hash31(i + vec3(1.0, 1.0, 0.0));
+        float n001 = hash31(i + vec3(0.0, 0.0, 1.0));
+        float n101 = hash31(i + vec3(1.0, 0.0, 1.0));
+        float n011 = hash31(i + vec3(0.0, 1.0, 1.0));
+        float n111 = hash31(i + vec3(1.0, 1.0, 1.0));
+        return mix(mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y),
+                   mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y), f.z);
+      }
+    `;
+
+    function makeFuzzShell(geometry, offset, strength) {
+      const material = new MeshPhysicalMaterial({
+        color: new Color('#ece4d9'),
+        roughness: 1,
+        metalness: 0,
+        transparent: true,
+        depthWrite: false,
+        opacity: 1,
+        sheen: 1,
+        sheenRoughness: 0.9,
+        sheenColor: new Color('#fffdf8'),
+      });
+      material.onBeforeCompile = shader => {
+        shader.uniforms.fuzzOffset = { value: offset };
+        shader.uniforms.fuzzStrength = { value: strength };
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', `#include <common>
+            uniform float fuzzOffset;
+            varying float vFuzz;
+            ${FUZZ_NOISE}`)
+          .replace('#include <begin_vertex>', `#include <begin_vertex>
+            vec4 fuzzWorld = modelMatrix * vec4(transformed, 1.0);
+            float fuzzN = vnoise(fuzzWorld.xyz * 34.0) * 0.65 + vnoise(fuzzWorld.xyz * 96.0) * 0.35;
+            vFuzz = fuzzN;
+            transformed += normalize(objectNormal) * fuzzOffset * (0.25 + 1.35 * fuzzN);`);
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <common>', '#include <common>\nuniform float fuzzStrength;\nvarying float vFuzz;')
+          .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+            float fuzzRim = 1.0 - abs(dot(normalize(normal), normalize(vViewPosition)));
+            float fuzzA = smoothstep(0.1, 0.92, fuzzRim) * (0.3 + 1.1 * vFuzz);
+            gl_FragColor.a *= clamp(fuzzA, 0.0, 1.0) * fuzzStrength;
+          `);
+      };
+      material.customProgramCacheKey = () => `cat-fuzz-${offset.toFixed(3)}`;
+      const mesh = new Mesh(geometry, material);
+      mesh.renderOrder = 2;
+      return mesh;
     }
 
     const materials = [];
-    // 毛色改由顶点色承载：底色接近白，白斑与身体色都写进顶点
-    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 }), furMap, 15.0, 2.6);
-    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.94, env: 0.22 }), furMap, 19.0, 1.9);
-    const matPink = furMaterial('#e8a7b1', { bump: 0.006, roughness: 0.9 });
+    // 毛色改由顶点色承载：底色是暖白，靠 AO 与外壳绒毛托出体积
+    const matBody = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 8.5, 2.25);
+    const matHead = applyTriplanar(furMaterial('#ffffff', { textured: false, roughness: 0.98, env: 0.16 }), furMap, 10.5, 1.8);
+    const matPink = furMaterial('#efb9c3', { bump: 0.005, roughness: 0.92, sheen: 0.5, sheenColor: '#ffe6ea' });
     const matNose = new MeshPhysicalMaterial({
-      color: '#d48792', roughness: 0.42, metalness: 0, clearcoat: 0.85, clearcoatRoughness: 0.3,
+      color: '#e6a2ad', roughness: 0.45, metalness: 0, clearcoat: 0.6, clearcoatRoughness: 0.35,
     });
-    const matMouth = new MeshStandardMaterial({ color: '#b58f80', roughness: 0.8, metalness: 0 });
-    const matWhisker = new MeshStandardMaterial({
-      color: '#d9cbbb', roughness: 0.9, metalness: 0, transparent: true, opacity: 0.62,
-    });
+    const matMouth = new MeshStandardMaterial({ color: '#c3a49a', roughness: 0.85, metalness: 0 });
     const matEye = new MeshPhysicalMaterial({
       color: '#3c2d26', roughness: 0.16, metalness: 0, clearcoat: 0.55,
       clearcoatRoughness: 0.1, envMapIntensity: 0.9,
@@ -418,21 +492,25 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const matBellSlit = new MeshStandardMaterial({ color: '#8c6f3d', roughness: 0.5, metalness: 0.35 });
     const matShadow = new MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: 1, depthWrite: false, color: '#6d5747' });
     materials.push(
-      matBody, matHead, matPink, matNose, matMouth, matWhisker,
+      matBody, matHead, matPink, matNose, matMouth,
       matEye, matHighlight, matCollar, matBell, matBellSlit, matShadow,
     );
 
     // ---- 光源 + 环境 ----
-    scene.add(new HemisphereLight(0xfff7ee, 0xd8c7b4, 0.36));
-    const keyLight = new DirectionalLight(0xfff2e2, 2.35);
+    scene.add(new HemisphereLight(0xfff7ee, 0xd8c7b4, 0.3));
+    const keyLight = new DirectionalLight(0xfff2e2, 2.1);
     keyLight.position.set(2.1, 3.6, 2.6);
     scene.add(keyLight);
-    const fillLight = new DirectionalLight(0xdfe9f5, 0.45);
+    const fillLight = new DirectionalLight(0xdfe9f5, 0.36);
     fillLight.position.set(-2.8, 1.6, -1.4);
     scene.add(fillLight);
     const bounceLight = new DirectionalLight(0xffeeda, 0.22);
     bounceLight.position.set(0.4, -1.2, 2.2);
     scene.add(bounceLight);
+    // 背光勾边：白猫压在白色页面上，靠这层冷调轮廓光把剪影与绒毛边缘提出来
+    const rimLight = new DirectionalLight(0xe8f0ff, 0.45);
+    rimLight.position.set(-1.6, 2.0, -2.8);
+    scene.add(rimLight);
 
     const environment = makeEnvironment(renderer);
     scene.environment = environment;
@@ -451,15 +529,22 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     scene.add(shadow);
 
     // ---- 身体与头：先定义体积，再多边形化，交界处是融合而非拼接 ----
-    const bodyMesh = new Mesh(buildBodyGeometry(0.023), matBody);
+    const bodyGeo = buildBodyGeometry(0.023);
+    const bodyMesh = new Mesh(bodyGeo, matBody);
     bounceGroup.add(bodyMesh);
+    // 两层绒毛外壳，把身体剪影晕开
+    bounceGroup.add(makeFuzzShell(bodyGeo, 0.009, 0.55));
+    bounceGroup.add(makeFuzzShell(bodyGeo, 0.022, 0.3));
 
     const head = new Group();
     head.position.set(HEAD_CENTER[0], HEAD_CENTER[1], HEAD_CENTER[2]);
     bounceGroup.add(head);
 
-    const headMesh = new Mesh(buildHeadGeometry(0.0175), matHead);
+    const headGeo = buildHeadGeometry(0.0175);
+    const headMesh = new Mesh(headGeo, matHead);
     head.add(headMesh);
+    head.add(makeFuzzShell(headGeo, 0.007, 0.5));
+    head.add(makeFuzzShell(headGeo, 0.017, 0.26));
 
     // 鼻子做成圆角三角片：比圆角方块更像猫，也更贴口鼻的弧面
     const noseShape = new Shape();
@@ -496,7 +581,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const eyeRigs = [];
     [-1, 1].forEach(side => {
       const rig = new Group();
-      rig.position.set(side * 0.208, 0.03, 0.3);
+      rig.position.set(side * 0.2, 0.03, 0.29);
       head.add(rig);
 
       const eye = new Mesh(eyeGeo, matEye);
@@ -516,18 +601,8 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       eyeRigs.push(rig);
     });
 
-    // ---- 腮红：带渐变的贴片，边缘自然消融 ----
-    const blushGeo = new CircleGeometry(0.115, 24);
-    const matBlush = new MeshBasicMaterial({ map: blushTexture, transparent: true, depthWrite: false, opacity: 0.9 });
-    materials.push(matBlush);
-    [-1, 1].forEach(side => {
-      const blush = new Mesh(blushGeo, matBlush);
-      blush.position.set(side * 0.305, -0.075, 0.25);
-      blush.rotation.y = side * 0.7;
-      blush.rotation.z = side * 0.1;
-      blush.scale.set(1, 0.72, 1);
-      head.add(blush);
-    });
+    // 腮红不再用贴片：脸是曲面，贴片很难贴合（不是陷进脸里就是翻转朝外），
+    // 改成直接写进头部顶点色，见 catSculpt.js 的 headTint。
 
     // ---- 耳朵：变半径管做锥形，底部圆润、尖端收细，仍可独立抖动 ----
     const ears = [];
@@ -538,7 +613,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
         new Vector3(side * 0.15, 0.52, -0.018),
       ]);
       const pivot = new Group();
-      pivot.position.set(side * 0.198, 0.1, -0.03);
+      pivot.position.set(side * 0.186, 0.1, -0.03);
       pivot.rotation.z = side * -0.16;
       pivot.rotation.x = -0.04;
       head.add(pivot);
@@ -607,7 +682,7 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const tailUvs = new Float32Array(tailCount * 2);
     const tailColors = new Float32Array(tailCount * 3);
     const tailIndices = [];
-    const tailColorA = new Color('#e9d6c6');
+    const tailColorA = new Color('#efe7dc');
     const tailColorB = new Color('#fffaf4');
     const tailTint = new Color();
     for (let i = 0; i <= TAIL_TUBULAR; i += 1) {
@@ -698,25 +773,9 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       tailTip.position.z += Math.sin(time * 0.9 - 1.4) * 0.018;
     }
 
-    // ---- 胡须 ----
-    // 两根一组：从嘴垫斜上方出发、几乎水平地向外挑，长度短、半径细。
-    // 之前三根同时下垂又会合到一处，缩到 144px 就糊成一圈「络腮胡」。
-    [-1, 1].forEach(side => {
-      const padX = 0.086;
-      const padY = -0.148;
-      const padZ = 0.357;
-      [
-        { rise: 0.03, reach: 0.2, bow: 0.012 },   // 上须：微微上挑
-        { rise: -0.006, reach: 0.225, bow: -0.004 }, // 下须：接近水平
-      ].forEach(({ rise, reach, bow }) => {
-        const curve = new CatmullRomCurve3([
-          new Vector3(side * padX, padY + rise * 0.15, padZ),
-          new Vector3(side * (padX + reach * 0.5), padY + rise * 0.7 + bow, padZ + 0.004),
-          new Vector3(side * (padX + reach), padY + rise, padZ - 0.028),
-        ]);
-        head.add(new Mesh(taperedTube(curve, u => lerp(0.0016, 0.0004, u), 10, 3), matWhisker));
-      });
-    });
+    // ---- 胡须：整组去掉 ----
+    // 白猫的胡须在 144px 下只会糊成嘴边一圈灰影（就是之前那个“络腮胡”），
+    // 嘴部留干净的口鼻体积 + 极淡嘴线，反而更像白猫。
 
     // ---- 交互状态 ----
     let dragging = false;
@@ -948,7 +1007,6 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       furBump.dispose();
       furRough.dispose();
       blobTexture.dispose();
-      blushTexture.dispose();
       environment.dispose?.();
       renderer.dispose();
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);

@@ -71,8 +71,8 @@ export function bodySdf(x, y, z) {
   d = smin(d, sdSphere(x, y, z, -0.3, 0.25, 0.03, 0.225), 0.13);
   // 胸
   d = smin(d, sdEllipsoid(x, y, z, 0, 0.63, 0.2, 0.255, 0.26, 0.2), 0.12);
-  // 颈根
-  d = smin(d, sdSphere(x, y, z, 0, 1.0, 0.03, 0.215), 0.09);
+  // 颈根：收细一点，头和身体之间才有脖子
+  d = smin(d, sdSphere(x, y, z, 0, 1.0, 0.03, 0.185), 0.1);
   // 尾根
   d = smin(d, sdSphere(x, y, z, 0.28, 0.26, -0.3, 0.115), 0.07);
 
@@ -96,12 +96,12 @@ export function headSdf(x, y, z) {
   // 额与鼻梁
   d = smin(d, sdEllipsoid(x, y, z, hx, hy + 0.07, hz + 0.1, 0.26, 0.2, 0.24), 0.12);
   d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.06, hz + 0.26, 0.075, 0.13, 0.09), 0.07);
-  // 腮：把脸拉宽，但收一点、抬一点，别坠成下垂的腮帮子
-  d = smin(d, sdSphere(x, y, z, hx + 0.272, hy - 0.088, hz + 0.075, 0.138), 0.12);
-  d = smin(d, sdSphere(x, y, z, hx - 0.272, hy - 0.088, hz + 0.075, 0.138), 0.12);
-  // 下颌
-  d = smin(d, sdSphere(x, y, z, hx + 0.17, hy - 0.2, hz + 0.17, 0.105), 0.06);
-  d = smin(d, sdSphere(x, y, z, hx - 0.17, hy - 0.2, hz + 0.17, 0.105), 0.06);
+  // 腮：只做一点点鼓，位置抬高到眼睛下方，别坠成腮帮子
+  d = smin(d, sdSphere(x, y, z, hx + 0.25, hy - 0.062, hz + 0.085, 0.122), 0.14);
+  d = smin(d, sdSphere(x, y, z, hx - 0.25, hy - 0.062, hz + 0.085, 0.122), 0.14);
+  // 下颌：收窄，让下巴是弧线而不是方下巴
+  d = smin(d, sdSphere(x, y, z, hx + 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
+  d = smin(d, sdSphere(x, y, z, hx - 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
   // 口鼻：两瓣嘴垫 + 一点下巴。体积压扁、融合半径加大，让口鼻贴着脸上，
   // 不在鼻子周围留出深沟——那圈阴影在小尺寸下会变成「胡茬」。
   let muzzle = sdSphere(x, y, z, hx + 0.05, hy - 0.188, hz + 0.3, 0.06);
@@ -109,14 +109,15 @@ export function headSdf(x, y, z) {
   muzzle = smin(muzzle, sdSphere(x, y, z, hx, hy - 0.235, hz + 0.252, 0.05), 0.05);
   d = smin(d, muzzle, 0.055);
   // 颈桩：伸进躯干，转头时不露缝
-  d = smin(d, sdTaperedCapsule(x, y, z, hx, 0.96, hz - 0.01, hx, hy - 0.12, hz, 0.18, 0.195), 0.08);
+  d = smin(d, sdTaperedCapsule(x, y, z, hx, 0.96, hz - 0.01, hx, hy - 0.12, hz, 0.15, 0.178), 0.09);
   return d;
 }
 
-// ---- 毛色：白斑写进顶点色，跟着曲面走 ----
-const CREAM_BODY = [0.76, 0.6, 0.47];
-const CREAM_HEAD = [0.84, 0.71, 0.585];
-const WHITE = [1, 0.975, 0.94];
+// ---- 毛色：白猫。整体接近纯白，靠极淡的暖灰把体积托出来 ----
+// 纯白在白色页面上会糊成一片，所以底色调到带一点暖灰的白。
+const CREAM_BODY = [0.878, 0.868, 0.852];
+const CREAM_HEAD = [0.9, 0.892, 0.876];
+const WHITE = [1, 0.993, 0.978];
 
 function smoothstep(edge0, edge1, x) {
   const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
@@ -147,14 +148,18 @@ function bodyTint(x, y, z) {
 }
 
 function headTint(x, y, z) {
-  let mask = 0;
-  // 白斑是一小片椭圆，只包住鼻子和嘴，不往下巴、腮边延伸——
-  // 之前那圈大白斑一直铺到下颌，缩到 144px 就成了「络腮胡」。
-  const px = x / 0.112;
-  const py = (y - 1.256) / 0.056;
-  const pz = (z - 0.335) / 0.075;
-  mask = smoothstep(1.02, 0.58, Math.sqrt(px * px + py * py + pz * pz));
-  return blend(CREAM_HEAD, WHITE, mask * 0.62);
+  // 白猫：整张脸几乎是同一个白，只留极轻的暖灰让轮廓有层次
+  let color = blend(CREAM_HEAD, WHITE, 0.42);
+  // 腮红直接写进顶点色：跟着曲面走，不会像贴片那样陷进脸里或翻转朝外
+  for (let s = -1; s <= 1; s += 2) {
+    const px = (x - s * 0.212) / 0.1;
+    const py = (y - 1.283) / 0.062;
+    const pz = (z - 0.33) / 0.085;
+    const d = Math.sqrt(px * px + py * py + pz * pz);
+    const k = smoothstep(1.05, 0.15, d) * 0.72;
+    if (k > 0) color = blend(color, [1, 0.76, 0.79], k);
+  }
+  return color;
 }
 
 const CORNERS = [
@@ -343,7 +348,7 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
       occ += Math.max(0, h - d) * weight;
       weight *= 0.72;
     }
-    const ao = Math.max(0.66, 1 - occ * 20);
+    const ao = Math.max(0.84, 1 - occ * 13);
 
     const ax = Math.abs(nx);
     const ay = Math.abs(ny);
@@ -357,7 +362,7 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
     uvArray[i * 2 + 1] = v / TILE;
 
     const t = Math.max(0, Math.min(1, (positionArray[i * 3 + 1] - yMin) / ySpan));
-    const shade = (0.84 + 0.16 * Math.pow(t, 0.8)) * ao;
+    const shade = (0.9 + 0.1 * Math.pow(t, 0.8)) * ao;
     const tint = tintFn ? tintFn(x, y, z) : [1, 0.99, 0.97];
     colorArray[i * 3] = tint[0] * shade;
     colorArray[i * 3 + 1] = tint[1] * shade * 0.994;
