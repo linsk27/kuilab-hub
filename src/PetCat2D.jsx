@@ -35,13 +35,19 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [face, setFace] = useState('');
   const [ready, setReady] = useState(false);
 
-  // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入
+  // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入；
+  // 表情和手臂也是背景图，必须提前拉，否则第一次点它时表情要等半秒才出来
   useEffect(() => {
     const probe = new Image();
     probe.onload = () => setReady(true);
     probe.onerror = () => setReady(true);
     probe.src = '/cat/cat-sprite.webp';
     if (probe.complete) setReady(true);
+    ['/cat/cat-faces.webp', '/cat/cat-arm.webp'].forEach(src => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = src;
+    });
   }, []);
 
   // ---- 主循环：拖拽倾斜 + 视线跟随 + 投影联动 ----
