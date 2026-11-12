@@ -25,7 +25,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const contactRef = useRef(null);
   const wrapRef = useRef(null);
   const stateRef = useRef(null);
-  const lastWaveAt = useRef(0);
+  const lastWaveAt = useRef(-1e9);
+  const lastTouchAt = useRef(-1e9);
   const onPetRef = useRef(onPet);
   onPetRef.current = onPet;
 
@@ -47,7 +48,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     probe.onerror = () => setReady(true);
     probe.src = '/cat/cat-sprite.webp';
     if (probe.complete) setReady(true);
-    ['/cat/cat-faces.webp', '/cat/cat-arm.webp'].forEach(src => {
+    ['/cat/cat-faces.webp'].forEach(src => {
       const img = new Image();
       img.decoding = 'async';
       img.src = src;
@@ -139,6 +140,11 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       s.lastX = event.clientX;
       s.lastY = event.clientY;
       s.lastT = performance.now();
+      // 正在被摸的时候不要同时举手：清掉待触发的挥手，也把已经举起的爪子放下
+      lastTouchAt.current = performance.now();
+      window.clearTimeout(hoverTimer);
+      window.clearTimeout(waveTimer);
+      setWave(false);
       window.clearTimeout(pressTimer);
       // 按住不动 = 摸它，会眯眼打呼
       pressTimer = window.setTimeout(() => {
@@ -222,6 +228,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         // 在这 1.4 秒里如果指针还在划来划去，说明只是路过，不招手
         if (hoverWander > 26) return;
         const now = performance.now();
+        // 刚被点过/摸过就先顾着反应，别马上又举手
+        if (now - lastTouchAt.current < 1600) return;
         if (now - lastWaveAt.current < 20000) return;
         lastWaveAt.current = now;
         setWave(true);
@@ -360,10 +368,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
             <span className="pet-2d-sway">
             <span className="pet-2d-layer pet-2d-body" ref={bodyRef}>
               <span className="pet-2d-sprite pet-2d-sprite-body" />
-            </span>
-
-            <span className="pet-2d-layer pet-2d-arm" aria-hidden="true">
-              <span className="pet-2d-arm-img" />
+              <span className="pet-2d-sprite pet-2d-sprite-body-up" aria-hidden="true" />
             </span>
 
             <span className="pet-2d-layer pet-2d-head" ref={headRef}>
@@ -371,6 +376,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
                 {/* 头压在身上的落影：既是接触阴影，也顺便兜住歪头时颈部可能露出的缝 */}
                 <span className="pet-2d-sprite pet-2d-sprite-shadow" aria-hidden="true" />
                 <span className="pet-2d-sprite pet-2d-sprite-head" />
+                <span className="pet-2d-sprite pet-2d-sprite-head-up" aria-hidden="true" />
                 <span
                   className={`pet-2d-sprite pet-2d-sprite-blink ${blinking ? 'on' : ''}`}
                   aria-hidden="true"
