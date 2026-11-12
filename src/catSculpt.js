@@ -96,16 +96,17 @@ export function headSdf(x, y, z) {
   // 额与鼻梁
   d = smin(d, sdEllipsoid(x, y, z, hx, hy + 0.07, hz + 0.1, 0.26, 0.2, 0.24), 0.12);
   d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.06, hz + 0.26, 0.075, 0.13, 0.09), 0.07);
-  // 腮：把脸拉宽
-  d = smin(d, sdSphere(x, y, z, hx + 0.285, hy - 0.1, hz + 0.07, 0.15), 0.12);
-  d = smin(d, sdSphere(x, y, z, hx - 0.285, hy - 0.1, hz + 0.07, 0.15), 0.12);
+  // 腮：把脸拉宽，但收一点、抬一点，别坠成下垂的腮帮子
+  d = smin(d, sdSphere(x, y, z, hx + 0.272, hy - 0.088, hz + 0.075, 0.138), 0.12);
+  d = smin(d, sdSphere(x, y, z, hx - 0.272, hy - 0.088, hz + 0.075, 0.138), 0.12);
   // 下颌
   d = smin(d, sdSphere(x, y, z, hx + 0.17, hy - 0.2, hz + 0.17, 0.105), 0.06);
   d = smin(d, sdSphere(x, y, z, hx - 0.17, hy - 0.2, hz + 0.17, 0.105), 0.06);
-  // 口鼻：两瓣嘴垫 + 下巴，比一整块更像猫
-  let muzzle = sdSphere(x, y, z, hx + 0.055, hy - 0.195, hz + 0.3, 0.066);
-  muzzle = smin(muzzle, sdSphere(x, y, z, hx - 0.055, hy - 0.195, hz + 0.3, 0.066), 0.035);
-  muzzle = smin(muzzle, sdSphere(x, y, z, hx, hy - 0.252, hz + 0.243, 0.064), 0.035);
+  // 口鼻：两瓣嘴垫 + 一点下巴。体积压扁、融合半径加大，让口鼻贴着脸上，
+  // 不在鼻子周围留出深沟——那圈阴影在小尺寸下会变成「胡茬」。
+  let muzzle = sdSphere(x, y, z, hx + 0.05, hy - 0.188, hz + 0.3, 0.06);
+  muzzle = smin(muzzle, sdSphere(x, y, z, hx - 0.05, hy - 0.188, hz + 0.3, 0.06), 0.05);
+  muzzle = smin(muzzle, sdSphere(x, y, z, hx, hy - 0.235, hz + 0.252, 0.05), 0.05);
   d = smin(d, muzzle, 0.055);
   // 颈桩：伸进躯干，转头时不露缝
   d = smin(d, sdTaperedCapsule(x, y, z, hx, 0.96, hz - 0.01, hx, hy - 0.12, hz, 0.18, 0.195), 0.08);
@@ -147,11 +148,13 @@ function bodyTint(x, y, z) {
 
 function headTint(x, y, z) {
   let mask = 0;
-  const mx = x / 0.15;
-  const my = (y - 1.245) / 0.1;
-  const mz = (z - 0.315) / 0.125;
-  mask = Math.max(mask, smoothstep(1.05, 0.64, Math.sqrt(mx * mx + my * my + mz * mz)));
-  return blend(CREAM_HEAD, WHITE, mask * 0.8);
+  // 白斑是一小片椭圆，只包住鼻子和嘴，不往下巴、腮边延伸——
+  // 之前那圈大白斑一直铺到下颌，缩到 144px 就成了「络腮胡」。
+  const px = x / 0.112;
+  const py = (y - 1.256) / 0.056;
+  const pz = (z - 0.335) / 0.075;
+  mask = smoothstep(1.02, 0.58, Math.sqrt(px * px + py * py + pz * pz));
+  return blend(CREAM_HEAD, WHITE, mask * 0.62);
 }
 
 const CORNERS = [
@@ -340,7 +343,7 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
       occ += Math.max(0, h - d) * weight;
       weight *= 0.72;
     }
-    const ao = Math.max(0.5, 1 - occ * 30);
+    const ao = Math.max(0.66, 1 - occ * 20);
 
     const ax = Math.abs(nx);
     const ay = Math.abs(ny);

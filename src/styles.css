@@ -88,6 +88,12 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .gc-inbox-preview{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .gc-unread{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#b4635a;color:#fff;font-size:10px;line-height:1}
 .gc-author-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+/* 作者侧栏：会话列表吃掉剩余高度并独立滚动，操作按钮与访问量贴底 */
+.gc-author-sidebar{display:flex;flex-direction:column;min-height:0}
+.gc-author-sidebar .gc-inbox-list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:18px 0 14px;padding-right:2px}
+.gc-author-foot{flex:0 0 auto;margin-top:auto;padding-top:14px;border-top:1px solid #ece5dc}
+.gc-author-foot .gc-author-actions{margin-top:0}
+.gc-author-foot .gc-build-line{margin:10px 0 0}
 .station-private-embed{flex:1;min-height:0;overflow:auto}
 .station-private-embed .station-page{padding:0;background:transparent}
 .station-private-embed .station-header{display:none}
@@ -165,6 +171,9 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .station-page .gc-inbox-list .gc-inbox-item small:last-child{display:none}
   .station-page .gc-author-actions{margin-top:6px;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
   .station-page .gc-author-actions .sample-toggle{flex:0 0 auto;min-height:28px;padding:4px 10px;font-size:10.5px}
+  /* 手机上侧栏本身已是横向布局，贴底交给整页 flex，不需要分隔线 */
+  .station-page .gc-author-foot{margin-top:0;padding-top:0;border-top:0;flex:0 0 auto}
+  .station-page .gc-author-sidebar .gc-inbox-list{overflow-y:hidden;margin:0}
   .station-page .station-private-note{display:none}
   .station-page .gc-notice,.station-page .gc-preview-bar{margin:8px 14px}
   .station-page .gc-invite-banner{margin:8px 14px;padding:12px}
@@ -182,6 +191,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .station-page .station-workspace{flex:1 1 auto;min-height:0}
   .station-page .station-workspace>*{min-height:0}
   .station-page .station-sidebar{overflow-y:auto}
+  .station-page .gc-author-sidebar{overflow:hidden}
   .station-page .station-conversation{min-height:0}
   .station-page .station-messages{flex:1 1 0;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
   .station-page .station-compose{flex:0 0 auto}

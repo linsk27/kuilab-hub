@@ -4,8 +4,25 @@ import { rpc, rpcErrorText } from './station-rpc';
 
 const GUEST_KEY = 'personal-hub-guest-v1';
 const AUTHOR_KEY = 'personal-hub-author-v1';
+const DRAFT_KEY = 'personal-hub-drafts-v1';
 const MAX_BODY = 4000;
 const MAX_TITLE = 60;
+
+// 草稿按「会话 id」分别存放：切走再切回来，输入框里的字还在。
+// 结构与数据分两层，避免把作者草稿和访客草稿混到一起。
+function readDrafts() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    const value = raw ? JSON.parse(raw) : null;
+    if (value && typeof value === 'object') {
+      return {
+        author: value.author && typeof value.author === 'object' ? value.author : {},
+        guest: value.guest && typeof value.guest === 'object' ? value.guest : {},
+      };
+    }
+  } catch { /* 草稿损坏按空处理 */ }
+  return { author: {}, guest: {} };
+}
 
 function readGuest() {
   try {
@@ -177,6 +194,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const loginDialog = useRef(null);
   const guestPending = useRef(null);
   const authorPending = useRef(null);
+  const drafts = useRef(null);
+  if (!drafts.current) drafts.current = readDrafts();
   const selectedSpaceRef = useRef('');
   const guestListRef = useRef(null);
   const authorListRef = useRef(null);
@@ -184,6 +203,19 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const authorInputRef = useRef(null);
   const guestStick = useRef(true);
   const authorStick = useRef(true);
+  // ---- 草稿：按会话 id 存档，切换会话或刷新页面都能接上 ----
+  function loadDraft(kind, space) {
+    if (!space) return '';
+    return drafts.current[kind]?.[space] || '';
+  }
+  function saveDraft(kind, space, text) {
+    if (!space) return;
+    const bucket = drafts.current[kind] || (drafts.current[kind] = {});
+    if (text) bucket[space] = text;
+    else delete bucket[space];
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts.current)); }
+    catch { /* 存不下也不影响当前输入 */ }
+  }
   // 手机端输入框随内容自动增高，最多两行半，避免挤占消息区。
   function growComposer(event) {
     const el = event.currentTarget;
@@ -194,6 +226,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
   }
   useEffect(() => { if (guestInputRef.current && !guestText) guestInputRef.current.style.height = ''; }, [guestText]);
   useEffect(() => { if (authorInputRef.current && !authorText) authorInputRef.current.style.height = ''; }, [authorText]);
+  // 进入 / 切换访客联络：把上次没发出去的内容放回输入框
+  useEffect(() => { setGuestText(loadDraft('guest', guest?.space)); }, [guest?.space]);
   useEffect(() => { selectedSpaceRef.current = selectedSpace; }, [selectedSpace]);
   // 新消息到达时贴到底部；用户手动上翻查看历史时不打扰。
   useEffect(() => { const el = guestListRef.current; if (el && guestStick.current) el.scrollTop = el.scrollHeight; }, [guestMessages.length]);
@@ -319,6 +353,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
           selectedSpaceRef.current = nextSpace;
           setSelectedSpace(nextSpace);
           setAuthorMessages([]);
+          setAuthorText(loadDraft('author', nextSpace));
         }
         if (nextSpace) {
           const read = await rpc('author_read', { token, space: nextSpace });
@@ -357,7 +392,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
 
   function persistGuest(next) {
     try { localStorage.setItem(GUEST_KEY, JSON.stringify(next)); } catch { /* 仍可在本次会话内使用 */ }
-    setGuest(next); setGuestMessages([]); setGuestText(''); setGuestError(''); guestPending.current = null;
+    setGuest(next); setGuestMessages([]); setGuestError(''); guestPending.current = null;
+    setGuestText(loadDraft('guest', next?.space));
   }
   function defaultTitle() {
     return `访客联络 · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
@@ -395,6 +431,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
 
   function endGuest() {
     try { localStorage.removeItem(GUEST_KEY); } catch { /* 忽略存储限制 */ }
+    if (guest?.space) saveDraft('guest', guest.space, '');
     setGuest(null); setGuestMessages([]); setGuestText(''); setGuestError(''); guestPending.current = null;
     setCreateOpen(false); setInviteOpen(false); setInviteData(null);
     setJoinOpen(false); setJoinCode(''); setInviteError('');
@@ -513,7 +550,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
       setGuestMessages(previous => mergeMessages(previous, [{
         id: data.id, client_id: pending.client_id, sender: 'guest', body: pending.body, created_at: new Date().toISOString(),
       }]));
-      guestPending.current = null; setGuestText('');
+      guestPending.current = null; saveDraft('guest', guest.space, ''); setGuestText('');
     } catch (e) { setGuestError(rpcErrorText(e)); }
     finally { setGuestBusy(''); }
   }
@@ -568,8 +605,13 @@ export default function GuestContact({ openAuthorLogin = false }) {
     }
   }
   function chooseSpace(space) {
+    if (selectedSpaceRef.current && selectedSpaceRef.current !== space) {
+      // 离开前把当前输入框里的字存到原会话名下
+      saveDraft('author', selectedSpaceRef.current, authorText);
+    }
     selectedSpaceRef.current = space;
-    setSelectedSpace(space); setAuthorMessages([]); setAuthorText('');
+    setSelectedSpace(space); setAuthorMessages([]);
+    setAuthorText(loadDraft('author', space));
     const item = authorSpaces.find(row => row.space === space);
     if (item) setSeen(previous => ({ ...previous, [space]: Number(item.count) || 0 }));
     refreshConversation(space);
@@ -592,7 +634,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
           id: data.id, client_id: pending.client_id, sender: 'author', body: pending.body, created_at: new Date().toISOString(),
         }]));
       }
-      authorPending.current = null; setAuthorText('');
+      authorPending.current = null; saveDraft('author', pending.space, '');
+      if (selectedSpaceRef.current === pending.space) setAuthorText('');
     } catch (e) {
       if (e?.business === 'unauthorized' || e?.business === 'invalid_pass') {
         clearAuthorToken(); setToken(''); setView('guest'); setNotice('作者会话已失效，请重新登录。'); return;
@@ -630,11 +673,9 @@ export default function GuestContact({ openAuthorLogin = false }) {
         <span className={`gc-identity ${view === 'author' ? 'gc-identity-author' : previewAsGuest ? 'gc-identity-preview' : ''}`}>
           {view === 'author' ? '作者身份 · 已验证' : previewAsGuest ? '访客预览中' : '访客视角'}
         </span>
-        {view === 'author'
-          ? <StatusPill tone="on" label="作者在线（本页）" />
-          : <StatusPill
-              tone={online === true ? 'on' : online === false ? 'off' : 'unknown'}
-              label={online === true ? '作者现在在线' : online === false ? '作者暂时离开' : '正在确认作者状态…'} />}
+        {view === 'author' ? null : <StatusPill
+          tone={online === true ? 'on' : online === false ? 'off' : 'unknown'}
+          label={online === true ? '作者现在在线' : online === false ? '作者暂时离开' : '正在确认作者状态…'} />}
         <span className="gc-header-title">联络站</span>
       </span>
     </header>
@@ -714,7 +755,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
             {guest && <form className="station-compose" onSubmit={sendGuest}>
               <label htmlFor="gc-guest-message">留言</label>
               <textarea id="gc-guest-message" ref={guestInputRef} rows={3} maxLength={MAX_BODY} value={guestText} disabled={!!guestBusy}
-                onChange={event => { setGuestText(event.target.value); growComposer(event); }} placeholder="写点什么…" />
+                onChange={event => { const value = event.target.value; setGuestText(value); saveDraft('guest', guest?.space, value); growComposer(event); }} placeholder="写点什么…" />
               <div className="gc-compose-actions">
                 <span className="gc-char-count">{guestText.length} / {MAX_BODY}</span>
                 <button className="small-control gc-primary" disabled={!!guestBusy || !guestText.trim()}>
@@ -742,13 +783,14 @@ export default function GuestContact({ openAuthorLogin = false }) {
             </button>)}
             {!authorSpaces.length && <p>还没有访客发起联络。</p>}
           </div>
-          <div className="gc-author-actions">
-            <button type="button" className="sample-toggle" onClick={openAuthorInvite}>＋ 新建邀请</button>
-            <button type="button" className="sample-toggle" onClick={previewGuest}>访客预览</button>
-            <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出登录</button>
+          <div className="gc-author-foot">
+            <div className="gc-author-actions">
+              <button type="button" className="sample-toggle" onClick={openAuthorInvite}>＋ 新建邀请</button>
+              <button type="button" className="sample-toggle" onClick={previewGuest}>访客预览</button>
+              <button type="button" className="sample-toggle" disabled={!!authorBusy} onClick={logout}>退出登录</button>
+            </div>
+            {stats && <p className="gc-build-line">今日访问 {Number(stats.today) || 0} · 近 7 天 {Number(stats.week) || 0}</p>}
           </div>
-          {buildTag && <p className="gc-build-line">构建 {buildTag}</p>}
-          {stats && <p className="gc-build-line">今日访问 {Number(stats.today) || 0} · 近 7 天 {Number(stats.week) || 0}</p>}
         </aside>
         <section className="station-conversation" aria-label="作者会话">
           <>
@@ -766,7 +808,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
               <form className="station-compose" onSubmit={sendAuthor}>
                 <label htmlFor="gc-author-reply">回复访客</label>
                 <textarea id="gc-author-reply" ref={authorInputRef} rows={3} maxLength={MAX_BODY} value={authorText} disabled={!selectedSpace || !!authorBusy}
-                  onChange={event => { setAuthorText(event.target.value); growComposer(event); }} placeholder="写下回复…" />
+                  onChange={event => { const value = event.target.value; setAuthorText(value); saveDraft('author', selectedSpace, value); growComposer(event); }} placeholder="写下回复…" />
                 <div className="gc-compose-actions">
                   <span className="gc-char-count">{authorText.length} / {MAX_BODY}</span>
                   <button className="small-control gc-primary" disabled={!selectedSpace || !!authorBusy || !authorText.trim()}>

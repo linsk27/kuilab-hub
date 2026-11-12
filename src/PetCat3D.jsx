@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Scene, PerspectiveCamera, WebGLRenderer, Group, Mesh,
   BoxGeometry, SphereGeometry, CylinderGeometry, Shape, ShapeGeometry,
-  CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute,
+  CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute, ExtrudeGeometry,
   Vector3, CatmullRomCurve3, MathUtils, Color,
   MeshStandardMaterial, MeshPhysicalMaterial, MeshBasicMaterial,
   CanvasTexture, SRGBColorSpace, EquirectangularReflectionMapping, PMREMGenerator,
@@ -404,9 +404,9 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const matNose = new MeshPhysicalMaterial({
       color: '#d48792', roughness: 0.42, metalness: 0, clearcoat: 0.85, clearcoatRoughness: 0.3,
     });
-    const matMouth = new MeshStandardMaterial({ color: '#a97f70', roughness: 0.7, metalness: 0 });
+    const matMouth = new MeshStandardMaterial({ color: '#b58f80', roughness: 0.8, metalness: 0 });
     const matWhisker = new MeshStandardMaterial({
-      color: '#c2ad99', roughness: 0.85, metalness: 0, transparent: true, opacity: 0.55,
+      color: '#d9cbbb', roughness: 0.9, metalness: 0, transparent: true, opacity: 0.62,
     });
     const matEye = new MeshPhysicalMaterial({
       color: '#3c2d26', roughness: 0.16, metalness: 0, clearcoat: 0.55,
@@ -461,19 +461,33 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const headMesh = new Mesh(buildHeadGeometry(0.0175), matHead);
     head.add(headMesh);
 
-    const nose = new Mesh(roundedBox(0.088, 0.062, 0.048, 0.022, 2), matNose);
-    nose.position.set(0, -0.128, 0.392);
-    nose.rotation.x = -0.26;
+    // 鼻子做成圆角三角片：比圆角方块更像猫，也更贴口鼻的弧面
+    const noseShape = new Shape();
+    noseShape.moveTo(0, 0.034);
+    noseShape.quadraticCurveTo(0.026, 0.034, 0.043, 0.013);
+    noseShape.quadraticCurveTo(0.052, -0.005, 0.027, -0.024);
+    noseShape.quadraticCurveTo(0.013, -0.035, 0, -0.035);
+    noseShape.quadraticCurveTo(-0.013, -0.035, -0.027, -0.024);
+    noseShape.quadraticCurveTo(-0.052, -0.005, -0.043, 0.013);
+    noseShape.quadraticCurveTo(-0.026, 0.034, 0, 0.034);
+    const noseGeo = new ExtrudeGeometry(noseShape, {
+      depth: 0.012, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 3, curveSegments: 10,
+    });
+    noseGeo.center();
+    noseGeo.scale(0.9, 0.9, 0.9);
+    const nose = new Mesh(noseGeo, matNose);
+    nose.position.set(0, -0.128, 0.384);
+    nose.rotation.x = -0.22;
     head.add(nose);
 
-    // 嘴线：从鼻子下方分叉的两条细管
+    // 嘴线：从鼻子下方分叉的两条细管；细一点、短一点，别像两撇小胡子
     [-1, 1].forEach(side => {
       const mouthCurve = new CatmullRomCurve3([
-        new Vector3(0, -0.185, 0.378),
-        new Vector3(side * 0.03, -0.212, 0.372),
-        new Vector3(side * 0.072, -0.214, 0.352),
+        new Vector3(0, -0.182, 0.377),
+        new Vector3(side * 0.028, -0.204, 0.372),
+        new Vector3(side * 0.062, -0.206, 0.353),
       ]);
-      head.add(new Mesh(taperedTube(mouthCurve, () => 0.009, 8, 4), matMouth));
+      head.add(new Mesh(taperedTube(mouthCurve, () => 0.0062, 8, 4), matMouth));
     });
 
     // ---- 眼睛：每只眼单独成组，眨眼时绕自身中心压扁 ----
@@ -681,16 +695,23 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     }
 
     // ---- 胡须 ----
+    // 两根一组：从嘴垫斜上方出发、几乎水平地向外挑，长度短、半径细。
+    // 之前三根同时下垂又会合到一处，缩到 144px 就糊成一圈「络腮胡」。
     [-1, 1].forEach(side => {
-      for (let i = 0; i < 3; i += 1) {
-        const startY = -0.135 - i * 0.018;
+      const padX = 0.086;
+      const padY = -0.148;
+      const padZ = 0.357;
+      [
+        { rise: 0.03, reach: 0.2, bow: 0.012 },   // 上须：微微上挑
+        { rise: -0.006, reach: 0.225, bow: -0.004 }, // 下须：接近水平
+      ].forEach(({ rise, reach, bow }) => {
         const curve = new CatmullRomCurve3([
-          new Vector3(side * 0.095, startY, 0.363),
-          new Vector3(side * 0.26, startY + 0.012 - i * 0.004, 0.35),
-          new Vector3(side * 0.42, startY - 0.012 - i * 0.012, 0.3),
+          new Vector3(side * padX, padY + rise * 0.15, padZ),
+          new Vector3(side * (padX + reach * 0.5), padY + rise * 0.7 + bow, padZ + 0.004),
+          new Vector3(side * (padX + reach), padY + rise, padZ - 0.028),
         ]);
-        head.add(new Mesh(taperedTube(curve, u => lerp(0.0042, 0.0011, u), 12, 4), matWhisker));
-      }
+        head.add(new Mesh(taperedTube(curve, u => lerp(0.0016, 0.0004, u), 10, 3), matWhisker));
+      });
     });
 
     // ---- 交互状态 ----
