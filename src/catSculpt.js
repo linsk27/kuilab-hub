@@ -1,20 +1,20 @@
 import { BufferAttribute, BufferGeometry } from 'three';
 
 // ---------------------------------------------------------------------------
-// 用隐式曲面（SDF）雕出猫的躯干和头，再用 surface nets 多边形化。
-// 肩、胸、腿、腮、口鼻之间是真正的体积融合，不是几块几何体互相穿插。
-// 生成后做一次拉普拉斯平滑去掉体素台阶，并按 SDF 梯度校正三角形绕序。
+// Q 版布偶小猫（对照 SMALL_CAT IP 展板）：大头、短身、圆手圆脚。
+// 体积用隐式曲面拼出来，再用 surface nets 多边形化：
+// 头、腮、身体、四肢、尾巴之间是真的融合，不是几个球互相插着。
+// 毛色（灰白分区、额头虎斑、奶油肚皮、腮红）写进顶点色，跟着曲面走。
 // ---------------------------------------------------------------------------
 
 const TILE = 0.42;
 
-export const HEAD_CENTER = [0, 1.44, 0.02];
+export const HEAD_CENTER = [0, 1.12, 0.02];
 
 function smin(a, b, k) {
   const h = Math.max(k - Math.abs(a - b), 0) / k;
   return Math.min(a, b) - h * h * k * 0.25;
 }
-
 
 function sdSphere(px, py, pz, cx, cy, cz, r) {
   const x = px - cx;
@@ -35,17 +35,7 @@ function sdEllipsoid(px, py, pz, cx, cy, cz, rx, ry, rz) {
   return (k0 * (k0 - 1)) / k1;
 }
 
-function sdRoundBox(px, py, pz, cx, cy, cz, hx, hy, hz, r) {
-  const qx = Math.abs(px - cx) - hx;
-  const qy = Math.abs(py - cy) - hy;
-  const qz = Math.abs(pz - cz) - hz;
-  const ox = Math.max(qx, 0);
-  const oy = Math.max(qy, 0);
-  const oz = Math.max(qz, 0);
-  return Math.sqrt(ox * ox + oy * oy + oz * oz) + Math.min(Math.max(qx, Math.max(qy, qz)), 0) - r;
-}
-
-// 锥形胶囊：底部粗、末端细
+// 锥形胶囊：一端粗一端细，用来做腿、手臂、尾巴
 function sdTaperedCapsule(px, py, pz, ax, ay, az, bx, by, bz, r1, r2) {
   const abx = bx - ax;
   const aby = by - ay;
@@ -61,78 +51,54 @@ function sdTaperedCapsule(px, py, pz, ax, ay, az, bx, by, bz, r1, r2) {
   return Math.sqrt(dx * dx + dy * dy + dz * dz) - (r1 + (r2 - r1) * t);
 }
 
-// ---- 躯干：坐姿。臀宽、胸窄、前腿分开立着、后腿收在两侧 ----
-// 之前的身体是两个大椭球揉在一起，看不出腿也看不出胸，正面像一颗蛋；
-// 这里把前腿拆成两根独立柱子，胸口收窄、后腿做鼓包，正面才有猫的坐姿轮廓。
+// ---- 身体：一个胖梨 + 两条短腿 + 两只短手 ----
 export function bodySdf(x, y, z) {
-  // 臀部与下腹
-  let d = sdEllipsoid(x, y, z, 0, 0.29, -0.03, 0.355, 0.3, 0.35);
-  // 肚子：往后收，别把两条前腿之间的缝填平
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.45, 0.06, 0.3, 0.27, 0.26), 0.16);
-  // 胸：比臀窄，略向前
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.72, 0.07, 0.285, 0.26, 0.25), 0.2);
-  // 颈毛：一圈交错的小毛团，长毛猫那圈围脖，同时把脖子和身体连起来
-  for (let i = 0; i < 9; i += 1) {
-    const a = (i / 9) * Math.PI * 2;
-    const bump = 0.88 + Math.sin(i * 2.3) * 0.022;
-    d = smin(d, sdEllipsoid(x, y, z, Math.cos(a) * 0.195, bump, Math.sin(a) * 0.175 + 0.02, 0.115, 0.1, 0.1), 0.075);
-  }
-  // 颈肩：从胸直接顺上去，不要留一圈台阶
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.9, 0.02, 0.215, 0.15, 0.2), 0.18);
-  // 后腿：两侧的鼓包，露一点膝盖
-  d = smin(d, sdEllipsoid(x, y, z, 0.25, 0.23, 0.05, 0.155, 0.21, 0.21), 0.1);
-  d = smin(d, sdEllipsoid(x, y, z, -0.25, 0.23, 0.05, 0.155, 0.21, 0.21), 0.1);
-  // 脖子：短桩，别把脑袋顶得太高
-  d = smin(d, sdTaperedCapsule(x, y, z, 0, 0.95, 0.03, 0, 1.07, 0.02, 0.17, 0.16), 0.14);
-  // 尾根
-  d = smin(d, sdSphere(x, y, z, 0.27, 0.26, -0.3, 0.105), 0.07);
+  let d = sdEllipsoid(x, y, z, 0, 0.52, 0, 0.315, 0.31, 0.265);
+  // 下腹：屁屁再圆一点，坐得住
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.35, 0.0, 0.33, 0.22, 0.27), 0.16);
+  // 胸口略收，头才压得住
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.7, 0.01, 0.255, 0.14, 0.225), 0.14);
 
   for (let s = -1; s <= 1; s += 2) {
-    // 前腿：两根独立的柱子，微微外八，正面能看见腿缝
-    d = smin(d, sdTaperedCapsule(x, y, z, s * 0.155, 0.66, 0.19, s * 0.163, 0.075, 0.3, 0.085, 0.066), 0.05);
-    // 脚掌
-    d = smin(d, sdEllipsoid(x, y, z, s * 0.162, 0.048, 0.33, 0.092, 0.048, 0.13), 0.028);
-    // 脚趾分瓣
-    for (let t = -1; t <= 1; t += 1) {
-      d = smin(d, sdSphere(x, y, z, s * 0.162 + t * 0.04, 0.042, 0.41, 0.029), 0.012);
-    }
+    // 短腿：几乎和身体一样粗
+    d = smin(d, sdTaperedCapsule(x, y, z, s * 0.165, 0.32, 0.0, s * 0.19, 0.11, 0.03, 0.118, 0.108), 0.03);
+    // 脚掌：圆饼，前缘略抬
+    d = smin(d, sdEllipsoid(x, y, z, s * 0.19, 0.052, 0.075, 0.118, 0.052, 0.145), 0.03);
+    // 短手：从肩膀垂下来，微微外八
+    d = smin(d, sdTaperedCapsule(x, y, z, s * 0.275, 0.66, 0.06, s * 0.4, 0.43, 0.12, 0.088, 0.066), 0.02);
+    // 手爪
+    d = smin(d, sdSphere(x, y, z, s * 0.405, 0.4, 0.14, 0.068), 0.016);
   }
+
+  // 尾巴根：从屁股后方伸出去，尾巴本体会另做动画
+  d = smin(d, sdTaperedCapsule(x, y, z, 0.16, 0.32, -0.18, 0.3, 0.26, -0.3, 0.085, 0.07), 0.06);
   return d;
 }
 
-// ---- 头：颅、腮、下颌、口鼻、鼻梁、下巴、颈桩 ----
+// ---- 头：大圆头 + 两团胖腮 + 小口鼻 + 下巴 ----
 export function headSdf(x, y, z) {
   const [hx, hy, hz] = HEAD_CENTER;
-  // 颅用圆角盒：顶部略平、两侧饱满，比纯椭球更像猫
-  let d = sdEllipsoid(x, y, z, hx, hy + 0.03, hz - 0.005, 0.182, 0.162, 0.162);
-  // 额与鼻梁
-  d = smin(d, sdEllipsoid(x, y, z, hx, hy + 0.07, hz + 0.1, 0.26, 0.2, 0.24), 0.12);
-  d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.06, hz + 0.26, 0.075, 0.13, 0.09), 0.07);
-  // 腮：只做一点点鼓，位置抬高到眼睛下方，别坠成腮帮子
-  d = smin(d, sdSphere(x, y, z, hx + 0.23, hy - 0.062, hz + 0.085, 0.108), 0.14);
-  d = smin(d, sdSphere(x, y, z, hx - 0.23, hy - 0.062, hz + 0.085, 0.108), 0.14);
-  // 颊毛：两团往下垂的松软毛毛，长毛猫的典型轮廓
-  d = smin(d, sdEllipsoid(x, y, z, hx + 0.235, hy - 0.16, hz + 0.1, 0.105, 0.135, 0.105), 0.09);
-  d = smin(d, sdEllipsoid(x, y, z, hx - 0.235, hy - 0.16, hz + 0.1, 0.105, 0.135, 0.105), 0.09);
-  // 下颌：收窄，让下巴是弧线而不是方下巴
-  d = smin(d, sdSphere(x, y, z, hx + 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
-  d = smin(d, sdSphere(x, y, z, hx - 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
-  // 口鼻：两瓣嘴垫 + 一点下巴。体积压扁、融合半径加大，让口鼻贴着脸上，
-  // 不在鼻子周围留出深沟——那圈阴影在小尺寸下会变成「胡茬」。
-  let muzzle = sdSphere(x, y, z, hx + 0.05, hy - 0.188, hz + 0.3, 0.06);
-  muzzle = smin(muzzle, sdSphere(x, y, z, hx - 0.05, hy - 0.188, hz + 0.3, 0.06), 0.05);
-  muzzle = smin(muzzle, sdSphere(x, y, z, hx, hy - 0.235, hz + 0.252, 0.05), 0.05);
-  d = smin(d, muzzle, 0.055);
-  // 颈桩：伸进躯干，转头时不露缝
-  d = smin(d, sdTaperedCapsule(x, y, z, hx, 0.96, hz - 0.01, hx, hy - 0.12, hz, 0.15, 0.178), 0.09);
+  let d = sdEllipsoid(x, y, z, hx, hy, hz, 0.4, 0.375, 0.355);
+  // 腮：两块胖乎乎的肉，决定这种 Q 版的脸型
+  d = smin(d, sdEllipsoid(x, y, z, hx + 0.215, hy - 0.1, hz + 0.1, 0.185, 0.17, 0.16), 0.14);
+  d = smin(d, sdEllipsoid(x, y, z, hx - 0.215, hy - 0.1, hz + 0.1, 0.185, 0.17, 0.16), 0.14);
+  // 口鼻：小圆包，位置偏低
+  let muzzle = sdSphere(x, y, z, hx + 0.045, hy - 0.16, hz + 0.3, 0.1);
+  muzzle = smin(muzzle, sdSphere(x, y, z, hx - 0.045, hy - 0.16, hz + 0.3, 0.1), 0.05);
+  d = smin(d, muzzle, 0.08);
+  // 下巴：把嘴下面填圆，别留个尖
+  d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.245, hz + 0.2, 0.16, 0.09, 0.13), 0.07);
+  // 颈桩：伸进身体
+  d = smin(d, sdTaperedCapsule(x, y, z, hx, 0.72, hz - 0.02, hx, hy - 0.2, hz, 0.19, 0.215), 0.12);
   return d;
 }
 
-// ---- 毛色：白猫。整体接近纯白，靠极淡的暖灰把体积托出来 ----
-// 纯白在白色页面上会糊成一片，所以底色调到带一点暖灰的白。
-const CREAM_BODY = [0.878, 0.868, 0.852];
-const CREAM_HEAD = [0.9, 0.892, 0.876];
-const WHITE = [1, 0.993, 0.978];
+// ---- 毛色 ----
+const FUR_GRAY = [0.52, 0.51, 0.505];
+const FUR_GRAY_DARK = [0.2, 0.19, 0.19];
+const FUR_CREAM = [0.82, 0.77, 0.69];
+const FUR_CREAM_LIGHT = [0.9, 0.86, 0.79];
+const BLUSH = [1, 0.76, 0.74];
 
 function smoothstep(edge0, edge1, x) {
   const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
@@ -147,32 +113,54 @@ function blend(a, b, t) {
   ];
 }
 
+// 额头虎斑：绕头部竖轴分条，只在眼睛以上、正面才出现
+function headStripes(x, y, z) {
+  const lx = x - HEAD_CENTER[0];
+  const ly = y - HEAD_CENTER[1];
+  const lz = z - HEAD_CENTER[2];
+  const angle = Math.atan2(lx, lz);
+  const band = Math.sin(angle * 5.0);
+  const above = smoothstep(0.02, 0.16, ly);
+  const front = smoothstep(0.05, 0.32, lz + 0.1);
+  return smoothstep(0.2, 0.75, band) * above * front;
+}
+
 function bodyTint(x, y, z) {
-  let mask = 0;
-  const cx = x / 0.26;
-  const cy = (y - 0.55) / 0.34;
-  const cz = (z - 0.24) / 0.3;
-  mask = Math.max(mask, smoothstep(1.03, 0.66, Math.sqrt(cx * cx + cy * cy + cz * cz)));
-  for (let s = -1; s <= 1; s += 2) {
-    const px = (x - s * 0.2) / 0.16;
-    const py = (y - 0.05) / 0.1;
-    const pz = (z - 0.32) / 0.18;
-    mask = Math.max(mask, smoothstep(1.05, 0.68, Math.sqrt(px * px + py * py + pz * pz)));
-  }
-  return blend(CREAM_BODY, WHITE, mask * 0.92);
+  let color = FUR_GRAY;
+  // 肚皮：正面一大块奶油色
+  const bx = x / 0.225;
+  const by = (y - 0.47) / 0.235;
+  const bz = (z - 0.19) / 0.16;
+  const belly = smoothstep(1.15, 0.62, Math.sqrt(bx * bx + by * by + bz * bz));
+  color = blend(color, FUR_CREAM_LIGHT, belly);
+  // 胸口往上带一点浅色，和头部的奶油口鼻呼应
+  const chest = smoothstep(0.52, 0.78, y) * smoothstep(0.05, 0.3, z) * 0.35;
+  color = blend(color, FUR_CREAM, chest);
+  // 脚掌尖也偏浅
+  const pawTip = smoothstep(0.2, 0.05, y) * 0.45;
+  color = blend(color, FUR_CREAM, pawTip);
+  return color;
 }
 
 function headTint(x, y, z) {
-  // 白猫：整张脸几乎是同一个白，只留极轻的暖灰让轮廓有层次
-  let color = blend(CREAM_HEAD, WHITE, 0.42);
-  // 腮红直接写进顶点色：跟着曲面走，不会像贴片那样陷进脸里或翻转朝外
+  const [hx, hy, hz] = HEAD_CENTER;
+  let color = FUR_GRAY;
+  // 口鼻与下巴：一大片奶油色，竖椭圆
+  const mx = (x - hx) / 0.235;
+  const my = (y - (hy - 0.15)) / 0.185;
+  const mz = (z - (hz + 0.3)) / 0.2;
+  const muzzle = smoothstep(1.15, 0.5, Math.sqrt(mx * mx + my * my + mz * mz));
+  color = blend(color, FUR_CREAM_LIGHT, muzzle);
+  // 虎斑：展板上只有很淡的几道，缩到 144px 会变成脸上的“折痕”，这里只留一点点
+  color = blend(color, FUR_GRAY_DARK, headStripes(x, y, z) * 0.28);
+  // 两颊腮红
   for (let s = -1; s <= 1; s += 2) {
-    const px = (x - s * 0.212) / 0.1;
-    const py = (y - 1.283) / 0.062;
-    const pz = (z - 0.33) / 0.085;
+    const px = (x - s * 0.255) / 0.115;
+    const py = (y - (hy - 0.05)) / 0.075;
+    const pz = (z - (hz + 0.24)) / 0.11;
     const d = Math.sqrt(px * px + py * py + pz * pz);
-    const k = smoothstep(1.05, 0.15, d) * 0.72;
-    if (k > 0) color = blend(color, [1, 0.76, 0.79], k);
+    const k = smoothstep(1.05, 0.15, d) * 0.5;
+    if (k > 0) color = blend(color, BLUSH, k);
   }
   return color;
 }
@@ -187,7 +175,7 @@ const EDGES = [
   [0, 4], [1, 5], [2, 6], [3, 7],
 ];
 
-// 拉普拉斯平滑：去掉体素化的台阶感
+// 拉普拉斯平滑：去掉体素台阶
 function smoothPositions(positions, indices, factor = 0.32) {
   const count = positions.length / 3;
   const sum = new Float32Array(positions.length);
@@ -327,7 +315,6 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
   const count = positions.length / 3;
   if (!count) return null;
 
-  // 两遍拉普拉斯：一遍后体素台阶还会剩一点，缩小看就是“粗糙”
   smoothPositions(positions, indices, 0.34);
   smoothPositions(positions, indices, 0.22);
 
@@ -336,7 +323,6 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
   const uvArray = new Float32Array(count * 2);
   const colorArray = new Float32Array(count * 3);
 
-  // 法线用 SDF 梯度解析求
   const eps = voxel * 0.6;
   const yMin = min[1] - origin[1];
   const ySpan = Math.max(1e-4, max[1] - min[1]);
@@ -356,16 +342,16 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
     normalArray[i * 3 + 1] = ny;
     normalArray[i * 3 + 2] = nz;
 
-    // SDF 环境遮蔽：沿法线采样，靠得越近说明越处在褶皱里
+    // 环境遮蔽：缝隙压暗，但别压出脏灰
     let occ = 0;
     let weight = 1;
     for (let k = 1; k <= 5; k += 1) {
-      const h = 0.14 * (k / 5);
+      const h = 0.13 * (k / 5);
       const d = sdf(x + nx * h, y + ny * h, z + nz * h);
       occ += Math.max(0, h - d) * weight;
       weight *= 0.72;
     }
-    const ao = Math.max(0.84, 1 - occ * 13);
+    const ao = Math.max(0.78, 1 - occ * 15);
 
     const ax = Math.abs(nx);
     const ay = Math.abs(ny);
@@ -379,14 +365,14 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
     uvArray[i * 2 + 1] = v / TILE;
 
     const t = Math.max(0, Math.min(1, (positionArray[i * 3 + 1] - yMin) / ySpan));
-    const shade = (0.9 + 0.1 * Math.pow(t, 0.8)) * ao;
+    const shade = (0.93 + 0.07 * Math.pow(t, 0.8)) * ao;
     const tint = tintFn ? tintFn(x, y, z) : [1, 0.99, 0.97];
     colorArray[i * 3] = tint[0] * shade;
-    colorArray[i * 3 + 1] = tint[1] * shade * 0.994;
-    colorArray[i * 3 + 2] = tint[2] * shade * 0.984;
+    colorArray[i * 3 + 1] = tint[1] * shade;
+    colorArray[i * 3 + 2] = tint[2] * shade;
   }
 
-  // 用梯度法线把朝内的三角形翻过来，避免被背面剔除
+  // 用梯度法线把朝内的三角形翻过来
   for (let t = 0; t < indices.length; t += 3) {
     const ia = indices[t];
     const ib = indices[t + 1];
@@ -423,10 +409,10 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
 }
 
 export function buildBodyGeometry(voxel = 0.02) {
-  return polygonize(bodySdf, [-0.94, -0.03, -0.6], [0.94, 1.26, 0.56], voxel, [0, 0, 0], bodyTint);
+  return polygonize(bodySdf, [-0.78, -0.02, -0.62], [0.78, 0.94, 0.62], voxel, [0, 0, 0], bodyTint);
 }
 
 export function buildHeadGeometry(voxel = 0.014) {
   const [cx, cy, cz] = HEAD_CENTER;
-  return polygonize(headSdf, [cx - 0.62, 1.0, cz - 0.52], [cx + 0.62, 1.92, cz + 0.52], voxel, HEAD_CENTER, headTint);
+  return polygonize(headSdf, [cx - 0.66, 0.56, cz - 0.56], [cx + 0.66, 1.62, cz + 0.56], voxel, HEAD_CENTER, headTint);
 }
