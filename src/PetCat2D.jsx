@@ -41,9 +41,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [face, setFace] = useState('');
   const [ready, setReady] = useState(false);
 
-  // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入；
-  // 表情也是背景图，必须提前拉，否则第一次点它时表情要等半秒才出来。
-  // 举手那一帧单独一张图，等首屏空了再拉——它只在指针停在猫身上时才用得到。
+  // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入。
+  // 表情帧挂载后就预取（第一次点它时要立刻有反应）；招手帧等指针靠近再取，不急。
   useEffect(() => {
     const probe = new Image();
     probe.onload = () => setReady(true);
@@ -56,17 +55,17 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       img.decoding = 'async';
       img.src = src;
     };
-    warm('/cat/cat-faces.webp');
+    warm('/cat/cat-face.webp');
 
     let upTimer = 0;
     if ('requestIdleCallback' in window) {
-      const idle = window.requestIdleCallback(() => warm('/cat/cat-sprite-up.webp'), { timeout: 2500 });
+      const idle = window.requestIdleCallback(() => warm('/cat/cat-wave.webp'), { timeout: 4000 });
       return () => {
         window.cancelIdleCallback?.(idle);
         window.clearTimeout(upTimer);
       };
     }
-    upTimer = window.setTimeout(() => warm('/cat/cat-sprite-up.webp'), 1600);
+    upTimer = window.setTimeout(() => warm('/cat/cat-wave.webp'), 2400);
     return () => window.clearTimeout(upTimer);
   }, []);
 
@@ -238,11 +237,11 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       hoverWander = 0;
       hpx = event.clientX;
       hpy = event.clientY;
-      // 指针一进来就抢在 1.4 秒之前把举手帧拉下来
+      // 指针一进来就抢在 1.4 秒之前把招手帧拉下来
       if (!upWarmRef.current) {
         upWarmRef.current = true;
         const img = new Image();
-        img.src = '/cat/cat-sprite-up.webp';
+        img.src = '/cat/cat-wave.webp';
       }
       window.clearTimeout(hoverTimer);
       hoverTimer = window.setTimeout(() => {
@@ -389,7 +388,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
             <span className="pet-2d-sway">
             <span className="pet-2d-layer pet-2d-body" ref={bodyRef}>
               <span className="pet-2d-sprite pet-2d-sprite-body" />
-              <span className="pet-2d-sprite pet-2d-sprite-body-up" aria-hidden="true" />
             </span>
 
             <span className="pet-2d-layer pet-2d-head" ref={headRef}>
@@ -397,14 +395,16 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
                 {/* 头压在身上的落影：既是接触阴影，也顺便兜住歪头时颈部可能露出的缝 */}
                 <span className="pet-2d-sprite pet-2d-sprite-shadow" aria-hidden="true" />
                 <span className="pet-2d-sprite pet-2d-sprite-head" />
-                <span className="pet-2d-sprite pet-2d-sprite-head-up" aria-hidden="true" />
                 <span
                   className={`pet-2d-sprite pet-2d-sprite-blink ${blinking ? 'on' : ''}`}
                   aria-hidden="true"
                 />
-                <span className="pet-2d-face" aria-hidden="true" />
               </span>
             </span>
+
+            {/* 表情与招手：整只猫换一帧，盖在分层之上，所以不会有贴片错位 */}
+            <span className="pet-2d-shot" aria-hidden="true" />
+            <span className="pet-2d-wave-frame" aria-hidden="true" />
             </span>
           </span>
         </span>
