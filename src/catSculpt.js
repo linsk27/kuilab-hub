@@ -61,28 +61,34 @@ function sdTaperedCapsule(px, py, pz, ax, ay, az, bx, by, bz, r1, r2) {
   return Math.sqrt(dx * dx + dy * dy + dz * dz) - (r1 + (r2 - r1) * t);
 }
 
-// ---- 躯干：臀、腰、胸、肩、前腿、脚掌、脚趾 ----
+// ---- 躯干：坐姿。臀宽、胸窄、前腿分开立着、后腿收在两侧 ----
+// 之前的身体是两个大椭球揉在一起，看不出腿也看不出胸，正面像一颗蛋；
+// 这里把前腿拆成两根独立柱子，胸口收窄、后腿做鼓包，正面才有猫的坐姿轮廓。
 export function bodySdf(x, y, z) {
-  // 坐姿的躯干：下宽上窄的两个大椭球，融合得很软，没有收腰
-  let d = sdEllipsoid(x, y, z, 0, 0.42, 0, 0.4, 0.44, 0.4);
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.72, 0.02, 0.32, 0.34, 0.33), 0.26);
-  // 后蹲
-  d = smin(d, sdSphere(x, y, z, 0.3, 0.25, 0.03, 0.225), 0.13);
-  d = smin(d, sdSphere(x, y, z, -0.3, 0.25, 0.03, 0.225), 0.13);
-  // 胸
-  d = smin(d, sdEllipsoid(x, y, z, 0, 0.63, 0.2, 0.255, 0.26, 0.2), 0.12);
-  // 颈根：收细一点，头和身体之间才有脖子
-  d = smin(d, sdSphere(x, y, z, 0, 1.0, 0.03, 0.185), 0.1);
+  // 臀部与下腹
+  let d = sdEllipsoid(x, y, z, 0, 0.29, -0.03, 0.33, 0.3, 0.34);
+  // 肚子：往后收，别把两条前腿之间的缝填平
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.45, 0.06, 0.285, 0.27, 0.25), 0.16);
+  // 胸：比臀窄，略向前
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.72, 0.07, 0.275, 0.26, 0.245), 0.2);
+  // 颈肩：从胸直接顺上去，不要留一圈台阶
+  d = smin(d, sdEllipsoid(x, y, z, 0, 0.9, 0.02, 0.215, 0.15, 0.2), 0.18);
+  // 后腿：两侧的鼓包，露一点膝盖
+  d = smin(d, sdEllipsoid(x, y, z, 0.25, 0.23, 0.05, 0.155, 0.21, 0.21), 0.1);
+  d = smin(d, sdEllipsoid(x, y, z, -0.25, 0.23, 0.05, 0.155, 0.21, 0.21), 0.1);
+  // 脖子：短桩，别把脑袋顶得太高
+  d = smin(d, sdTaperedCapsule(x, y, z, 0, 0.95, 0.03, 0, 1.07, 0.02, 0.17, 0.16), 0.14);
   // 尾根
-  d = smin(d, sdSphere(x, y, z, 0.28, 0.26, -0.3, 0.115), 0.07);
+  d = smin(d, sdSphere(x, y, z, 0.27, 0.26, -0.3, 0.105), 0.07);
 
-  // 前腿与脚掌
   for (let s = -1; s <= 1; s += 2) {
-    d = smin(d, sdTaperedCapsule(x, y, z, s * 0.18, 0.66, 0.22, s * 0.2, 0.1, 0.3, 0.11, 0.092), 0.045);
-    d = smin(d, sdEllipsoid(x, y, z, s * 0.2, 0.055, 0.33, 0.128, 0.062, 0.16), 0.035);
+    // 前腿：两根独立的柱子，微微外八，正面能看见腿缝
+    d = smin(d, sdTaperedCapsule(x, y, z, s * 0.155, 0.66, 0.19, s * 0.163, 0.075, 0.3, 0.085, 0.066), 0.05);
+    // 脚掌
+    d = smin(d, sdEllipsoid(x, y, z, s * 0.162, 0.048, 0.33, 0.092, 0.048, 0.13), 0.028);
     // 脚趾分瓣
     for (let t = -1; t <= 1; t += 1) {
-      d = smin(d, sdSphere(x, y, z, s * 0.2 + t * 0.052, 0.045, 0.415, 0.036), 0.014);
+      d = smin(d, sdSphere(x, y, z, s * 0.162 + t * 0.04, 0.042, 0.41, 0.029), 0.012);
     }
   }
   return d;
@@ -97,8 +103,11 @@ export function headSdf(x, y, z) {
   d = smin(d, sdEllipsoid(x, y, z, hx, hy + 0.07, hz + 0.1, 0.26, 0.2, 0.24), 0.12);
   d = smin(d, sdEllipsoid(x, y, z, hx, hy - 0.06, hz + 0.26, 0.075, 0.13, 0.09), 0.07);
   // 腮：只做一点点鼓，位置抬高到眼睛下方，别坠成腮帮子
-  d = smin(d, sdSphere(x, y, z, hx + 0.25, hy - 0.062, hz + 0.085, 0.122), 0.14);
-  d = smin(d, sdSphere(x, y, z, hx - 0.25, hy - 0.062, hz + 0.085, 0.122), 0.14);
+  d = smin(d, sdSphere(x, y, z, hx + 0.218, hy - 0.062, hz + 0.085, 0.104), 0.14);
+  d = smin(d, sdSphere(x, y, z, hx - 0.218, hy - 0.062, hz + 0.085, 0.104), 0.14);
+  // 颊毛：两团往下垂的松软毛毛，长毛猫的典型轮廓
+  d = smin(d, sdEllipsoid(x, y, z, hx + 0.225, hy - 0.16, hz + 0.1, 0.1, 0.13, 0.1), 0.09);
+  d = smin(d, sdEllipsoid(x, y, z, hx - 0.225, hy - 0.16, hz + 0.1, 0.1, 0.13, 0.1), 0.09);
   // 下颌：收窄，让下巴是弧线而不是方下巴
   d = smin(d, sdSphere(x, y, z, hx + 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
   d = smin(d, sdSphere(x, y, z, hx - 0.15, hy - 0.185, hz + 0.19, 0.088), 0.075);
@@ -405,11 +414,11 @@ function polygonize(sdf, min, max, voxel, origin, tintFn) {
   return geometry;
 }
 
-export function buildBodyGeometry(voxel = 0.026) {
+export function buildBodyGeometry(voxel = 0.02) {
   return polygonize(bodySdf, [-0.94, -0.03, -0.6], [0.94, 1.26, 0.56], voxel, [0, 0, 0], bodyTint);
 }
 
-export function buildHeadGeometry(voxel = 0.019) {
+export function buildHeadGeometry(voxel = 0.014) {
   const [cx, cy, cz] = HEAD_CENTER;
   return polygonize(headSdf, [cx - 0.62, 1.0, cz - 0.52], [cx + 0.62, 1.92, cz + 0.52], voxel, HEAD_CENTER, headTint);
 }
