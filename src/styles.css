@@ -294,7 +294,11 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .pet-2d-sprite-blink.on{opacity:1}
 .pet-2d-sprite-shadow{background-position:100% 100%}
 /* 切口的柔影加在整只猫上（stage），不能加在头层上，否则切面会投出一条横黑线 */
-.pet-2d-head{transform-origin:50% 57.7%;z-index:2}
+.pet-2d-head{transform-origin:50% 57.7%;z-index:3}
+/* 右前爪单独一层：绕根部转，爪子端才会有"抬起来挥"的动作，根部不动就不会脱离身体 */
+.pet-2d-arm{z-index:2}
+.pet-2d-arm-img{position:absolute;inset:0;background:url(/cat/cat-arm.webp) no-repeat center/100% 100%;
+  transform-origin:74.6% 70.4%;will-change:transform}
 .pet-2d-body{z-index:1}
 .pet-2d-head-motion{position:absolute;inset:0;display:block;transform-origin:50% 57.7%}
 
@@ -304,6 +308,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .pet-2d[data-act="perk"] .pet-2d-sway{animation:cat-perk 1.35s ease-in-out}
 .pet-2d[data-act="perk"] .pet-2d-head-motion{animation:cat-perk-head 1.35s ease-in-out}
 .pet-2d[data-act="shake"] .pet-2d-sway{animation:cat-shake .72s ease-in-out}
+.pet-2d[data-act="wave"] .pet-2d-arm-img{animation:cat-wave 1.45s cubic-bezier(.4,0,.3,1)}
 .pet-2d.is-purring .pet-2d-stage-wrap{animation:cat-purr .3s ease-in-out infinite}
 
 @keyframes cat-breathe{
@@ -335,6 +340,15 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   62%{transform:translateX(1.2px) rotate(.5deg)}
   80%{transform:translateX(-.5px)}
 }
+@keyframes cat-wave{
+  0%,100%{transform:rotate(0) translateY(0)}
+  10%{transform:rotate(-22deg)}
+  27%{transform:rotate(-7deg)}
+  44%{transform:rotate(-22deg)}
+  61%{transform:rotate(-7deg)}
+  78%{transform:rotate(-22deg)}
+  90%{transform:rotate(-11deg)}
+}
 @keyframes cat-purr{
   0%,100%{transform:translateY(0) scale(1,1)}
   50%{transform:translateY(1px) scale(1.018,.982)}
@@ -342,7 +356,8 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 @media(prefers-reduced-motion:reduce){
   .pet-2d-breathe{animation:none}
   .pet-2d[data-act] .pet-2d-sway,
-  .pet-2d[data-act] .pet-2d-head-motion{animation:none}
+  .pet-2d[data-act] .pet-2d-head-motion,
+  .pet-2d[data-act="wave"] .pet-2d-arm-img{animation:none}
   .pet-2d.is-purring .pet-2d-stage-wrap{animation:none}
 }
 @media(max-width:767px){

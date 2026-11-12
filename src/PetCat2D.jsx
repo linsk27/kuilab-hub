@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 //
 // 动作：待机呼吸、随机歪头/抬头/抖毛、眨眼、悬停抬头、单击起跳、长按呼噜、拖拽倾斜。
 
-const IDLE_ACTIONS = ['tilt', 'perk', 'shake'];
+const IDLE_ACTIONS = ['tilt', 'perk', 'shake', 'wave'];
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -256,6 +256,11 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   useEffect(() => {
     if (petSignal === seenSignal.current) return;
     seenSignal.current = petSignal;
+    // 每摸三次，它先抬手挥两下
+    if (petSignal > 0 && petSignal % 3 === 0) {
+      setAct('wave');
+      window.setTimeout(() => setAct(current => (current === 'wave' ? '' : current)), 1500);
+    }
     const wrap = wrapRef.current;
     if (!wrap || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     wrap.getAnimations().forEach(animation => animation.cancel());
@@ -297,6 +302,10 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
             <span className="pet-2d-sway">
             <span className="pet-2d-layer pet-2d-body" ref={bodyRef}>
               <span className="pet-2d-sprite pet-2d-sprite-body" />
+            </span>
+
+            <span className="pet-2d-layer pet-2d-arm" aria-hidden="true">
+              <span className="pet-2d-arm-img" />
             </span>
 
             <span className="pet-2d-layer pet-2d-head" ref={headRef}>
