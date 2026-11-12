@@ -8,7 +8,9 @@ import React, { useEffect, useRef, useState } from 'react';
 //
 // 动作：待机呼吸、随机歪头/抬头/抖毛、眨眼、悬停抬头、单击起跳、长按呼噜、拖拽倾斜。
 
-const IDLE_ACTIONS = ['tilt', 'perk', 'shake', 'wave'];
+// 待机只做猫会自己做的事：歪头、抬头看、抖毛。
+// 招手是“对你做出的反应”，不能进随机池——否则隔几秒挥一次，像招财猫摆件。
+const IDLE_ACTIONS = ['tilt', 'perk', 'shake'];
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -23,6 +25,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const contactRef = useRef(null);
   const wrapRef = useRef(null);
   const stateRef = useRef(null);
+  const lastWaveAt = useRef(0);
   const onPetRef = useRef(onPet);
   onPetRef.current = onPet;
 
@@ -31,6 +34,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const petCount = useRef(0);
   const [blink, setBlink] = useState(false);
   const [act, setAct] = useState('');
+  const [wave, setWave] = useState(false);
   const [purring, setPurring] = useState(false);
   const [face, setFace] = useState('');
   const [ready, setReady] = useState(false);
@@ -74,6 +78,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     let raf = 0;
     let prev = performance.now();
     let pressTimer = 0;
+    let hoverTimer = 0;
+    let waveTimer = 0;
 
     const tick = now => {
       const dt = Math.min((now - prev) / 1000, 0.05);
@@ -186,6 +192,11 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         gazeRaf = 0;
         const p = lastPointer;
         if (!p) return;
+        if (hovering) {
+          hoverWander += Math.abs(p.clientX - hpx) + Math.abs(p.clientY - hpy);
+          hpx = p.clientX;
+          hpy = p.clientY;
+        }
         const box = host.getBoundingClientRect();
         const cx = box.left + box.width * 0.5;
         const cy = box.top + box.height * 0.62;
@@ -193,8 +204,38 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         s.gty = Math.max(-1, Math.min(1, (p.clientY - cy) / 170)) * 2.4;
       });
     }
-    function enter() { s.hoverT = 1; }
-    function leave() { s.hoverT = 0; s.gtx = 0; s.gty = 0; }
+    // 招手只在“停在你身上看它”时发生：指针停住 1.4 秒才抬爪，20 秒内不重复。
+    // 这样默认永远不招手，招手是被你看出来的反应。
+    let hovering = false;
+    let hoverWander = 0;
+    let hpx = 0;
+    let hpy = 0;
+
+    function enter(event) {
+      s.hoverT = 1;
+      hovering = true;
+      hoverWander = 0;
+      hpx = event.clientX;
+      hpy = event.clientY;
+      window.clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => {
+        // 在这 1.4 秒里如果指针还在划来划去，说明只是路过，不招手
+        if (hoverWander > 26) return;
+        const now = performance.now();
+        if (now - lastWaveAt.current < 20000) return;
+        lastWaveAt.current = now;
+        setWave(true);
+        window.clearTimeout(waveTimer);
+        waveTimer = window.setTimeout(() => setWave(false), 1600);
+      }, 1400);
+    }
+    function leave() {
+      hovering = false;
+      s.hoverT = 0;
+      s.gtx = 0;
+      s.gty = 0;
+      window.clearTimeout(hoverTimer);
+    }
 
     host.addEventListener('pointerdown', down);
     host.addEventListener('pointermove', move);
@@ -208,6 +249,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       cancelAnimationFrame(raf);
       if (gazeRaf) cancelAnimationFrame(gazeRaf);
       window.clearTimeout(pressTimer);
+      window.clearTimeout(hoverTimer);
+      window.clearTimeout(waveTimer);
       host.removeEventListener('pointerdown', down);
       host.removeEventListener('pointermove', move);
       host.removeEventListener('pointerup', release);
@@ -298,7 +341,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       tabIndex={0}
       aria-label="摸摸小猫：单击会跳，按住会打呼，拖动可以转动"
       title="摸摸我"
-      data-act={act || undefined}
+      data-act={(wave ? 'wave' : act) || undefined}
       data-face={purring ? 'shy' : face || undefined}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
