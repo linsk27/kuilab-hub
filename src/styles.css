@@ -260,6 +260,28 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .cat-companion{position:fixed}
 }
 
+/* ---- 2D 小猫（IP 渲染图 + CSS 动效） ---- */
+.cat-companion.is-2d{width:152px;height:166px;right:-30px;bottom:-10px}
+.pet-2d{position:relative;width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent;display:flex;align-items:flex-end;justify-content:center}
+.pet-2d:active{cursor:grabbing}
+.pet-2d:focus-visible{outline:2px solid var(--focus);outline-offset:4px;border-radius:12px}
+.pet-2d-tilt{width:100%;display:flex;justify-content:center;transform-style:preserve-3d;will-change:transform}
+.pet-2d-breathe{position:relative;display:block;width:100%;animation:cat-breathe 4.6s ease-in-out infinite;transform-origin:50% 96%}
+.pet-2d-img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.pet-2d-blink{position:absolute;inset:0;opacity:0;transition:opacity 55ms linear}
+.pet-2d-blink.on{opacity:1}
+.pet-2d-shadow{position:absolute;left:50%;bottom:2px;width:64%;height:13px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse at center,rgba(96,84,72,.26),rgba(96,84,72,.1) 55%,rgba(96,84,72,0) 72%);filter:blur(1px)}
+@keyframes cat-breathe{
+  0%,100%{transform:scale(1,1) translateY(0)}
+  45%{transform:scale(1.012,.988) translateY(1px)}
+  70%{transform:scale(.997,1.004) translateY(-1px)}
+}
+@media(prefers-reduced-motion:reduce){.pet-2d-breathe{animation:none}}
+@media(max-width:767px){
+  .cat-companion.is-2d{width:118px;height:132px;right:2px;bottom:calc(6px + env(safe-area-inset-bottom))}
+  .pet-2d-shadow{height:10px}
+}
+
 /* ---- 3D 小猫 ---- */
 .cat-companion.is-3d{width:144px;height:166px;right:-28px;bottom:-10px}
 .pet-3d{width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent}
