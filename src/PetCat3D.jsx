@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Scene, PerspectiveCamera, WebGLRenderer, Group, Mesh,
   BoxGeometry, SphereGeometry, CylinderGeometry, Shape, ShapeGeometry,
-  CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute, ExtrudeGeometry, LatheGeometry,
+  CircleGeometry, PlaneGeometry, BufferGeometry, BufferAttribute, ExtrudeGeometry, LatheGeometry, TorusGeometry,
   Vector2, Vector3, CatmullRomCurve3, MathUtils, Color,
   MeshStandardMaterial, MeshPhysicalMaterial, MeshBasicMaterial,
   CanvasTexture, SRGBColorSpace, EquirectangularReflectionMapping, PMREMGenerator,
@@ -538,10 +538,12 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
     const matHat = new MeshStandardMaterial({ color: '#c9b48f', roughness: 0.95, metalness: 0, vertexColors: false });
     const matHatBand = new MeshStandardMaterial({ color: '#b5a077', roughness: 0.95, metalness: 0 });
     const matLeaf = new MeshStandardMaterial({ color: '#8b9752', roughness: 0.75, metalness: 0 });
+    const matPad = new MeshStandardMaterial({ color: '#d9a3a2', roughness: 0.9, metalness: 0 });
+    const matStitch = new MeshStandardMaterial({ color: '#b39d78', roughness: 0.95, metalness: 0 });
     const matShadow = new MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: 0.55, depthWrite: false, color: '#8a7a6c' });
     materials.push(
       matBody, matHead, matPink, matNose, matMouth,
-      matEye, matHighlight, matHat, matHatBand, matLeaf, matShadow,
+      matEye, matHighlight, matHat, matHatBand, matLeaf, matPad, matStitch, matShadow,
     );
 
     // ---- 光源 + 环境 ----
@@ -816,6 +818,29 @@ export default function PetCat3D({ onPet, petSignal = 0, onUnavailable }) {
       leaf.rotation.set(k * 0.4 - 0.15, -0.7 + k * 0.5, 0.7 - k * 1.0);
       hat.add(leaf);
     });
+    // ---- 脚掌肉垫：两只脚掌前面各贴一枚粉色软垫 ----
+    for (let s = -1; s <= 1; s += 2) {
+      const pad = new Mesh(new SphereGeometry(1, 16, 12), matPad);
+      pad.scale.set(0.052, 0.042, 0.018);
+      pad.position.set(s * 0.19, 0.038, 0.212);
+      pad.rotation.x = -0.35;
+      bounceGroup.add(pad);
+    }
+
+    // ---- 帽顶小圆扣 + 帽檐缝线 ----
+    const button = new Mesh(new SphereGeometry(0.026, 14, 10), matHatBand);
+    button.scale.y = 0.55;
+    button.position.set(0, 0.302, 0);
+    hat.add(button);
+
+    const stitch = new Mesh(
+      new TorusGeometry(0.253, 0.0035, 6, 96),
+      matStitch,
+    );
+    stitch.rotation.x = Math.PI / 2;
+    stitch.position.y = 0.023 - 0.315 + 0.075;
+    hat.add(stitch);
+
     // ---- 尾巴：逐帧变形的管状几何，半径连续、法线解析，一个 draw call ----
     const tailPoints = [
       new Vector3(0.18, 0.33, -0.22),

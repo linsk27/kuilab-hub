@@ -153,6 +153,13 @@ function headTint(x, y, z) {
   color = blend(color, FUR_CREAM_LIGHT, muzzle);
   // 虎斑：展板上只有很淡的几道，缩到 144px 会变成脸上的“折痕”，这里只留一点点
   color = blend(color, FUR_GRAY_DARK, headStripes(x, y, z) * 0.28);
+  // 帽子压在额头上留的接触阴影：檐口附近压暗一圈，边界柔和
+  const localY = y - hy;
+  const hatShade = smoothstep(0.4, 0.26, localY) * (1 - smoothstep(0.0, 0.18, localY));
+  if (hatShade > 0) {
+    const k = 1 - 0.2 * hatShade;
+    color = [color[0] * k, color[1] * k, color[2] * k];
+  }
   // 两颊腮红
   for (let s = -1; s <= 1; s += 2) {
     const px = (x - s * 0.255) / 0.115;
