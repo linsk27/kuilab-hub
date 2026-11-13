@@ -27,64 +27,42 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const stateRef = useRef(null);
   const lastWaveAt = useRef(-1e9);
   const lastTouchAt = useRef(-1e9);
-  const upWarmRef = useRef(false);
   const onPetRef = useRef(onPet);
   onPetRef.current = onPet;
 
   const seenSignal = useRef(petSignal);
-  const faceTimer = useRef(0);
-  const faceReady = useRef(false);
-  const pendingFace = useRef(null);
-  const petCount = useRef(0);
   const [blink, setBlink] = useState(false);
   const [act, setAct] = useState('');
-  const [wave, setWave] = useState(false);
+  const [greet, setGreet] = useState(false);
   const [purring, setPurring] = useState(false);
-  const [face, setFace] = useState('');
   const [ready, setReady] = useState(false);
+  const greetTimers = useRef([]);
 
-  function showFace(name, hold) {
-    setFace(name);
-    window.clearTimeout(faceTimer.current);
-    faceTimer.current = window.setTimeout(() => setFace(''), hold);
+  // 打招呼：不打手势（那只手的素材和默认帧不是同一套腿长，换整帧会“换张照片”），
+  // 改成歪一下头 + 连着眨两次眼 —— 猫认出你时就是这个动作，而且只用变换，不会窜图。
+  function startGreet() {
+    greetTimers.current.forEach(window.clearTimeout);
+    greetTimers.current = [];
+    const at = (ms, fn) => greetTimers.current.push(window.setTimeout(fn, ms));
+    setGreet(true);
+    at(150, () => setBlink(true));
+    at(270, () => setBlink(false));
+    at(430, () => setBlink(true));
+    at(550, () => setBlink(false));
+    at(1750, () => setGreet(false));
   }
+  const startGreetRef = useRef(startGreet);
+  startGreetRef.current = startGreet;
 
   // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入。
-  // 表情帧挂载后就预取（第一次点它时要立刻有反应）；招手帧等指针靠近再取，不急。
+  // 整只猫只有这一张图：没有换帧、没有贴片，所以不存在“窜图”。
   useEffect(() => {
     const probe = new Image();
     probe.onload = () => setReady(true);
     probe.onerror = () => setReady(true);
     probe.src = '/cat/cat-sprite.webp';
     if (probe.complete) setReady(true);
-
-    const warm = src => {
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = src;
-    };
-    // 表情帧是整只猫的一帧，还没下载完就点它的话，先挂起，落地后再补放
-    const faceImg = new Image();
-    faceImg.decoding = 'async';
-    faceImg.onload = () => {
-      faceReady.current = true;
-      const p = pendingFace.current;
-      pendingFace.current = null;
-      if (p && performance.now() - p.at < 2500) showFace(p.name, p.hold);
-    };
-    faceImg.src = '/cat/cat-face.webp';
-    if (faceImg.complete) faceReady.current = true;
-
-    let upTimer = 0;
-    if ('requestIdleCallback' in window) {
-      const idle = window.requestIdleCallback(() => warm('/cat/cat-wave.webp'), { timeout: 4000 });
-      return () => {
-        window.cancelIdleCallback?.(idle);
-        window.clearTimeout(upTimer);
-      };
-    }
-    upTimer = window.setTimeout(() => warm('/cat/cat-wave.webp'), 2400);
-    return () => window.clearTimeout(upTimer);
+    return () => { probe.onload = null; probe.onerror = null; };
   }, []);
 
   // ---- 主循环：拖拽倾斜 + 视线跟随 + 投影联动 ----
@@ -112,7 +90,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     let prev = performance.now();
     let pressTimer = 0;
     let hoverTimer = 0;
-    let waveTimer = 0;
 
     const tick = now => {
       const dt = Math.min((now - prev) / 1000, 0.05);
@@ -172,11 +149,12 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       s.lastX = event.clientX;
       s.lastY = event.clientY;
       s.lastT = performance.now();
-      // 正在被摸的时候不要同时举手：清掉待触发的挥手，也把已经举起的爪子放下
+      // 正在被摸的时候别同时打招呼：清掉待触发的招呼，也把正在做的那个收掉
       lastTouchAt.current = performance.now();
       window.clearTimeout(hoverTimer);
-      window.clearTimeout(waveTimer);
-      setWave(false);
+      greetTimers.current.forEach(window.clearTimeout);
+      greetTimers.current = [];
+      setGreet(false);
       window.clearTimeout(pressTimer);
       // 按住不动 = 摸它，会眯眼打呼
       pressTimer = window.setTimeout(() => {
@@ -208,13 +186,9 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       setPurring(false);
       if (s.moved < 6 && !s.purred) {
         s.lift = 1;
-        // 第五次摸它才给笑脸，其余是“被点了一下”的惊讶
-        petCount.current += 1;
-        const happy = petCount.current % 5 === 0;
-        const name = happy ? 'happy' : 'surprised';
-        const hold = happy ? 2200 : 1300;
-        if (faceReady.current) showFace(name, hold);
-        else pendingFace.current = { name, hold, at: performance.now() };
+        // 被点一下：先眨一下眼再弹起来，比换一张表情图自然
+        setBlink(true);
+        window.setTimeout(() => setBlink(false), 110);
         onPetRef.current?.();
       }
       s.ty = 0;
@@ -256,24 +230,16 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       hoverWander = 0;
       hpx = event.clientX;
       hpy = event.clientY;
-      // 指针一进来就抢在 1.4 秒之前把招手帧拉下来
-      if (!upWarmRef.current) {
-        upWarmRef.current = true;
-        const img = new Image();
-        img.src = '/cat/cat-wave.webp';
-      }
       window.clearTimeout(hoverTimer);
       hoverTimer = window.setTimeout(() => {
-        // 在这 1.4 秒里如果指针还在划来划去，说明只是路过，不招手
+        // 在这 1.4 秒里如果指针还在划来划去，说明只是路过，不打这个招呼
         if (hoverWander > 26) return;
         const now = performance.now();
-        // 刚被点过/摸过就先顾着反应，别马上又举手
+        // 刚被点过/摸过就先顾着反应，别马上又打招呼
         if (now - lastTouchAt.current < 1600) return;
         if (now - lastWaveAt.current < 20000) return;
         lastWaveAt.current = now;
-        setWave(true);
-        window.clearTimeout(waveTimer);
-        waveTimer = window.setTimeout(() => setWave(false), 1600);
+        startGreetRef.current?.();
       }, 1400);
     }
     function leave() {
@@ -297,7 +263,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       if (gazeRaf) cancelAnimationFrame(gazeRaf);
       window.clearTimeout(pressTimer);
       window.clearTimeout(hoverTimer);
-      window.clearTimeout(waveTimer);
+      greetTimers.current.forEach(window.clearTimeout);
+      greetTimers.current = [];
       host.removeEventListener('pointerdown', down);
       host.removeEventListener('pointermove', move);
       host.removeEventListener('pointerup', release);
@@ -331,7 +298,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       alive = false;
       window.clearTimeout(off);
       window.clearTimeout(on);
-      window.clearTimeout(faceTimer.current);
     };
   }, []);
 
@@ -388,8 +354,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       tabIndex={0}
       aria-label="摸摸小猫：单击会跳，按住会打呼，拖动可以转动"
       title="摸摸我"
-      data-act={(wave ? 'wave' : act) || undefined}
-      data-face={purring ? 'shy' : face || undefined}
+      data-act={(greet ? 'greet' : act) || undefined}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -421,9 +386,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
               </span>
             </span>
 
-            {/* 表情与招手：整只猫换一帧，盖在分层之上，所以不会有贴片错位 */}
-            <span className="pet-2d-shot" aria-hidden="true" />
-            <span className="pet-2d-wave-frame" aria-hidden="true" />
             </span>
           </span>
         </span>
