@@ -21,7 +21,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const stageRef = useRef(null);
   const bodyRef = useRef(null);
   const headRef = useRef(null);
-  const castRef = useRef(null);
   const contactRef = useRef(null);
   const wrapRef = useRef(null);
   const stateRef = useRef(null);
@@ -71,7 +70,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     const stage = stageRef.current;
     const body = bodyRef.current;
     const head = headRef.current;
-    const cast = castRef.current;
     const contact = contactRef.current;
     if (!host || !stage) return undefined;
 
@@ -127,12 +125,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       // 身体只跟视线一点点（转动已经由 stage 统一做了）
       body.style.transform = `translate3d(${(s.gx * 0.18).toFixed(2)}px, ${(s.gy * 0.16).toFixed(2)}px, 0)`;
 
-      // 投影：转动时收窄并往反方向轻移，起跳/悬停时缩小变淡
-      const castScaleX = cosY * (1 - s.hover * 0.05 - lift * 0.22);
-      const castScaleY = (1 - Math.abs(rotX) * 0.004) * (1 - lift * 0.18);
-      cast.style.transform = `translateX(${(-rotY * 0.17).toFixed(2)}px) scale(${castScaleX.toFixed(3)}, ${castScaleY.toFixed(3)})`;
-      cast.style.opacity = (0.95 - Math.abs(normY) * 0.12 - s.hover * 0.1 - lift * 0.42).toFixed(3);
-
+      // 落地阴影已经烘在图里了，这里只留脚底那层更实的接触影：
       // 接触影更实：跟着身体压地，转动时略微收窄，但不像软影那样飘
       contact.style.transform = `translateX(${(-rotY * 0.07).toFixed(2)}px) scale(${(1 - Math.abs(normY) * 0.04 - lift * 0.3).toFixed(3)}, ${(1 - lift * 0.24).toFixed(3)})`;
       contact.style.opacity = (1 - lift * 0.55).toFixed(3);
@@ -363,7 +356,6 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         }
       }}
     >
-      <span className="pet-2d-cast" ref={castRef} aria-hidden="true" />
       <span className="pet-2d-contact" ref={contactRef} aria-hidden="true" />
 
       <span className="pet-2d-stage-wrap" ref={wrapRef}>

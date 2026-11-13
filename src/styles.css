@@ -264,15 +264,12 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 /* 头、身、投影是三层，各自能被 JS 独立驱动：
    身体转动时头会多探出一点（视差），投影随之收窄变形，靠这三者的差速“骗”出体积。 */
 /* 画布 484×612 比猫本身宽 14px：给招手那一帧举起、伸到最右的爪子留余量，否则会被切平 */
-.cat-companion.is-2d{width:148px;height:188px;right:-18px;bottom:-8px}
+.cat-companion.is-2d{width:168px;height:188px;right:-28px;bottom:-8px}
 .pet-2d{position:relative;width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent}
 .pet-2d:active{cursor:grabbing}
 .pet-2d:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:14px}
 
 /* 地面：远处的大软影 + 脚底的小深影，两层差速才有“离地/贴地”的区别 */
-.pet-2d-cast{position:absolute;left:0;right:0;bottom:-2px;width:70%;height:14px;margin:0 auto;border-radius:50%;
-  background:radial-gradient(ellipse at 50% 50%,rgba(84,66,50,.34),rgba(84,66,50,.14) 56%,rgba(84,66,50,0) 76%);
-  filter:blur(2.6px);pointer-events:none;will-change:transform,opacity}
 .pet-2d-contact{position:absolute;left:0;right:0;bottom:1px;width:38%;height:7px;margin:0 auto;border-radius:50%;
   background:radial-gradient(ellipse at 50% 50%,rgba(68,52,38,.5),rgba(68,52,38,.16) 58%,rgba(68,52,38,0) 74%);
   filter:blur(1px);pointer-events:none;will-change:transform,opacity}
@@ -299,9 +296,9 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
    没有整帧替换、没有贴片，也就不会出现“换了一张照片”的窜图。
    “打招呼”是歪头 + 连眨两次眼（眨眼由 JS 打点）。 */
 /* 切口的柔影加在整只猫上（stage），不能加在头层上，否则切面会投出一条横黑线 */
-.pet-2d-head{transform-origin:50% 57.9%;z-index:3}
+.pet-2d-head{transform-origin:50% 57.8%;z-index:3}
 .pet-2d-body{z-index:1}
-.pet-2d-head-motion{position:absolute;inset:0;display:block;transform-origin:50% 57.9%}
+.pet-2d-head-motion{position:absolute;inset:0;display:block;transform-origin:50% 57.8%}
 
 /* 待机小动作：整体先动，头再叠一点点，读起来是“猫在动”而不是“头在飘” */
 .pet-2d[data-act="tilt"] .pet-2d-sway{animation:cat-tilt 1.55s cubic-bezier(.34,1.3,.5,1)}
@@ -365,8 +362,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .pet-2d.is-purring .pet-2d-stage-wrap{animation:none}
 }
 @media(max-width:767px){
-  .cat-companion.is-2d{width:108px;height:137px;right:2px;bottom:calc(10px + env(safe-area-inset-bottom))}
-  .pet-2d-cast{height:11px}
+  .cat-companion.is-2d{width:122px;height:137px;right:2px;bottom:calc(10px + env(safe-area-inset-bottom))}
   .pet-2d-contact{height:6px}
 }
 
