@@ -7,5 +7,13 @@
     "color": "blue",
     "icon": "note",
     "feed": true
+  },
+  {
+    "id": "dsmoney",
+    "name": "大肥鱼账本",
+    "url": "https://dsmoney.kuilab.cn/",
+    "detail": "上班时看着钱一秒一秒长出来。",
+    "color": "sand",
+    "icon": "coin"
   }
 ]

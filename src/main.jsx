@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
+import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
 import './styles.css';
 import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 styles.css 之后
 import { useTheme } from './theme';
@@ -28,7 +28,7 @@ const pages = {
 const STORAGE_KEY = 'personal-hub-links-v1';
 const PAGE_SIZE = 6;
 // links.json 里可以用 "icon": "note" 之类的短名挑图标，写不认识的就退回书签
-const CARD_ICONS = { note: NotePencil, github: GithubLogo, heart: Heart, chat: ChatCircle, brush: PaintBrush };
+const CARD_ICONS = { note: NotePencil, github: GithubLogo, heart: Heart, chat: ChatCircle, brush: PaintBrush, coin: Coins };
 function parseLinks(data) {
   if (!Array.isArray(data)) throw Error('链接数据格式错误');
   return data.map((link, index) => {

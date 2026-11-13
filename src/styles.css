@@ -742,14 +742,16 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .page .marker.pink{background:rgba(197,150,166,.35)}
 .page .visit-arrow{color:var(--ink-3)}
 
-/* ---- 带订阅源的那张卡（gblog）：横跨整行，左身份 / 右最新几篇 ---- */
-.page .note-wrap.is-feature{grid-column:1/-1}
+/* ---- 带订阅源的那张卡（gblog）：左身份 / 右最新几篇 ----
+   （栅格与断点集中在文件后面的「链接墙」一节） ---- */
 .page .feature-note{
   display:grid; grid-template-columns:164px minmax(0,1fr); column-gap:24px;
   padding:18px 20px 17px; text-align:left;
 }
 /* 悬停整块卡片时不抬起来：里面每一行都有自己的反馈，整卡位移会晃 */
 .page .feature-note:hover{transform:none}
+/* 卡里已经有「全部 N 篇 ↗」，右上角那颗小箭头就别再出现一次 */
+.page .feature-note .visit-arrow{display:none}
 .page .feature-side{display:flex; flex-direction:column; justify-content:center; align-items:flex-start; min-width:0; color:inherit; text-decoration:none}
 .page .feature-side .card-top{width:100%; margin-bottom:0}
 .page .feature-side h3{margin-top:9px; font-size:19px}
@@ -795,6 +797,40 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 @keyframes skeleton-sweep{from{background-position:130% 0} to{background-position:-45% 0}}
 .page .feed-empty{font-size:11.5px; line-height:1.7; color:var(--ink-3); margin-top:12px; max-width:34em}
+
+/* 普通卡片被订阅卡拉高时，把那条彩色便签压到卡片底部：
+   否则说明文字下面会空出一大块，跟旁边填满的订阅卡并排显得没做完 */
+.page .link-wall .link-note:not(.feature-note){display:flex; flex-direction:column}
+.page .link-wall .link-note:not(.feature-note) .card-top{width:100%}
+.page .link-wall .link-note:not(.feature-note) .marker{margin-top:auto}
+
+/* ---- 链接墙栅格 ----
+   3 栏；订阅卡占 2 栏，只有它一张时占满整行 —— 这样再加一张卡会落在同一条行上，
+   不会把整页顶高一整行（153px）。规则放在订阅卡样式之后，方便被下面的断点覆盖。 */
+.page .link-wall{grid-template-columns:repeat(3,minmax(0,1fr))}
+.page .note-wrap.is-feature{grid-column:span 2}
+.page .note-wrap.is-feature:only-child{grid-column:1/-1}
+/* 有别的卡作伴：身份栏收窄，宽度让给文章标题 */
+.page .note-wrap.is-feature:not(:only-child) .feature-note{grid-template-columns:136px minmax(0,1fr); column-gap:18px}
+.page .note-wrap.is-feature:not(:only-child) .feature-side p{max-width:120px}
+
+/* 窄一点：两栏，订阅卡独占一行；留白同时收一点（这个档位原本就比一屏高 41px） */
+@media(max-width:1050px){
+  .page .link-wall{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .page .note-wrap.is-feature{grid-column:1/-1}
+  /* 只有一张普通卡跟着订阅卡时让它也占满整行，别吊在半边 */
+  .page .note-wrap.is-feature:first-child:nth-last-child(2) ~ .note-wrap{grid-column:1/-1}
+  .page{padding-top:58px}
+  .page .paper-shell{padding-top:40px; padding-bottom:30px}
+  .page .footer{padding-top:24px}
+}
+/* 手机：一栏到底，订阅卡改回上下两段 */
+@media(max-width:767px){
+  .page .link-wall{grid-template-columns:1fr}
+  .page .note-wrap.is-feature{grid-column:1/-1}
+  .page .note-wrap.is-feature:not(:only-child) .feature-note{grid-template-columns:minmax(0,1fr); column-gap:0}
+  .page .note-wrap.is-feature:not(:only-child) .feature-side p{max-width:none}
+}
 
 /* 装饰涂鸦：在白底上是铅笔，在墨底上是刻线 */
 .page .decoration{color:var(--line-strong)}
