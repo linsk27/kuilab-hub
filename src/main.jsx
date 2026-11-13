@@ -247,7 +247,6 @@ function App({ managing }) {
           <header className="flex items-center justify-between"><h2 id="links-title">All Links<span className="heading-period">.</span></h2><span className="tiny-note">a few places to find me</span></header>
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
-          {loadState !== 'ready' && <p className="links-load-state" role="status">{loadState === 'loading' ? '正在加载公开链接…' : '公开链接加载失败，请刷新重试。'}</p>}
           <div className="link-wall grid" aria-busy={loadState === 'loading'}>
             {visibleLinks.map(({ id, name, detail, icon: Icon, color, url }, index) => {
               const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3>{name}</h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
@@ -261,23 +260,34 @@ function App({ managing }) {
               </>}</div>;
             })}
           </div>
-          {loadState === 'ready' && !links.length && <div className={`empty-links ${managing ? 'is-managing' : ''}`}>
+          {/* 右栏只有三种"没有卡片"的状态：读取中 / 读取失败 / 确实还没有。
+              三种都走同一张索引页，避免首屏几秒里只剩一行小字。 */}
+          {(loadState !== 'ready' || !links.length) && <div
+            className={`empty-links ${managing ? 'is-managing' : ''}`}
+            data-state={loadState === 'ready' ? 'empty' : loadState}
+            role={loadState === 'ready' ? undefined : 'status'}
+          >
             <div className="empty-head">
-              <span className="empty-label">Index</span>
-              <span className="empty-value">00</span>
+              <span className="empty-label">{loadState === 'ready' ? 'Index' : loadState === 'loading' ? 'Loading' : 'Offline'}</span>
+              <span className="empty-value">{loadState === 'ready' ? '00' : '··'}</span>
             </div>
             <div className="empty-body">
               <span className="empty-mark" aria-hidden="true"><BookmarkSimple size={17} weight="thin" /></span>
-              <h3>{managing ? '从第一个链接开始' : '还没有公开的链接'}</h3>
-              <p>{managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。'}</p>
-              {managing && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}
+              <h3>{loadState !== 'ready'
+                ? (loadState === 'loading' ? '正在取回链接' : '链接没有读到')
+                : (managing ? '从第一个链接开始' : '还没有公开的链接')}</h3>
+              <p>{loadState !== 'ready'
+                ? (loadState === 'loading' ? '稍等一下，列表马上到。' : '刷新页面重试，或稍后再来。')
+                : (managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。')}</p>
+              {managing && loadState === 'ready' && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}
             </div>
             <div className="empty-foot" aria-hidden="true">
-              <span>{managing ? 'Draft' : 'Soon'}</span>
+              <span>{loadState !== 'ready' ? (loadState === 'loading' ? 'Fetching' : 'Retry') : (managing ? 'Draft' : 'Soon')}</span>
               <i className="empty-rule" />
-              <span>This space is reserved</span>
+              <span>{loadState === 'loading' ? 'Reading index' : loadState === 'error' ? 'Unavailable' : 'This space is reserved'}</span>
             </div>
           </div>}
+
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           <div className="meta-grid" aria-hidden="true">
