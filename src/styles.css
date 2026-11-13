@@ -483,7 +483,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
    颜色与主题见 theme.css：令牌挂在 body，[data-theme] 切「墨 / 纸」。
    ============================================================ */
 .page{
-  position:relative; padding-top:96px; padding-bottom:52px;
+  position:relative; padding-top:74px; padding-bottom:28px;
   isolation:isolate;
 }
 
@@ -502,18 +502,18 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .page .paper-shell{
   position:relative;
   border-radius:22px;
-  padding:56px 54px 40px 32px;
+  padding:40px 52px 26px 30px;
 }
 
 /* ---- 左栏 NOW：真实内容（来自 public/now.json），填掉标题与入口之间那段空白 ---- */
 .page .now{
-  width:100%; margin:24px 0 4px; text-align:left; padding:0;
+  width:100%; margin:18px 0 2px; text-align:left; padding:0;
   border-top:1px solid var(--line-faint);
 }
 .page .now-head,
 .page .now-row{
   display:flex; align-items:baseline; gap:12px;
-  padding:11px 0; border-bottom:1px solid var(--line-faint);
+  padding:8px 0; border-bottom:1px solid var(--line-faint);
 }
 .page .now-head{
   justify-content:space-between; padding-top:9px;
@@ -528,18 +528,18 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* ---- 右栏「最近」：三条带日期的记录，和索引页共用一套细线 ---- */
 .page .recent{
-  list-style:none; margin:24px 0 0; padding:0;
+  list-style:none; margin:16px 0 0; padding:0;
   border-top:1px solid var(--line-faint);
 }
 .page .recent-head{
   display:flex; align-items:baseline; justify-content:space-between;
-  padding:10px 0 9px;
+  padding:8px 0 7px;
   font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; font-weight:500;
   letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
 }
 .page .recent-item{
   display:flex; align-items:baseline; gap:12px;
-  padding:9px 0; border-top:1px solid var(--line-faint);
+  padding:7px 0; border-top:1px solid var(--line-faint);
 }
 .page .recent-date{
   flex:0 0 38px; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
@@ -694,7 +694,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 /* 下面已经有「最近」列表时，空状态收成一行——大块留白只适合"页面上什么都没有"的时候 */
 .page .empty-links.is-compact .empty-body{
   flex-direction:row; align-items:baseline; gap:12px; text-align:left;
-  padding:14px 0 16px;
+  padding:10px 0 12px;
 }
 .page .empty-links.is-compact .empty-mark{display:none}
 .page .empty-links.is-compact h3{font-size:13px; margin-top:0; white-space:nowrap}
@@ -715,7 +715,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 .page .panel-signoff{
   font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px; letter-spacing:.16em;
-  text-transform:uppercase; color:var(--ink-3); margin-top:26px;
+  text-transform:uppercase; color:var(--ink-3); margin-top:12px;
 }
 .page .panel-signoff svg{color:var(--warm); opacity:.55}
 
@@ -755,7 +755,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* ---- 页脚 ---- */
 .page .footer{
-  margin-top:36px; padding-top:26px; width:min(100%,1080px); position:relative;
+  margin-top:20px; padding-top:18px; width:min(100%,1080px); position:relative;
 }
 .page .footer::before{
   content:""; position:absolute; inset:0 0 auto; height:1px;
@@ -810,7 +810,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* ---- 卡片底部的 meta 栅格：三等分，细线分隔 ---- */
 .page .meta-grid{
-  display:flex; margin-top:30px; padding-top:16px; border-top:1px solid var(--line-faint);
+  display:flex; margin-top:20px; padding-top:14px; border-top:1px solid var(--line-faint);
 }
 .page .meta-cell{
   flex:1; min-width:0; display:flex; flex-direction:column; gap:7px;
