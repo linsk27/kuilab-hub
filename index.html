@@ -6,6 +6,18 @@
     <meta name="theme-color" content="#fcfbfc" />
     <meta name="color-scheme" content="light" />
     <meta name="description" content="一个安静的个人网站入口。" />
+    <script>
+      // 首帧前定主题：默认深色，用户手动切过就记住
+      (function () {
+        try {
+          var t = localStorage.getItem('hub-theme');
+          if (t !== 'light' && t !== 'dark') t = 'dark';
+          document.documentElement.dataset.theme = t;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />

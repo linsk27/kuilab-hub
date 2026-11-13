@@ -74,17 +74,35 @@ function PetCat() {
   </div>;
 }
 // 顶部状态条：本地时间 + 可联系状态，给页面一点“产品”的呼吸
-function StatusRail() {
+function StatusRail({ theme, onToggleTheme }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 20000);
     return () => window.clearInterval(id);
   }, []);
   const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const next = theme === 'dark' ? '亮色' : '暗色';
   return (
-    <div className="rail" aria-hidden="true">
+    <div className="rail">
       <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
-      <span className="rail-r">UTC+8 <b>{t}</b></span>
+      <span className="rail-r">
+        <span className="rail-time">UTC+8 <b>{t}</b></span>
+        <button
+          type="button"
+          className={`theme-toggle ${theme}`}
+          onClick={onToggleTheme}
+          aria-label={`切换到${next}主题`}
+          title={`切换到${next}主题`}
+        >
+          <i className="theme-knob" aria-hidden="true" />
+          <span className={`theme-ico sun ${theme === 'light' ? 'on' : ''}`} aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6" /></svg>
+          </span>
+          <span className={`theme-ico moon ${theme === 'dark' ? 'on' : ''}`} aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 14.4A8.4 8.4 0 1 1 9.6 4a6.8 6.8 0 0 0 10.4 10.4Z" /></svg>
+          </span>
+        </button>
+      </span>
     </div>
   );
 }
@@ -118,6 +136,30 @@ function Spotlight() {
 }
 
 function App({ managing }) {
+  const [theme, setTheme] = useState(() => {
+    if (typeof document === 'undefined') return 'dark';
+    // index.html 的内联脚本已先设好 data-theme（避免首帧闪一下），这里只读回来
+    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { window.localStorage.setItem('hub-theme', theme); } catch { /* 隐私模式下忽略 */ }
+  }, [theme]);
+  function toggleTheme(event) {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !document.startViewTransition) { setTheme(next); return; }
+    const x = event ? event.clientX : window.innerWidth - 48;
+    const y = event ? event.clientY : 36;
+    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) * 1.05;
+    const vt = document.startViewTransition(() => setTheme(next));
+    vt.ready.then(() => {
+      document.documentElement.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+        { duration: 640, easing: 'cubic-bezier(.22,1,.36,1)', pseudoElement: '::view-transition-new(root)' }
+      );
+    });
+  }
   const dialog = useRef(null);
   const editor = useRef(null);
   const [publishedLinks, setPublishedLinks] = useState([]);
@@ -199,7 +241,7 @@ function App({ managing }) {
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
     <Spotlight />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
-    <StatusRail />
+    <StatusRail theme={theme} onToggleTheme={toggleTheme} />
     <div className="composition relative w-full">
       <div className="decoration cloud" aria-hidden="true"><Cloud size={43} weight="thin" /></div>
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
@@ -235,6 +277,11 @@ function App({ managing }) {
           {loadState === 'ready' && !links.length && <div className="empty-links"><BookmarkSimple size={30} weight="thin" /><h3>{managing ? '从第一个链接开始。' : '链接正在慢慢收集中。'}</h3><p>{managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。'}</p>{managing && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}</div>}
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
+          <div className="meta-grid" aria-hidden="true">
+            <div className="meta-cell"><span>Links</span><b>{links.length ? String(links.length).padStart(2, '0') : '—'}</b></div>
+            <div className="meta-cell"><span>Status</span><b>Open</b></div>
+            <div className="meta-cell"><span>Zone</span><b>+08</b></div>
+          </div>
           <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
         </section>
       </main>
