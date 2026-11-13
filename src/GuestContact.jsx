@@ -73,6 +73,21 @@ function mergeMessages(previous, incoming) {
   incoming.forEach(item => { if (item && item.id != null) map.set(String(item.id), item); });
   return [...map.values()].sort((a, b) => cmpId(a.id, b.id));
 }
+// 跨天时插一条日期分隔，长会话才好读
+function dayKey(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+function formatDay(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return '今天';
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return '昨天';
+  return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+}
 function formatTime(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -157,10 +172,10 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const [loginBusy, setLoginBusy] = useState(false);
 
   // 创建空间（B）
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createTitle, setCreateTitle] = useState('');
-  const [createBusy, setCreateBusy] = useState(false);
-  const [createError, setCreateError] = useState('');
+  // 首屏直接写第一句：一次动作就建好空间并发出去，不再先填名称、再进空房间
+  const [firstText, setFirstText] = useState('');
+  const [firstBusy, setFirstBusy] = useState(false);
+  const [firstError, setFirstError] = useState('');
 
   // 作者主动创建邀请空间（作者创建链接）
   const [authorInviteOpen, setAuthorInviteOpen] = useState(false);
@@ -405,6 +420,40 @@ export default function GuestContact({ openAuthorLogin = false }) {
   function defaultTitle() {
     return `访客联络 · ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
   }
+  // 空间标题直接取第一句话的前 16 个字，作者在后台一眼能看出是谁在找
+  function titleFrom(text) {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    return clean.length > 16 ? `${clean.slice(0, 16)}…` : clean || defaultTitle();
+  }
+  async function submitFirst(event) {
+    event?.preventDefault();
+    const body = firstText.trim();
+    if (!body || firstBusy) return;
+    if (body.length > MAX_BODY) { setFirstError(`留言最多 ${MAX_BODY} 字。`); return; }
+    setFirstBusy(true); setFirstError('');
+    const secret = makeSecret();
+    const title = titleFrom(body);
+    try {
+      const opened = await rpc('guest_open', { secret, title });
+      if (!opened.space) { const err = new Error('服务未返回联络空间'); err.code = 'bad_response'; throw err; }
+      persistGuest({ space: opened.space, secret, title });
+      // 建好就立刻把第一句发出去；失败也只提示，空间已经建好不会丢
+      try {
+        const clientId = newClientId();
+        const sent = await rpc('guest_post', { space: opened.space, secret, client_id: clientId, body });
+        setGuestMessages(previous => mergeMessages(previous, [{
+          id: sent.id, client_id: clientId, sender: 'guest', body, created_at: new Date().toISOString(),
+        }]));
+        setFirstText('');
+      } catch (e) {
+        setGuestText(body);        // 退回输入框，让人可以直接重发
+        setFirstText('');
+        setGuestError(rpcErrorText(e));
+      }
+    } catch (e) { setFirstError(rpcErrorText(e)); }
+    finally { setFirstBusy(false); }
+  }
+
   // 清掉 URL 里的 invite 参数，但保留 hash（#/chat 仍由路由识别）。
   function cleanInviteParam() {
     try {
@@ -440,7 +489,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
     try { localStorage.removeItem(GUEST_KEY); } catch { /* 忽略存储限制 */ }
     if (guest?.space) saveDraft('guest', guest.space, '');
     setGuest(null); setGuestMessages([]); setGuestText(''); setGuestError(''); guestPending.current = null;
-    setCreateOpen(false); setInviteOpen(false); setInviteData(null);
+    setFirstText(''); setFirstError(''); setInviteOpen(false); setInviteData(null);
     setJoinOpen(false); setJoinCode(''); setInviteError('');
   }
 
@@ -717,10 +766,23 @@ export default function GuestContact({ openAuthorLogin = false }) {
         </div>}
 
         <main className="station-workspace gc-guest-workspace">
-          <aside className="station-sidebar">
-            <ChatCircle size={30} weight="light" />
-            <h1>联络站</h1>
-            <p>留一句话，等作者回来。</p>
+          <aside className="station-sidebar gc-guest-sidebar">
+            <div className="gc-host">
+              <img className="gc-host-avatar" src={`${import.meta.env.BASE_URL}images/portrait.svg`} alt="" width="80" height="80" />
+              <div className="gc-host-id">
+                <strong>作者</strong>
+                <span className={`gc-host-state ${online === true ? 'is-on' : ''}`}>
+                  <i className="gc-host-dot" aria-hidden="true" />
+                  {online === true ? '在线' : online === false ? '不在线' : '状态未知'}
+                </span>
+              </div>
+            </div>
+            <p className="gc-host-intro">这是作者的个人站。想聊、想提问，或者只是路过，都可以写在这里。</p>
+            <dl className="gc-host-facts">
+              <div><dt>谁会看到</dt><dd>只有我和写这句话的人</dd></div>
+              <div><dt>多久回复</dt><dd>看到就回，通常一两天</dd></div>
+              <div><dt>能保留多久</dt><dd>长期保留，随时可以结束</dd></div>
+            </dl>
           </aside>
           <section className="station-conversation" aria-label="访客联络">
             <div className="station-conversation-heading gc-heading">
@@ -734,8 +796,23 @@ export default function GuestContact({ openAuthorLogin = false }) {
             </div>
             {!guest ? (
               <div className="station-connection-state gc-create-state">
-                <button type="button" className="gc-primary-large" onClick={openCreate}>＋ 创建联络空间</button>
-                <p className="gc-create-hint">无需注册 · 留言云端可见</p>
+                <form className="gc-first" onSubmit={submitFirst}>
+                  <p className="gc-first-title">直接写第一句就好</p>
+                  <p className="gc-first-sub">不用注册，也不用留邮箱。写完这一句，就会有一段只有你和作者能看到的对话。</p>
+                  <label className="gc-first-label" htmlFor="gc-first-text">想说的话</label>
+                  <textarea id="gc-first-text" className="gc-first-input" rows={3} maxLength={MAX_BODY}
+                    value={firstText} placeholder="比如：看到你那只小猫了，想问问它是不是也能站起来…"
+                    onChange={event => { setFirstText(event.target.value); setFirstError(''); }}
+                    onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') submitFirst(event); }} />
+                  <div className="gc-first-row">
+                    <span className="gc-char-count">{firstText.length} / {MAX_BODY}</span>
+                    <button type="submit" className="gc-primary-large" disabled={firstBusy || !firstText.trim()}>
+                      {firstBusy ? '正在发送…' : '发送，开始联络'}
+                    </button>
+                  </div>
+                  <p className="gc-first-hint">发送即建立联络空间 · 凭据只存在这台设备上 · ⌘/Ctrl + Enter 发送</p>
+                  {firstError && <p className="form-error" role="alert">{firstError}</p>}
+                </form>
                 <div className="gc-join-entry">
                   {!joinOpen ? (
                     <button type="button" className="gc-text-link" onClick={toggleJoin}>输入邀请码加入</button>
@@ -760,7 +837,13 @@ export default function GuestContact({ openAuthorLogin = false }) {
               <div className="station-messages" aria-label="消息记录" aria-live="polite" ref={guestListRef}
                 onScroll={event => trackStick(event, guestStick)}>
                 {!guestMessages.length && <div className="station-empty-message">联络已建立，写下第一句话吧。</div>}
-                {guestMessages.map(message => <Bubble key={message.id} message={message} mine={message.sender === 'guest'} />)}
+                {guestMessages.map((message, index) => (
+                  <React.Fragment key={message.id}>
+                    {dayKey(guestMessages[index - 1]?.created_at) !== dayKey(message.created_at) &&
+                      <div className="station-day" role="separator"><span>{formatDay(message.created_at)}</span></div>}
+                    <Bubble message={message} mine={message.sender === 'guest'} />
+                  </React.Fragment>
+                ))}
               </div>
             )}
             <div className="station-feedback">
@@ -769,7 +852,8 @@ export default function GuestContact({ openAuthorLogin = false }) {
             {guest && <form className="station-compose" onSubmit={sendGuest}>
               <label htmlFor="gc-guest-message">留言</label>
               <textarea id="gc-guest-message" ref={guestInputRef} rows={3} maxLength={MAX_BODY} value={guestText} disabled={!!guestBusy}
-                onChange={event => { const value = event.target.value; setGuestText(value); saveDraft('guest', guest?.space, value); growComposer(event); }} placeholder="写点什么…" />
+                onChange={event => { const value = event.target.value; setGuestText(value); saveDraft('guest', guest?.space, value); growComposer(event); }}
+                onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') sendGuest(event); }} placeholder="写点什么…" />
               <div className="gc-compose-actions">
                 <span className="gc-char-count">{guestText.length} / {MAX_BODY}</span>
                 <button className="small-control gc-primary" disabled={!!guestBusy || !guestText.trim()}>
@@ -816,7 +900,13 @@ export default function GuestContact({ openAuthorLogin = false }) {
                 onScroll={event => trackStick(event, authorStick)}>
                 {!selectedSpace && <div className="station-empty-message">左侧选择一个会话，或等待访客发起联络。</div>}
                 {selectedSpace && !authorMessages.length && <div className="station-empty-message">这个会话还没有消息。</div>}
-                {authorMessages.map(message => <Bubble key={message.id} message={message} mine={message.sender === 'author'} />)}
+                {authorMessages.map((message, index) => (
+                  <React.Fragment key={message.id}>
+                    {dayKey(authorMessages[index - 1]?.created_at) !== dayKey(message.created_at) &&
+                      <div className="station-day" role="separator"><span>{formatDay(message.created_at)}</span></div>}
+                    <Bubble message={message} mine={message.sender === 'author'} />
+                  </React.Fragment>
+                ))}
               </div>
               <div className="station-feedback"><p role="alert" className="form-error">{authorError}</p></div>
               <form className="station-compose" onSubmit={sendAuthor}>
@@ -863,27 +953,6 @@ export default function GuestContact({ openAuthorLogin = false }) {
         </div>
       </form>
     </dialog>
-
-    {/* 创建空间：名称可编辑，即「创建时的编辑」 */}
-    <Dialog open={createOpen} onClose={closeCreate} labelledBy="gc-create-title-h">
-      <form className="dialog-inner station-modal-form" onSubmit={submitCreate}>
-        <div className="station-dialog-heading">
-          <h2 id="gc-create-title-h">创建联络空间</h2>
-          <button type="button" className="small-control" onClick={closeCreate}>关闭</button>
-        </div>
-        <label htmlFor="gc-create-title">空间名称</label>
-        <input id="gc-create-title" maxLength={MAX_TITLE} value={createTitle}
-          onChange={event => { setCreateTitle(event.target.value); setCreateError(''); }} />
-        <p className="gc-dialog-hint">名称之后可修改。</p>
-        <p role="alert" className="form-error">{createError}</p>
-        <div className="gc-dialog-actions">
-          <button type="button" className="gc-text-link" onClick={closeCreate}>取消</button>
-          <button type="submit" className="small-control gc-primary" disabled={createBusy || !createTitle.trim()}>
-            {createBusy ? '正在创建…' : '创建'}
-          </button>
-        </div>
-      </form>
-    </Dialog>
 
     {/* 作者主动创建邀请链接 */}
     <Dialog open={authorInviteOpen} onClose={closeAuthorInvite} labelledBy="gc-author-invite-h">

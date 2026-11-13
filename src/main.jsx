@@ -223,6 +223,16 @@ function App({ managing }) {
     setNotice('已导出 links.json。替换项目 public/links.json 并重新部署后，所有访客才会看到更新。');
   }
   const [portraitReady, setPortraitReady] = useState(false);
+  // 左栏「现在」与右栏「最近」来自 public/now.json：改内容不用重新构建
+  const [now, setNow] = useState(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${import.meta.env.BASE_URL}now.json`, { signal: controller.signal, cache: 'no-cache' })
+      .then(response => (response.ok ? response.json() : null))
+      .then(data => { if (data) setNow(data); })
+      .catch(() => { /* 读不到就不显示这两块，不影响其它内容 */ });
+    return () => controller.abort();
+  }, []);
   const [content, setContent] = useState(null);
   const [copied, setCopied] = useState(false);
   function open(name) {
@@ -250,8 +260,12 @@ function App({ managing }) {
           <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.svg`} alt="Original anime portrait of a silver-haired young woman" width="160" height="160" onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
           <h1><SplitWords text="Personal Hub" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
-          <div className="profile-flourish" aria-hidden="true"><ArrowBendUpRight size={47} weight="thin" /></div>
-          <p className="welcome">Make yourself at home.</p>
+          {now && <dl className="now">
+            <div className="now-head"><dt>Now</dt><dd>{now.updated}</dd></div>
+            {now.status && <div className="now-row"><dt>状态</dt><dd>{now.status}</dd></div>}
+            {now.doing && <div className="now-row"><dt>在做</dt><dd>{now.doing}</dd></div>}
+            {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
+          </dl>}
           <a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span>联络站</span><ArrowUpRight size={15} aria-hidden="true" /></a>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
@@ -274,7 +288,7 @@ function App({ managing }) {
           {/* 右栏只有三种"没有卡片"的状态：读取中 / 读取失败 / 确实还没有。
               三种都走同一张索引页，避免首屏几秒里只剩一行小字。 */}
           {(loadState !== 'ready' || !links.length) && <div
-            className={`empty-links ${managing ? 'is-managing' : ''}`}
+            className={`empty-links ${managing ? 'is-managing' : ''} ${now?.updates?.length ? 'is-compact' : ''}`}
             data-state={loadState === 'ready' ? 'empty' : loadState}
             role={loadState === 'ready' ? undefined : 'status'}
           >
@@ -299,6 +313,14 @@ function App({ managing }) {
             </div>
           </div>}
 
+          {now?.updates?.length ? <ol className="recent">
+            <li className="recent-head"><span>最近</span><span>{String(now.updates.length).padStart(2, '0')} 条</span></li>
+            {now.updates.slice(0, 3).map(item => <li className="recent-item" key={`${item.date}-${item.text}`}>
+              <span className="recent-date">{String(item.date || '').slice(5)}</span>
+              <span className="recent-text">{item.text}</span>
+              {item.tag && <span className="recent-tag">{item.tag}</span>}
+            </li>)}
+          </ol> : null}
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           <div className="meta-grid" aria-hidden="true">

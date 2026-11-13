@@ -18,6 +18,54 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.link-note:hover{transform:none}}
 
 /* 免登录联络站 GuestContact：沿用 station-* 骨架，只补新控件 */
+
+/* ---- 访客首屏：左边说清"这是谁的地方"，右边直接写第一句 ---- */
+.station-page .gc-guest-sidebar{padding:28px 24px}
+.gc-host{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.gc-host-avatar{
+  width:54px;height:54px;border-radius:50%;object-fit:cover;flex:0 0 auto;
+  filter:saturate(.85);box-shadow:0 0 0 1px var(--line);
+}
+.gc-host-id{display:flex;flex-direction:column;gap:6px;min-width:0}
+.gc-host-id strong{font-size:16px;font-weight:600;letter-spacing:.01em;color:var(--ink-strong)}
+.gc-host-state{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.04em;color:var(--ink-3)}
+.gc-host-dot{width:5px;height:5px;border-radius:50%;background:var(--ink-3);opacity:.7}
+.gc-host-state.is-on{color:var(--ink-2)}
+.gc-host-state.is-on .gc-host-dot{background:var(--ok);opacity:1;animation:gc-pulse 2.4s ease-in-out infinite}
+.gc-host-intro{font-size:12px;line-height:1.95;color:var(--ink-2);margin:0 0 20px}
+.gc-host-facts{margin:0;padding:0;border-top:1px solid var(--line-faint)}
+.gc-host-facts>div{display:flex;flex-direction:column;gap:4px;padding:11px 0;border-bottom:1px solid var(--line-faint)}
+.gc-host-facts dt{font-size:9.5px;letter-spacing:.16em;color:var(--ink-3)}
+.gc-host-facts dd{margin:0;font-size:11.5px;line-height:1.6;color:var(--ink-2)}
+
+/* 首屏输入：一个输入框 + 一次发送，取代"先建空间再写字" */
+.station-page .gc-create-state{gap:20px;padding:36px 28px}
+.gc-first{width:min(100%,560px);text-align:left}
+.gc-first-title{
+  margin:0 0 8px; font-family:Georgia,"Times New Roman",serif; font-weight:400;
+  font-size:19px; line-height:1.4; letter-spacing:-.005em; color:var(--ink-strong);
+}
+.gc-first-sub{margin:0 0 18px; font-size:11.5px; line-height:1.9; color:var(--ink-3)}
+.gc-first-label{display:block;margin-bottom:8px;font-size:11px;letter-spacing:.06em;color:var(--ink-3)}
+.gc-first-input{
+  display:block;width:100%;min-height:104px;padding:14px 15px;resize:vertical;
+  border:1px solid var(--btn-line);border-radius:10px;background:var(--btn-bg);
+  color:var(--ink);font:inherit;font-size:13px;line-height:1.8;
+  transition:border-color .2s var(--ease),background-color .2s var(--ease);
+}
+.gc-first-input::placeholder{color:var(--ink-3)}
+.gc-first-input:focus-visible{outline:2px solid var(--warm);outline-offset:2px;border-color:transparent}
+.gc-first-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.gc-first-hint{margin:10px 0 0;font-size:10.5px;line-height:1.8;color:var(--ink-3)}
+.gc-first .gc-primary-large{min-height:46px;padding:11px 22px;font-size:14px;border-radius:10px}
+
+/* 跨天分隔：两条细线夹一个日期 */
+.station-day{
+  align-self:stretch;display:flex;align-items:center;gap:10px;
+  margin:2px 0;color:var(--ink-3);font-size:10px;letter-spacing:.08em;
+}
+.station-day::before,.station-day::after{content:"";flex:1;height:1px;background:var(--line-faint)}
+
 .gc-header-right{display:flex;align-items:center;justify-content:flex-end;min-width:0}
 /* 身份 + 在线状态：一枚徽章，字号 / 行高 / 高度全部统一，颜色走主题令牌 */
 .gc-badge{
@@ -106,6 +154,12 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .detail-dialog .station-modal-form{margin-top:18px}
 @media(max-width:767px){
   .gc-badge{height:24px;padding:0 9px;font-size:10.5px;gap:7px}
+  /* 手机上表单一进来就在标题下面，不要垂直居中留一大片空 */
+  .station-page .gc-create-state{justify-content:flex-start;padding:18px 16px 24px}
+  .station-page .gc-first-title{display:none}
+  .station-page .gc-first-sub{margin:0 0 14px}
+  .station-page .gc-first-input{min-height:120px;font-size:15px}
+  .station-page .gc-first .gc-primary-large{width:100%;font-size:16px;min-height:52px}
   .gc-inbox-list.station-space-list{display:block}
   .gc-author-sidebar .station-private-note{display:block}
   .gc-disclaimer{max-width:100%}
@@ -451,6 +505,53 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   padding:56px 54px 40px 32px;
 }
 
+/* ---- 左栏 NOW：真实内容（来自 public/now.json），填掉标题与入口之间那段空白 ---- */
+.page .now{
+  width:100%; margin:24px 0 4px; text-align:left; padding:0;
+  border-top:1px solid var(--line-faint);
+}
+.page .now-head,
+.page .now-row{
+  display:flex; align-items:baseline; gap:12px;
+  padding:11px 0; border-bottom:1px solid var(--line-faint);
+}
+.page .now-head{
+  justify-content:space-between; padding-top:9px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+}
+.page .now-head dd{font-variant-numeric:tabular-nums; letter-spacing:.08em}
+.page .now-row dt{
+  flex:0 0 32px; font-size:9.5px; letter-spacing:.06em; color:var(--ink-3);
+}
+.page .now-row dd{flex:1; min-width:0; font-size:12px; line-height:1.65; color:var(--ink-2)}
+
+/* ---- 右栏「最近」：三条带日期的记录，和索引页共用一套细线 ---- */
+.page .recent{
+  list-style:none; margin:24px 0 0; padding:0;
+  border-top:1px solid var(--line-faint);
+}
+.page .recent-head{
+  display:flex; align-items:baseline; justify-content:space-between;
+  padding:10px 0 9px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+}
+.page .recent-item{
+  display:flex; align-items:baseline; gap:12px;
+  padding:9px 0; border-top:1px solid var(--line-faint);
+}
+.page .recent-date{
+  flex:0 0 38px; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
+  letter-spacing:.04em; color:var(--ink-3); font-variant-numeric:tabular-nums;
+}
+.page .recent-text{flex:1; min-width:0; font-size:12px; line-height:1.6; color:var(--ink-2)}
+.page .recent-tag{
+  flex:0 0 auto; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px;
+  letter-spacing:.08em; color:var(--ink-3);
+  border:1px solid var(--line-faint); border-radius:999px; padding:2px 7px;
+}
+
 /* ---- 标题逐词上浮（结构，动画在下面） ---- */
 .page .split{display:inline-block}
 .page .split-line{
@@ -590,6 +691,16 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 @keyframes empty-breathe{0%,100%{opacity:.45}50%{opacity:1}}
 .page .empty-links[data-state="error"] .empty-mark{color:var(--danger); border-color:var(--line)}
+/* 下面已经有「最近」列表时，空状态收成一行——大块留白只适合"页面上什么都没有"的时候 */
+.page .empty-links.is-compact .empty-body{
+  flex-direction:row; align-items:baseline; gap:12px; text-align:left;
+  padding:14px 0 16px;
+}
+.page .empty-links.is-compact .empty-mark{display:none}
+.page .empty-links.is-compact h3{font-size:13px; margin-top:0; white-space:nowrap}
+.page .empty-links.is-compact p{margin:0; font-size:11px; line-height:1.6}
+.page .empty-links.is-compact .empty-foot{display:none}
+
 .page .empty-foot{
   position:relative; z-index:1;
   display:flex; align-items:center; gap:10px;
