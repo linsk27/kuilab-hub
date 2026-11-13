@@ -451,6 +451,24 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   padding:56px 54px 40px 32px;
 }
 
+/* ---- 标题逐词上浮（结构，动画在下面） ---- */
+.page .split{display:inline-block}
+.page .split-line{
+  display:inline-block; overflow:hidden; vertical-align:bottom;
+  padding-bottom:.24em; margin-bottom:-.24em;
+}
+.page .split-word{
+  display:inline-block; will-change:transform;
+  animation:word-rise .92s var(--ease) both;
+  animation-delay:calc(var(--base, 0ms) + var(--i, 0) * var(--step, 70ms));
+}
+.page .split-gap{display:inline-block; width:.26em}
+/* from/to + both：关掉动画时会退回默认可见，而不是卡在隐藏帧 */
+@keyframes word-rise{
+  from{opacity:0; transform:translateY(112%)}
+  to{opacity:1; transform:none}
+}
+
 /* ---- 左侧身份 ---- */
 /* 左栏也进编号系统：和右侧「02 — INDEX」同一套等宽标注 */
 .page .profile::before{
@@ -464,7 +482,10 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   content:""; position:absolute; inset:-26px; border-radius:50%; z-index:0;
   background:radial-gradient(circle at 50% 42%, var(--halo), transparent 70%);
 }
-.page .portrait-wrap>*{position:relative; z-index:1}
+/* 只抬图片那一层：写成 >* 会把 .portrait-spark 的 absolute 覆盖掉，
+   两颗 ✧ 会变成普通流元素、掉到下面的标题上 */
+.page .portrait-wrap>img{position:relative; z-index:1}
+.page .portrait-spark{z-index:2}
 .page .portrait{
   width:152px; height:152px; filter:saturate(.82) contrast(1.02);
   background:var(--portrait-bg);
@@ -643,9 +664,6 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* ---- 进入动画：错落淡入 + 轻微上移 ---- */
 @keyframes ink-rise{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
-.page .rail{animation:ink-rise .7s var(--ease) both}
-.page .paper-shell{animation:ink-rise .9s var(--ease) .06s both}
-.page .footer{animation:ink-rise .9s var(--ease) .14s both}
 
 @media(prefers-reduced-motion:reduce){
   .page .rail,.page .paper-shell,.page .footer{animation:none}
@@ -693,7 +711,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 /* 入场再柔一点：从模糊到清晰 */
 @keyframes ink-focus{from{opacity:0; transform:translateY(12px); filter:blur(8px)} to{opacity:1; transform:none; filter:blur(0)}}
 .page .rail{animation:ink-focus .8s var(--ease) both}
-.page .paper-shell{animation:ink-focus 1s var(--ease) .08s both}
+.page .paper-shell{animation:ink-rise .8s var(--ease) both}
 .page .footer{animation:ink-focus .9s var(--ease) .2s both}
 
 @media(max-width:767px){

@@ -5,6 +5,7 @@ import './styles.css';
 import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 styles.css 之后
 import { useTheme } from './theme';
 import ThemeToggle from './ThemeToggle';
+import SplitWords from './SplitWords';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -129,14 +130,21 @@ function Spotlight() {
             shell.style.setProperty('--sx', `${x}px`);
             shell.style.setProperty('--sy', `${y}px`);
           }
+          // 边缘光：离哪条边近就点亮哪一段，最远 160px 内渐隐到 0
+          const near = Math.min(x, y, box.width - x, box.height - y);
+          const inside = near > -1 && near < 160;
+          shell.style.setProperty('--edge-glow', inside ? (1 - Math.max(near, 0) / 160).toFixed(3) : '0');
         }
       });
     };
+    const leave = () => { shell?.style.setProperty('--edge-glow', '0'); };
     window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerleave', leave, { passive: true });
     window.addEventListener('scroll', measure, { passive: true });
     window.addEventListener('resize', measure);
     return () => {
       window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerleave', leave);
       window.removeEventListener('scroll', measure);
       window.removeEventListener('resize', measure);
       if (raf) cancelAnimationFrame(raf);
@@ -235,16 +243,18 @@ function App({ managing }) {
       <div className="decoration top-arrow" aria-hidden="true"><ArrowBendUpRight size={65} weight="thin" /></div>
       {managing && <div className="management-banner"><strong>链接管理 · 浏览器草稿</strong><a href="#/">退出管理，返回公开页 <ArrowUpRight size={16} aria-hidden="true" /></a></div>}
       <main className="paper-shell grid" aria-label={managing ? 'Personal Hub 链接管理' : 'Personal Hub'}>
+        {/* 边缘光（移植自 react-bits BorderGlow）：只在指针靠近卡片边缘时亮起那一段边 */}
+        <span className="shell-edge" aria-hidden="true" />
         <aside className="profile flex flex-col items-center text-center">
           <div className="portrait-wrap relative"><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.svg`} alt="Original anime portrait of a silver-haired young woman" width="160" height="160" /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
-          <h1>Personal Hub</h1>
+          <h1><SplitWords text="Personal Hub" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
           <div className="profile-flourish" aria-hidden="true"><ArrowBendUpRight size={47} weight="thin" /></div>
           <p className="welcome">Make yourself at home.</p>
           <a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span>联络站</span><ArrowUpRight size={15} aria-hidden="true" /></a>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
-          <header className="flex items-center justify-between"><h2 id="links-title">All Links<span className="heading-period">.</span></h2><span className="tiny-note">a few places to find me</span></header>
+          <header className="flex items-center justify-between"><h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /></h2><span className="tiny-note">a few places to find me</span></header>
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
           <div className="link-wall grid" aria-busy={loadState === 'loading'}>
