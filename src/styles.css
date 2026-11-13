@@ -264,7 +264,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 /* 头、身、投影是三层，各自能被 JS 独立驱动：
    身体转动时头会多探出一点（视差），投影随之收窄变形，靠这三者的差速“骗”出体积。 */
 /* 画布 484×612 比猫本身宽 14px：给招手那一帧举起、伸到最右的爪子留余量，否则会被切平 */
-.cat-companion.is-2d{width:168px;height:188px;right:-28px;bottom:-8px}
+.cat-companion.is-2d{width:125px;height:140px;right:-6px;bottom:-45px}
 .pet-2d{position:relative;width:100%;height:100%;cursor:grab;outline:none;-webkit-tap-highlight-color:transparent}
 .pet-2d:active{cursor:grabbing}
 .pet-2d:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:14px}
