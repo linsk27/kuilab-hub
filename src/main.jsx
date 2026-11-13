@@ -95,7 +95,10 @@ function StatusRail({ theme, onToggleTheme }) {
   );
 }
 
-// 跟随指针的一团暖光（只在精确指针设备上生效）
+// 跟随指针的两层光：
+//   1) 页面上很大一团暖光（.spot）
+//   2) 卡片表面一小块高光（写 --sx/--sy 给 .paper-shell），像玻璃反光跟着手走
+// 只在有精确指针的设备上跑；rAF 节流，滚动/改尺寸时才重新量一次卡片位置。
 function Spotlight() {
   const ref = useRef(null);
   useEffect(() => {
@@ -104,6 +107,12 @@ function Spotlight() {
     let raf = 0;
     let mx = 0;
     let my = 0;
+    let shell = document.querySelector('.page .paper-shell');
+    let box = shell ? shell.getBoundingClientRect() : null;
+    const measure = () => {
+      shell = document.querySelector('.page .paper-shell');
+      box = shell ? shell.getBoundingClientRect() : null;
+    };
     const move = event => {
       mx = event.clientX;
       my = event.clientY;
@@ -112,11 +121,24 @@ function Spotlight() {
         raf = 0;
         el.style.setProperty('--mx', `${mx}px`);
         el.style.setProperty('--my', `${my}px`);
+        if (shell && box) {
+          const x = mx - box.left;
+          const y = my - box.top;
+          // 出了卡片就不动高光，免得贴边时忽然跳到角落
+          if (x > -80 && y > -80 && x < box.width + 80 && y < box.height + 80) {
+            shell.style.setProperty('--sx', `${x}px`);
+            shell.style.setProperty('--sy', `${y}px`);
+          }
+        }
       });
     };
     window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
     return () => {
       window.removeEventListener('pointermove', move);
+      window.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
@@ -239,7 +261,23 @@ function App({ managing }) {
               </>}</div>;
             })}
           </div>
-          {loadState === 'ready' && !links.length && <div className="empty-links"><BookmarkSimple size={30} weight="thin" /><h3>{managing ? '从第一个链接开始。' : '链接正在慢慢收集中。'}</h3><p>{managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。'}</p>{managing && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}</div>}
+          {loadState === 'ready' && !links.length && <div className={`empty-links ${managing ? 'is-managing' : ''}`}>
+            <div className="empty-head">
+              <span className="empty-label">Index</span>
+              <span className="empty-value">00</span>
+            </div>
+            <div className="empty-body">
+              <span className="empty-mark" aria-hidden="true"><BookmarkSimple size={17} weight="thin" /></span>
+              <h3>{managing ? '从第一个链接开始' : '还没有公开的链接'}</h3>
+              <p>{managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。'}</p>
+              {managing && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}
+            </div>
+            <div className="empty-foot" aria-hidden="true">
+              <span>{managing ? 'Draft' : 'Soon'}</span>
+              <i className="empty-rule" />
+              <span>This space is reserved</span>
+            </div>
+          </div>}
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           <div className="meta-grid" aria-hidden="true">

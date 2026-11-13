@@ -40,6 +40,7 @@ body {
   --glow-2: rgba(143, 178, 196, .05);
   --grain: .44;
   --spot: rgba(216, 177, 132, .055);
+  --specular: rgba(255, 255, 255, .09);
 
   /* 面板：a=抬起的面，c=主面，b=底，sunk=凹陷（侧栏 / 输入底）
      五档拉成一条从 #2A2724 到 #131110 的暖灰阶梯 */
@@ -109,6 +110,7 @@ body {
   --glow-2: rgba(143, 178, 196, .15);
   --grain: .32;
   --spot: rgba(168, 118, 60, .10);
+  --specular: rgba(255, 255, 255, .38);
 
   --panel-a: #FFFEFC;
   --panel-b: #FBF9F5;
@@ -182,7 +184,69 @@ body {
   transition: background 120ms linear;
 }
 
-/* ---------- 3. 联络站 ---------- */
+/* ---------- 3. 首页卡片：玻璃面板 ---------- */
+.page .paper-shell{
+  background:
+    radial-gradient(760px 300px at 26% -6%, var(--panel-hi), transparent 70%),
+    linear-gradient(180deg, var(--panel-a), var(--panel-c) 58%, var(--panel-b));
+  border:1px solid var(--line);
+  box-shadow:
+    inset 0 1px 0 var(--panel-hi),
+    inset 0 0 0 1px var(--line-faint),
+    var(--shadow-a),
+    var(--shadow-b);
+  backdrop-filter:blur(18px) saturate(120%);
+}
+/* 顶部一道扫光：玻璃感的关键。入场时从左往右"画"出来 */
+.page .paper-shell::before{
+  content:""; position:absolute; inset:0 0 auto; height:1px; border-radius:22px 22px 0 0; pointer-events:none;
+  background:var(--panel-veil);
+  opacity:.55;
+  clip-path:inset(0 50% 0 50%);
+  animation:veil-draw 1.1s var(--ease) .16s forwards;
+}
+@keyframes veil-draw{ from{clip-path:inset(0 50% 0 50%)} to{clip-path:inset(0 0 0 0)} }
+/* 表面高光：右上角一点内发光 + 跟着指针走的一小块反光（--sx/--sy 由 Spotlight 写入） */
+.page .paper-shell{--sx:50%; --sy:-14%; isolation:isolate}
+.page .paper-shell::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(280px circle at var(--sx) var(--sy), var(--specular), transparent 66%),
+    radial-gradient(420px 220px at 78% -10%, var(--panel-inner), transparent 70%);
+  mix-blend-mode:screen;
+  transition:background .12s linear;
+}
+/* 高光待在内容下面，字才不会被冲淡 */
+.page .paper-shell>.profile,
+.page .paper-shell>.links-panel{position:relative; z-index:1}
+
+/* 管理态（#/manage）的控件：之前在写死的浅色里，深色下会浮出几块白 */
+.page .small-control{
+  background:var(--btn-bg); border-color:var(--btn-line); color:var(--ink-2);
+}
+.page .small-control:hover:not(:disabled){background:var(--btn-bg-h); color:var(--ink-strong)}
+.page .sample-toggle{color:var(--ink-3)}
+.page .sample-toggle:hover:not(:disabled){color:var(--ink-strong)}
+.page .management-banner{
+  background:var(--card-a); border-color:var(--line-soft); color:var(--ink-2);
+}
+.page .management-banner strong{color:var(--ink-strong); font-weight:600}
+.page .management-banner a{background:var(--accent); color:var(--accent-ink)}
+.page .management-help,
+.page .link-notice,
+.page .preview-note,
+.page .links-load-state,
+.page .pagination{color:var(--ink-3)}
+.page .pagination button{
+  background:var(--btn-bg); border-color:var(--btn-line); color:var(--ink-2);
+}
+.page .remove-link{background:var(--panel-a); color:var(--ink-3)}
+.page .move-link{
+  background:var(--btn-bg); border-color:var(--btn-line); color:var(--ink-2);
+}
+.page .move-link:hover:not(:disabled){background:var(--btn-bg-h); color:var(--ink-strong)}
+
+/* ---------- 4. 联络站 ---------- */
 .station-page {
   background:
     radial-gradient(1000px 560px at 50% -14%, var(--glow-1), transparent 64%),
@@ -386,7 +450,7 @@ body {
 /* 二维码必须永远是白底，否则扫不出来 —— 主题不该改它 */
 .station-page .gc-qr { background: #fff; border-color: var(--line-soft); }
 
-/* ---------- 4. 弹窗（首页与联络站共用一套） ---------- */
+/* ---------- 5. 弹窗（首页与联络站共用一套） ---------- */
 .detail-dialog {
   background: var(--panel-a);
   color: var(--ink);
@@ -427,7 +491,7 @@ body {
 }
 .detail-dialog .form-error { color: var(--danger); }
 
-/* ---------- 5. 404 / 加载占位 ---------- */
+/* ---------- 6. 404 / 加载占位 ---------- */
 .not-found { background: var(--scene); color: var(--ink); }
 .not-found-card {
   background: var(--panel-a);
@@ -445,7 +509,7 @@ body {
 
 .route-loading { background: var(--scene); color: var(--ink-3); }
 
-/* ---------- 6. 主题开关（首页胶囊 / 联络站圆形） ---------- */
+/* ---------- 7. 主题开关（首页胶囊 / 联络站圆形） ---------- */
 /* ---- 主题开关：一枚小胶囊，滑块 + 日月 ---- */
 .rail-r{display:inline-flex; align-items:center; gap:14px}
 .rail-time{white-space:nowrap}

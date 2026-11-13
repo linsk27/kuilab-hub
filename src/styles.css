@@ -442,38 +442,23 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 .rail-l{display:inline-flex; align-items:center; gap:8px}
 .rail-dot{width:5px; height:5px; border-radius:50%; background:var(--dot); box-shadow:0 0 0 3px rgba(127,191,142,.12),0 0 10px rgba(127,191,142,.6)}
-.rail-r b{color:var(--ink-2); font-weight:500}
+.rail-r b{color:var(--ink-2); font-weight:500; font-variant-numeric:tabular-nums}
 
-/* ---- 主卡片：玻璃 + 发丝边 + 顶部高光 ---- */
+/* ---- 主卡片：玻璃 / 发丝边 / 顶光都在 theme.css，这里只管尺寸 ---- */
 .page .paper-shell{
+  position:relative;
   border-radius:22px;
-  background:
-    radial-gradient(760px 300px at 26% -6%, var(--panel-hi), transparent 70%),
-    linear-gradient(180deg, var(--panel-a), var(--panel-c) 58%, var(--panel-b));
-  border:1px solid var(--line);
-  box-shadow:
-    inset 0 1px 0 var(--panel-hi),
-    inset 0 0 0 1px var(--line-faint),
-    var(--shadow-a),
-    var(--shadow-b);
-  backdrop-filter:blur(18px) saturate(120%);
   padding:56px 54px 40px 32px;
 }
-/* 顶部一道扫光：玻璃感的关键 */
-.page .paper-shell::before{
-  content:""; position:absolute; inset:0 0 auto; height:1px; border-radius:22px 22px 0 0; pointer-events:none;
-  background:var(--panel-veil);
-  opacity:.55;
-}
-/* 卡片右上角一点内发光，像被光扫到 */
-.page .paper-shell::after{
-  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
-  background:radial-gradient(420px 220px at 78% -10%, var(--panel-inner), transparent 70%);
-  mix-blend-mode:screen;
-}
-.page .paper-shell{position:relative}
 
 /* ---- 左侧身份 ---- */
+/* 左栏也进编号系统：和右侧「02 — INDEX」同一套等宽标注 */
+.page .profile::before{
+  content:"01 — Profile"; display:block; align-self:stretch; text-align:center;
+  margin-bottom:34px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+}
 .page .portrait-wrap{width:152px; height:152px; margin-bottom:30px; position:relative}
 .page .portrait-wrap::before{
   content:""; position:absolute; inset:-26px; border-radius:50%; z-index:0;
@@ -502,9 +487,17 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 .page .station-entry:hover{background:var(--btn-bg-h); border-color:var(--line-strong); color:var(--ink-strong); transform:translateY(-1px)}
 .page .station-entry svg{opacity:.8}
+.page .station-entry svg:last-of-type{transition:transform .34s var(--ease), opacity .24s var(--ease)}
+.page .station-entry:hover svg:last-of-type{transform:translate(2px,-2px); opacity:1}
+.page .station-entry:active{transform:scale(.995)}
 
 /* ---- 右侧列表 ---- */
-.page .links-panel{padding-left:34px; border-left:1px solid var(--line-faint)}
+.page .links-panel{padding-left:34px; border-left:0; position:relative}
+/* 栏间分隔线两端渐隐，比一根通到底的实线克制 */
+.page .links-panel::before{
+  content:""; position:absolute; left:0; top:2px; bottom:2px; width:1px; pointer-events:none;
+  background:linear-gradient(180deg, transparent, var(--line-soft) 14%, var(--line-soft) 86%, transparent);
+}
 .page .links-panel header{margin-bottom:26px}
 .page h2{font-size:34px; letter-spacing:-.025em; color:var(--ink-strong)}
 .page .heading-period{color:var(--warm)}
@@ -513,31 +506,63 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3);
 }
 
-/* 空状态：一条更细的虚线 + 克制的文案 */
+/* 空状态：不是一块虚线框，而是一张"索引页"——顶栏编号、居中说明、底部页脚，
+   和右侧的 meta 栅格、页脚导航共用同一套细线与等宽标注语言。 */
 .page .empty-links{
-  border:1px dashed var(--line-soft); border-radius:14px; min-height:300px;
-  color:var(--ink-3); background:radial-gradient(420px 200px at 50% 0%, var(--line-faint), transparent 70%);
+  position:relative; overflow:hidden; display:block; text-align:left;
+  border:0; border-radius:0; min-height:0; padding:0;
+  background:radial-gradient(460px 220px at 50% 44%, var(--panel-inner), transparent 72%);
+  color:var(--ink-3);
 }
-.page .empty-links svg{color:var(--warm); opacity:.65; position:relative; z-index:1}
-.page .empty-links{position:relative; overflow:hidden}
+/* 极淡的 56px 栅格，只在中间呼吸一小片，像制版用的网格纸 */
 .page .empty-links::before{
-  content:""; position:absolute; inset:0; pointer-events:none; opacity:.55;
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.45;
   background-image:
     repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 56px),
     repeating-linear-gradient(0deg, var(--grid-line) 0 1px, transparent 1px 56px);
-  -webkit-mask-image:radial-gradient(72% 72% at 50% 42%, #000 26%, transparent 78%);
-  mask-image:radial-gradient(72% 72% at 50% 42%, #000 26%, transparent 78%);
+  -webkit-mask-image:radial-gradient(64% 66% at 50% 52%, #000 12%, transparent 74%);
+  mask-image:radial-gradient(64% 66% at 50% 52%, #000 12%, transparent 74%);
 }
-.page .empty-links::after{
-  content:""; position:absolute; left:50%; top:44%; width:320px; height:320px; transform:translate(-50%,-50%);
-  background:radial-gradient(circle, var(--panel-inner), transparent 64%); pointer-events:none;
+.page .empty-head{
+  position:relative; z-index:1;
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding:0 2px 12px; border-bottom:1px solid var(--line-faint);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
 }
-.page .empty-links h3,.page .empty-links p{position:relative; z-index:1}
+.page .empty-value{color:var(--ink-2); letter-spacing:.08em; font-variant-numeric:tabular-nums}
+.page .empty-body{
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  padding:44px 24px 46px;
+}
+.page .empty-mark{
+  width:46px; height:46px; border-radius:50%; display:grid; place-items:center;
+  border:1px solid var(--line-soft); color:var(--warm);
+  box-shadow:0 0 0 7px var(--line-faint), 0 14px 34px -22px var(--shadow-b);
+}
 .page .empty-links h3{
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.02em;
-  color:var(--ink-2); margin-top:18px;
+  font-family:Georgia,"Times New Roman",serif; font-weight:400;
+  font-size:17px; line-height:1.4; letter-spacing:-.005em;
+  color:var(--ink); margin-top:20px;
 }
-.page .empty-links p{font-size:12px; line-height:1.9; color:var(--ink-3); margin:10px 0 0}
+.page .empty-links p{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:10px; line-height:2; letter-spacing:.04em;
+  color:var(--ink-3); margin:10px 0 0; text-wrap:pretty;
+}
+.page .empty-links .small-control{margin-top:20px}
+.page .empty-foot{
+  position:relative; z-index:1;
+  display:flex; align-items:center; gap:10px;
+  padding:12px 2px 0; border-top:1px solid var(--line-faint);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3); opacity:.7;
+}
+.page .empty-rule{
+  flex:1; height:1px;
+  background:linear-gradient(90deg, var(--line-soft), transparent);
+}
 
 .page .panel-signoff{
   font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px; letter-spacing:.16em;
@@ -589,10 +614,19 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 .page .footer nav{gap:34px}
 .page .footer button{
+  position:relative;
   font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10px; letter-spacing:.18em;
   text-transform:uppercase; color:var(--ink-3); padding:10px 0;
   transition:color .2s var(--ease);
 }
+/* 划过的细线：从右往左收起、从左往右展开，方向感比单纯变色清楚 */
+.page .footer button::after{
+  content:""; position:absolute; left:0; right:0; bottom:7px; height:1px;
+  background:currentColor; opacity:.45;
+  transform:scaleX(0); transform-origin:100% 50%;
+  transition:transform .34s var(--ease), opacity .24s var(--ease);
+}
+.page .footer button:hover::after{transform:scaleX(1); transform-origin:0 50%; opacity:.85}
 .page .footer button:hover{color:var(--ink-strong)}
 .page .footer>p{
   font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; letter-spacing:.16em;
@@ -616,8 +650,11 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .page{padding-top:78px; padding-bottom:64px}
   .page .paper-shell{padding:28px 20px 26px; border-radius:18px}
   .page .links-panel{border-left:0; border-top:1px solid var(--line-faint); padding:26px 0 0}
+  .page .links-panel::before{display:none}
   .page h1{font-size:30px}
   .page h2{font-size:26px}
+  /* 窄屏上这句英文条注会挤到标题右侧边缘，收起来 */
+  .page .links-panel header .tiny-note{display:none}
   .page .empty-links{min-height:230px}
   .rail{font-size:9px; letter-spacing:.14em; margin-bottom:16px}
   .page .footer nav{gap:22px}
@@ -640,7 +677,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 .page .meta-cell b{
   font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:14px; font-weight:500;
-  letter-spacing:.02em; color:var(--ink-strong);
+  letter-spacing:.02em; color:var(--ink-strong); font-variant-numeric:tabular-nums;
 }
 .page .meta-cell:nth-child(1){animation:ink-rise .8s var(--ease) .18s both}
 .page .meta-cell:nth-child(2){animation:ink-rise .8s var(--ease) .24s both}
