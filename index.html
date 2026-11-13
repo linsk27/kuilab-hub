@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- 主题模块：浏览器/手机状态栏颜色跟着主题走，首帧前由下面的脚本写定 -->
-    <meta name="theme-color" content="#08080A" />
+    <meta name="theme-color" content="#1A1715" />
     <meta name="color-scheme" content="dark light" />
     <meta name="description" content="一个安静的个人网站入口。" />
     <script>
@@ -15,7 +15,7 @@
           if (t !== 'light' && t !== 'dark') t = 'dark';
           document.documentElement.dataset.theme = t;
           var m = document.querySelector('meta[name="theme-color"]');
-          if (m) m.setAttribute('content', t === 'light' ? '#F3EFE8' : '#08080A');
+          if (m) m.setAttribute('content', t === 'light' ? '#F3EFE8' : '#1A1715');
         } catch (e) {
           document.documentElement.dataset.theme = 'dark';
         }

@@ -16,16 +16,16 @@
 /* ---------- 1. 令牌 ---------- */
 body {
   /* 文字 */
-  --ink: #F4F1EB;            /* 正文 */
-  --ink-2: #B6AFA6;          /* 次级 */
-  --ink-3: #8A837B;          /* 标注 */
-  --ink-strong: #F7F3EC;     /* 标题 */
+  --ink: #F5F2EC;            /* 正文 */
+  --ink-2: #C6BFB6;          /* 次级 */
+  --ink-3: #A29A91;          /* 标注 */
+  --ink-strong: #FBF8F2;     /* 标题 */
 
   /* 线：三档粗细，全站统一 */
-  --line: rgba(255, 255, 255, .13);
-  --line-soft: rgba(255, 255, 255, .08);
-  --line-faint: rgba(255, 255, 255, .05);
-  --line-strong: rgba(255, 255, 255, .16);
+  --line: rgba(255, 255, 255, .12);
+  --line-soft: rgba(255, 255, 255, .075);
+  --line-faint: rgba(255, 255, 255, .045);
+  --line-strong: rgba(255, 255, 255, .15);
 
   /* 强调色 */
   --warm: #D8B184;
@@ -33,33 +33,35 @@ body {
   --warm-line: rgba(216, 177, 132, .32);
   --warm-faint: rgba(216, 177, 132, .14);
 
-  /* 场景与光 */
-  --scene: #08080A;
-  --glow-1: rgba(216, 177, 132, .17);
-  --glow-2: rgba(143, 178, 196, .07);
-  --grain: .6;
-  --spot: rgba(216, 177, 132, .075);
+  /* 场景与光
+     不用纯黑：暖炭灰（带一点棕调）比 #000 柔和，也让金色高光有地方落 */
+  --scene: #1A1715;
+  --glow-1: rgba(216, 177, 132, .14);
+  --glow-2: rgba(143, 178, 196, .05);
+  --grain: .44;
+  --spot: rgba(216, 177, 132, .055);
 
-  /* 面板：a=抬起的面，c=主面，b=底，sunk=凹陷（侧栏 / 输入底） */
-  --panel-a: #16161A;
-  --panel-b: #0D0D10;
-  --panel-c: #101013;
-  --sunk: #0A0A0C;
-  --panel-hi: rgba(255, 255, 255, .16);
-  --panel-veil: linear-gradient(90deg, transparent, rgba(255, 255, 255, .28) 22%, rgba(216, 177, 132, .42) 50%, rgba(255, 255, 255, .22) 76%, transparent);
+  /* 面板：a=抬起的面，c=主面，b=底，sunk=凹陷（侧栏 / 输入底）
+     五档拉成一条从 #2A2724 到 #131110 的暖灰阶梯 */
+  --panel-a: #38332D;
+  --panel-b: #272420;
+  --panel-c: #2E2A26;
+  --sunk: #221F1C;
+  --panel-hi: rgba(255, 255, 255, .13);
+  --panel-veil: linear-gradient(90deg, transparent, rgba(255, 255, 255, .26) 22%, rgba(216, 177, 132, .40) 50%, rgba(255, 255, 255, .20) 76%, transparent);
   --panel-inner: rgba(216, 177, 132, .10);
-  --shadow-a: 0 1px 2px rgba(0, 0, 0, .5);
-  --shadow-b: 0 40px 90px -46px rgba(0, 0, 0, .95);
-  --halo: rgba(216, 177, 132, .22);
-  --grid-line: rgba(255, 255, 255, .05);
+  --shadow-a: 0 1px 2px rgba(0, 0, 0, .42);
+  --shadow-b: 0 40px 90px -46px rgba(0, 0, 0, .85);
+  --halo: rgba(216, 177, 132, .20);
+  --grid-line: rgba(255, 255, 255, .045);
 
   /* 控件 */
-  --btn-bg: rgba(255, 255, 255, .035);
-  --btn-bg-h: rgba(255, 255, 255, .075);
-  --btn-line: rgba(255, 255, 255, .10);
-  --card-a: rgba(255, 255, 255, .05);
-  --card-b: rgba(255, 255, 255, .025);
-  --scrim: rgba(6, 6, 7, .62);
+  --btn-bg: rgba(255, 255, 255, .045);
+  --btn-bg-h: rgba(255, 255, 255, .085);
+  --btn-line: rgba(255, 255, 255, .11);
+  --card-a: rgba(255, 255, 255, .045);
+  --card-b: rgba(255, 255, 255, .02);
+  --scrim: rgba(10, 9, 8, .60);
 
   /* 主按钮（暗色下用暖金，才在墨底上跳出来） */
   --accent: #D8B184;
@@ -77,12 +79,12 @@ body {
   --danger: #E48C8C;
 
   /* 会话气泡 */
-  --bubble: #17171B;
+  --bubble: #3A3530;
   --bubble-line: rgba(255, 255, 255, .07);
-  --bubble-mine: #152026;
-  --bubble-mine-line: rgba(143, 178, 196, .20);
+  --bubble-mine: #26343A;
+  --bubble-mine-line: rgba(143, 178, 196, .18);
 
-  --portrait-bg: #141312;
+  --portrait-bg: #2A2622;
   color-scheme: dark;
 }
 

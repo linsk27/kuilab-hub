@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'hub-theme';
-const META_COLOR = { dark: '#08080A', light: '#F3EFE8' };
+const META_COLOR = { dark: '#1A1715', light: '#F3EFE8' };
 
 // 首帧由 index.html 的内联脚本写好 data-theme，这里只读回来，避免刷新闪一下
 function readTheme() {
