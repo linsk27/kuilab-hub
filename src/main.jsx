@@ -73,6 +73,50 @@ function PetCat() {
     <PetCat2D onPet={pet} petSignal={signal} />
   </div>;
 }
+// 顶部状态条：本地时间 + 可联系状态，给页面一点“产品”的呼吸
+function StatusRail() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 20000);
+    return () => window.clearInterval(id);
+  }, []);
+  const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return (
+    <div className="rail" aria-hidden="true">
+      <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
+      <span className="rail-r">UTC+8 <b>{t}</b></span>
+    </div>
+  );
+}
+
+// 跟随指针的一团暖光（只在精确指针设备上生效）
+function Spotlight() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return undefined;
+    let raf = 0;
+    let mx = 0;
+    let my = 0;
+    const move = event => {
+      mx = event.clientX;
+      my = event.clientY;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        el.style.setProperty('--mx', `${mx}px`);
+        el.style.setProperty('--my', `${my}px`);
+      });
+    };
+    window.addEventListener('pointermove', move, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', move);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+  return <div className="spot" ref={ref} aria-hidden="true" />;
+}
+
 function App({ managing }) {
   const dialog = useRef(null);
   const editor = useRef(null);
@@ -153,7 +197,9 @@ function App({ managing }) {
     catch { setCopied(false); }
   }
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
+    <Spotlight />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
+    <StatusRail />
     <div className="composition relative w-full">
       <div className="decoration cloud" aria-hidden="true"><Cloud size={43} weight="thin" /></div>
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
