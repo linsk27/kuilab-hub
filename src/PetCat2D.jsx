@@ -33,9 +33,12 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [blink, setBlink] = useState(false);
   const [act, setAct] = useState('');
   const [greet, setGreet] = useState(false);
+  const [view, setView] = useState(0);        // 0 正面 / 1 侧面 / 2 背面
   const [purring, setPurring] = useState(false);
   const [ready, setReady] = useState(false);
   const greetTimers = useRef([]);
+  const viewRef = useRef(0);
+  const turnWarm = useRef(false);
 
   // 打招呼：不打手势（那只手的素材和默认帧不是同一套腿长，换整帧会“换张照片”），
   // 改成歪一下头 + 连着眨两次眼 —— 猫认出你时就是这个动作，而且只用变换，不会窜图。
@@ -112,14 +115,25 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       const cosY = Math.cos((rotY * Math.PI) / 180);
       const lift = s.lift;
 
-      // 侧移一点点：读起来像猫在转台上被转过去，而不只是被横向压扁
-      stage.style.transform = `perspective(620px) translateX(${(rotY * 0.14).toFixed(2)}px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
+      // 视角：0=正面（分层猫），1=侧面，2=背面（真三视图）
+      const angle = Math.abs(rotY);
+      const nextView = angle < 24 ? 0 : angle < 108 ? 1 : 2;
+      if (nextView !== viewRef.current) {
+        viewRef.current = nextView;
+        setView(nextView);
+      }
+      const turning = nextView !== 0;
+
+      // 正面那张图靠 rotateY 假装有体积；切到三视图后画面本身就转过去了，不能再压扁
+      stage.style.transform = turning
+        ? `perspective(620px) translateX(${(rotY * 0.02).toFixed(2)}px) rotateX(${(rotX * 0.3).toFixed(2)}deg)`
+        : `perspective(620px) translateX(${(rotY * 0.14).toFixed(2)}px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
 
       // 头层的位移必须压在 2px 以内：脖子那条切口一旦错开，就会露出重叠区的浅色断面。
       // 前后关系不靠平移，靠「透视补偿」——身体被 rotateY 压窄，头却按 cos 反补回一部分宽度，
       // 于是头显得比身体更靠近观察者；再叠一点微旋转，读起来就是头在动。
-      const headScaleX = 1 + (1 - cosY) * 0.3;
-      const hx = rotY * 0.042 + s.gx * 0.55;
+      const headScaleX = turning ? 1 : 1 + (1 - cosY) * 0.3;
+      const hx = (turning ? 0 : rotY * 0.042) + s.gx * 0.55;
       const hy = -rotX * 0.05 + s.gy * 0.45 - s.hover * 0.9;
       head.style.transform = `translate3d(${hx.toFixed(2)}px, ${hy.toFixed(2)}px, 0) rotate(${(rotY * 0.052).toFixed(2)}deg) scaleX(${headScaleX.toFixed(3)})`;
       // 身体只跟视线一点点（转动已经由 stage 统一做了）
@@ -142,6 +156,11 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       s.lastX = event.clientX;
       s.lastY = event.clientY;
       s.lastT = performance.now();
+      if (!turnWarm.current) {
+        turnWarm.current = true;
+        const img = new Image();
+        img.src = '/cat/cat-turn.webp';
+      }
       // 正在被摸的时候别同时打招呼：清掉待触发的招呼，也把正在做的那个收掉
       lastTouchAt.current = performance.now();
       window.clearTimeout(hoverTimer);
@@ -166,7 +185,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       const dy = event.clientY - s.lastY;
       s.moved += Math.abs(dx) + Math.abs(dy);
       if (s.moved > 12) window.clearTimeout(pressTimer);
-      s.ty = Math.max(-26, Math.min(26, s.ty + dx * 0.4));
+      // 拖动 = 把猫当转台转：0° 正面、90° 侧面、180° 背面
+      s.ty = Math.max(-180, Math.min(180, s.ty + dx * 1.5));
       s.tx = Math.max(-16, Math.min(16, s.tx - dy * 0.26));
       s.lastX = event.clientX;
       s.lastY = event.clientY;
@@ -348,6 +368,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       aria-label="摸摸小猫：单击会跳，按住会打呼，拖动可以转动"
       title="摸摸我"
       data-act={(greet ? 'greet' : act) || undefined}
+      data-view={view || undefined}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -365,6 +386,10 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
             <span className="pet-2d-layer pet-2d-body" ref={bodyRef}>
               <span className="pet-2d-sprite pet-2d-sprite-body" />
             </span>
+
+            {/* 拖拽转身：真三视图，和正面那张分层图同一套坐标 */}
+            <span className="pet-2d-turn" aria-hidden="true" />
+            <span className="pet-2d-turn-cast" aria-hidden="true" />
 
             <span className="pet-2d-layer pet-2d-head" ref={headRef}>
               <span className="pet-2d-head-motion">

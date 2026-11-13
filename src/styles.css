@@ -296,6 +296,20 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
    没有整帧替换、没有贴片，也就不会出现“换了一张照片”的窜图。
    “打招呼”是歪头 + 连眨两次眼（眨眼由 JS 打点）。 */
 /* 切口的柔影加在整只猫上（stage），不能加在头层上，否则切面会投出一条横黑线 */
+/* 拖拽转身：三视图整帧，正面仍是分层那张。两者同一套画布坐标，切的时候只剩"它转过去了" */
+.pet-2d-turn{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:4;
+  background-image:url(/cat/cat-turn.webp);background-size:300% 100%;background-repeat:no-repeat;
+  transition:opacity .1s ease}
+.pet-2d[data-view="1"] .pet-2d-turn{opacity:1;background-position:50% 0}
+.pet-2d[data-view="2"] .pet-2d-turn{opacity:1;background-position:100% 0}
+/* 三视图素材里没有落地影，转身时补一层，别让它飘着 */
+.pet-2d-turn-cast{position:absolute;left:0;right:0;bottom:6px;width:64%;height:12px;margin:0 auto;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 50%,rgba(84,66,50,.3),rgba(84,66,50,.12) 58%,rgba(84,66,50,0) 78%);
+  filter:blur(2.4px);pointer-events:none;opacity:0;transition:opacity .12s ease;z-index:2}
+.pet-2d[data-view] .pet-2d-turn-cast{opacity:1}
+.pet-2d-body,.pet-2d-head{transition:opacity .1s ease}
+.pet-2d[data-view] .pet-2d-body,
+.pet-2d[data-view] .pet-2d-head{opacity:0}
 .pet-2d-head{transform-origin:50% 57.8%;z-index:3}
 .pet-2d-body{z-index:1}
 .pet-2d-head-motion{position:absolute;inset:0;display:block;transform-origin:50% 57.8%}
