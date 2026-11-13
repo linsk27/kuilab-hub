@@ -39,6 +39,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const greetTimers = useRef([]);
   const viewRef = useRef(0);
   const turnWarm = useRef(false);
+  const turnReady = useRef(false);
 
   // 打招呼：不打手势（那只手的素材和默认帧不是同一套腿长，换整帧会“换张照片”），
   // 改成歪一下头 + 连着眨两次眼 —— 猫认出你时就是这个动作，而且只用变换，不会窜图。
@@ -64,7 +65,24 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     probe.onerror = () => setReady(true);
     probe.src = '/cat/cat-sprite.webp';
     if (probe.complete) setReady(true);
-    return () => { probe.onload = null; probe.onerror = null; };
+
+    // 转身三视图晚一步拉：首屏用不上，但要在用户第一次拖之前就位
+    const warmTurn = () => {
+      const img = new Image();
+      img.onload = () => { turnReady.current = true; };
+      img.src = '/cat/cat-turn.webp';
+      if (img.complete) turnReady.current = true;
+    };
+    let idle = 0;
+    if ('requestIdleCallback' in window) idle = window.requestIdleCallback(warmTurn, { timeout: 3000 });
+    else idle = window.setTimeout(warmTurn, 1500);
+
+    return () => {
+      probe.onload = null;
+      probe.onerror = null;
+      if ('cancelIdleCallback' in window) window.cancelIdleCallback?.(idle);
+      else window.clearTimeout(idle);
+    };
   }, []);
 
   // ---- 主循环：拖拽倾斜 + 视线跟随 + 投影联动 ----
@@ -117,7 +135,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
 
       // 视角：0=正面（分层猫），1=侧面，2=背面（真三视图）
       const angle = Math.abs(rotY);
-      const nextView = angle < 24 ? 0 : angle < 108 ? 1 : 2;
+      const nextView = !turnReady.current ? 0 : angle < 40 ? 0 : angle < 124 ? 1 : 2;
       if (nextView !== viewRef.current) {
         viewRef.current = nextView;
         setView(nextView);
@@ -159,7 +177,9 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       if (!turnWarm.current) {
         turnWarm.current = true;
         const img = new Image();
+        img.onload = () => { turnReady.current = true; };
         img.src = '/cat/cat-turn.webp';
+        if (img.complete) turnReady.current = true;
       }
       // 正在被摸的时候别同时打招呼：清掉待触发的招呼，也把正在做的那个收掉
       lastTouchAt.current = performance.now();
@@ -185,8 +205,11 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       const dy = event.clientY - s.lastY;
       s.moved += Math.abs(dx) + Math.abs(dy);
       if (s.moved > 12) window.clearTimeout(pressTimer);
-      // 拖动 = 把猫当转台转：0° 正面、90° 侧面、180° 背面
-      s.ty = Math.max(-180, Math.min(180, s.ty + dx * 1.5));
+      // 拖动 = 把猫当转台转：0° 正面、90° 侧面、180° 背面。
+      // 转身图还没下载完时先退回原来的小幅假转动，免得拖一下猫直接消失。
+      const ready = turnReady.current;
+      const limit = ready ? 180 : 26;
+      s.ty = Math.max(-limit, Math.min(limit, s.ty + dx * (ready ? 1.5 : 0.4)));
       s.tx = Math.max(-16, Math.min(16, s.tx - dy * 0.26));
       s.lastX = event.clientX;
       s.lastY = event.clientY;
