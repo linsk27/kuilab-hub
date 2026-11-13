@@ -196,16 +196,38 @@ body {
 .station-page .station-header a { color: inherit; transition: color .2s var(--ease); }
 .station-page .station-header a:hover { color: var(--ink-strong); }
 
+/* 工作台和首页那张卡片用同一套"玻璃"配方：
+   竖向渐变 + 左上柔光 + 一道顶光。否则底色抬亮之后，它会变成一大片灰面。 */
 .station-page .station-workspace {
-  background: var(--panel-c);
+  position: relative;
+  background:
+    radial-gradient(820px 340px at 34% -18%, rgba(255, 255, 255, .045), transparent 76%),
+    linear-gradient(180deg, var(--panel-c), var(--panel-b));
   border-color: var(--line);
-  box-shadow: var(--shadow-a), var(--shadow-b);
+  box-shadow:
+    inset 0 1px 0 var(--panel-hi),
+    inset 0 0 0 1px var(--line-faint),
+    var(--shadow-a),
+    var(--shadow-b);
+}
+.station-page .station-workspace::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  border-radius: 12px 12px 0 0;
+  pointer-events: none;
+  background: var(--panel-veil);
+  opacity: .5;
+  z-index: 1;
 }
 
 .station-page .station-sidebar {
   background: var(--sunk);
   border-color: var(--line-soft);
   color: var(--ink-2);
+  position: relative;
+  z-index: 2;
 }
 .station-page .station-sidebar h1 { color: var(--ink-strong); }
 .station-page .station-sidebar > p { color: var(--ink-2); }
