@@ -490,7 +490,17 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   width:152px; height:152px; filter:saturate(.82) contrast(1.02);
   background:var(--portrait-bg);
   box-shadow:0 0 0 1px var(--line), 0 0 0 6px var(--line-faint), 0 22px 46px -22px var(--shadow-b);
+  opacity:0; transition:opacity .55s var(--ease);
 }
+.page .portrait-wrap.is-loaded .portrait{opacity:1}
+/* 人像没到之前不是一块黑饼：一圈很淡的扫光占位 */
+.page .portrait-wrap:not(.is-loaded)::after{
+  content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none; z-index:2;
+  background:linear-gradient(100deg, transparent 24%, var(--line-soft) 46%, transparent 68%);
+  background-size:220% 100%;
+  animation:portrait-shimmer 1.7s linear infinite;
+}
+@keyframes portrait-shimmer{from{background-position:130% 0} to{background-position:-50% 0}}
 .page .portrait-spark{color:var(--warm); opacity:.8; font-size:20px}
 .page h1{
   font-size:38px; line-height:1.08; letter-spacing:-.02em; color:var(--ink-strong); font-weight:400;

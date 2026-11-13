@@ -222,6 +222,7 @@ function App({ managing }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice('已导出 links.json。替换项目 public/links.json 并重新部署后，所有访客才会看到更新。');
   }
+  const [portraitReady, setPortraitReady] = useState(false);
   const [content, setContent] = useState(null);
   const [copied, setCopied] = useState(false);
   function open(name) {
@@ -246,7 +247,7 @@ function App({ managing }) {
         {/* 边缘光（移植自 react-bits BorderGlow）：只在指针靠近卡片边缘时亮起那一段边 */}
         <span className="shell-edge" aria-hidden="true" />
         <aside className="profile flex flex-col items-center text-center">
-          <div className="portrait-wrap relative"><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.svg`} alt="Original anime portrait of a silver-haired young woman" width="160" height="160" /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
+          <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.svg`} alt="Original anime portrait of a silver-haired young woman" width="160" height="160" onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
           <h1><SplitWords text="Personal Hub" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
           <div className="profile-flourish" aria-hidden="true"><ArrowBendUpRight size={47} weight="thin" /></div>
