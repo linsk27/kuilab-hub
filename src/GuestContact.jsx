@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChatCircle } from '@phosphor-icons/react';
 import { rpc, rpcErrorText } from './station-rpc';
+import { useTheme } from './theme';
+import ThemeToggle from './ThemeToggle';
 
 const GUEST_KEY = 'personal-hub-guest-v1';
 const AUTHOR_KEY = 'personal-hub-author-v1';
@@ -84,9 +86,6 @@ function Bubble({ message, mine }) {
     <p>{message.body}</p>
   </article>;
 }
-function StatusPill({ tone, label }) {
-  return <span className={`gc-status gc-status-${tone}`} role="status"><span className="gc-status-dot" aria-hidden="true" />{label}</span>;
-}
 // 受控原生 dialog：open 由父级 state 驱动，配合 dialog.open 守卫避免 StrictMode 下重复 showModal。
 function Dialog({ open, onClose, className = 'detail-dialog', labelledBy, children }) {
   const ref = useRef(null);
@@ -126,7 +125,8 @@ function InviteQr({ link, alt }) {
 }
 
 export default function GuestContact({ openAuthorLogin = false }) {
-  const [view, setView] = useState('guest');           // 'guest' | 'author'
+  const [view, setView] = useState('guest');                   // 'guest' | 'author'
+  const { theme, toggle: toggleTheme } = useTheme();            // 与首页共用同一份主题
   // 作者本人自测用：暂时忽略本机作者令牌、停掉心跳，以真正的访客视角看页面。
   const [previewAsGuest, setPreviewAsGuest] = useState(false);
   const [token, setToken] = useState('');
@@ -676,14 +676,21 @@ export default function GuestContact({ openAuthorLogin = false }) {
   return <div className="station-page min-h-dvh" data-view={view}>
     <header className="station-header">
       <a href="./">← Personal Hub</a>
+      {/* 身份 + 在线状态合成一枚徽章：同一个字号、同一行高、同一个高度。
+          原先这里是 11px / 12px / 13px 三段文字并排，怎么对齐都不齐，索性只留一枚。 */}
       <span className="gc-header-right">
-        <span className={`gc-identity ${view === 'author' ? 'gc-identity-author' : previewAsGuest ? 'gc-identity-preview' : ''}`}>
-          {view === 'author' ? '作者身份 · 已验证' : previewAsGuest ? '访客预览中' : '访客视角'}
+        <span className={`gc-badge ${view === 'author' ? 'gc-badge-author' : previewAsGuest ? 'gc-badge-preview' : ''}`}>
+          <span className="gc-badge-label">
+            {view === 'author' ? '作者身份 · 已验证' : previewAsGuest ? '访客预览中' : '访客视角'}
+          </span>
+          {view === 'author' ? null : <>
+            <i className="gc-badge-sep" aria-hidden="true" />
+            <span className={`gc-badge-status gc-badge-${online === true ? 'on' : online === false ? 'off' : 'unknown'}`} role="status">
+              <i className="gc-badge-dot" aria-hidden="true" />
+              {online === true ? '作者现在在线' : online === false ? '作者暂时离开' : '正在确认作者状态…'}
+            </span>
+          </>}
         </span>
-        {view === 'author' ? null : <StatusPill
-          tone={online === true ? 'on' : online === false ? 'off' : 'unknown'}
-          label={online === true ? '作者现在在线' : online === false ? '作者暂时离开' : '正在确认作者状态…'} />}
-        <span className="gc-header-title">联络站</span>
       </span>
     </header>
 
@@ -829,12 +836,15 @@ export default function GuestContact({ openAuthorLogin = false }) {
     )}
 
     <footer className="gc-footer">
-      <span>联络站 · 留言会保存在云端{buildTag && <span className="gc-build"> · 构建 {buildTag}</span>}</span>
-      {view === 'guest'
-        ? previewAsGuest
-          ? <button type="button" className="gc-author-link" onClick={exitPreview}>返回作者工作台 <span aria-hidden="true">→</span></button>
-          : <button type="button" className="gc-author-link" onClick={openLogin}>我是作者 · 进入后台 <span aria-hidden="true">→</span></button>
-        : <span className="gc-author-badge">已验证作者身份</span>}
+      <span className="gc-footer-note">联络站 · 留言会保存在云端{buildTag && <span className="gc-build"> · 构建 {buildTag}</span>}</span>
+      <span className="gc-footer-right">
+        <ThemeToggle theme={theme} onToggle={toggleTheme} variant="icon" />
+        {view === 'guest'
+          ? previewAsGuest
+            ? <button type="button" className="gc-author-link" onClick={exitPreview}>返回作者工作台 <span aria-hidden="true">→</span></button>
+            : <button type="button" className="gc-author-link" onClick={openLogin}>我是作者 · 进入后台 <span aria-hidden="true">→</span></button>
+          : <span className="gc-author-badge">已验证作者身份</span>}
+      </span>
     </footer>
 
     <dialog ref={loginDialog} className="detail-dialog" onCancel={event => { event.preventDefault(); setLoginOpen(false); }}>

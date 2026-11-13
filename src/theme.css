@@ -1,0 +1,472 @@
+/* ============================================================
+   主题模块 · 全站唯一的颜色来源
+   ------------------------------------------------------------
+   1) 令牌：body 上是「墨」（默认），[data-theme="light"] body 覆盖成「纸」
+   2) 画布：首页底色、纸纹、指针微光
+   3) 皮肤：联络站 / 弹窗 / 404 / 加载态
+
+   约定
+   - styles.css 只管布局、字号、间距、动效；**颜色一律从这里取**。
+   - 新页面给根元素挂 .page 或 .station-page，就会自动继承同一套主题；
+     不再需要在各自的选择器里写死 #fdfdfc 这类色值。
+   - 令牌挂在 body 而不是 :root：:root 里原本就有一个 --ink 给老弹窗用，
+     在其上覆盖会影响未适配的区块。
+   ============================================================ */
+
+/* ---------- 1. 令牌 ---------- */
+body {
+  /* 文字 */
+  --ink: #F4F1EB;            /* 正文 */
+  --ink-2: #B6AFA6;          /* 次级 */
+  --ink-3: #8A837B;          /* 标注 */
+  --ink-strong: #F7F3EC;     /* 标题 */
+
+  /* 线：三档粗细，全站统一 */
+  --line: rgba(255, 255, 255, .13);
+  --line-soft: rgba(255, 255, 255, .08);
+  --line-faint: rgba(255, 255, 255, .05);
+  --line-strong: rgba(255, 255, 255, .16);
+
+  /* 强调色 */
+  --warm: #D8B184;
+  --cool: #8FB2C4;
+  --warm-line: rgba(216, 177, 132, .32);
+  --warm-faint: rgba(216, 177, 132, .14);
+
+  /* 场景与光 */
+  --scene: #08080A;
+  --glow-1: rgba(216, 177, 132, .17);
+  --glow-2: rgba(143, 178, 196, .07);
+  --grain: .6;
+  --spot: rgba(216, 177, 132, .075);
+
+  /* 面板：a=抬起的面，c=主面，b=底，sunk=凹陷（侧栏 / 输入底） */
+  --panel-a: #16161A;
+  --panel-b: #0D0D10;
+  --panel-c: #101013;
+  --sunk: #0A0A0C;
+  --panel-hi: rgba(255, 255, 255, .16);
+  --panel-veil: linear-gradient(90deg, transparent, rgba(255, 255, 255, .28) 22%, rgba(216, 177, 132, .42) 50%, rgba(255, 255, 255, .22) 76%, transparent);
+  --panel-inner: rgba(216, 177, 132, .10);
+  --shadow-a: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-b: 0 40px 90px -46px rgba(0, 0, 0, .95);
+  --halo: rgba(216, 177, 132, .22);
+  --grid-line: rgba(255, 255, 255, .05);
+
+  /* 控件 */
+  --btn-bg: rgba(255, 255, 255, .035);
+  --btn-bg-h: rgba(255, 255, 255, .075);
+  --btn-line: rgba(255, 255, 255, .10);
+  --card-a: rgba(255, 255, 255, .05);
+  --card-b: rgba(255, 255, 255, .025);
+  --scrim: rgba(6, 6, 7, .62);
+
+  /* 主按钮（暗色下用暖金，才在墨底上跳出来） */
+  --accent: #D8B184;
+  --accent-h: #E7C79F;
+  --accent-ink: #211808;
+
+  /* 状态 */
+  --dot: #7FBF8E;
+  --ok: #7FBF8E;
+  --ok-bg: rgba(127, 191, 142, .12);
+  --ok-line: rgba(127, 191, 142, .26);
+  --warn: #D8B26A;
+  --warn-bg: rgba(216, 178, 106, .12);
+  --warn-line: rgba(216, 178, 106, .26);
+  --danger: #E48C8C;
+
+  /* 会话气泡 */
+  --bubble: #17171B;
+  --bubble-line: rgba(255, 255, 255, .07);
+  --bubble-mine: #152026;
+  --bubble-mine-line: rgba(143, 178, 196, .20);
+
+  --portrait-bg: #141312;
+  color-scheme: dark;
+}
+
+[data-theme="light"] body {
+  --ink: #23211F;
+  --ink-2: #5F5952;
+  --ink-3: #8B847B;
+  --ink-strong: #191715;
+
+  --line: rgba(23, 20, 17, .12);
+  --line-soft: rgba(23, 20, 17, .08);
+  --line-faint: rgba(23, 20, 17, .05);
+  --line-strong: rgba(23, 20, 17, .15);
+
+  --warm: #A8763C;
+  --cool: #4F7E96;
+  --warm-line: rgba(168, 118, 60, .30);
+  --warm-faint: rgba(168, 118, 60, .12);
+
+  --scene: #F3EFE8;
+  --glow-1: rgba(216, 177, 132, .30);
+  --glow-2: rgba(143, 178, 196, .15);
+  --grain: .32;
+  --spot: rgba(168, 118, 60, .10);
+
+  --panel-a: #FFFEFC;
+  --panel-b: #FBF9F5;
+  --panel-c: #FDFCFA;
+  --sunk: #F7F4EF;
+  --panel-hi: rgba(255, 255, 255, .9);
+  --panel-veil: linear-gradient(90deg, transparent, rgba(23, 20, 17, .05) 22%, rgba(168, 118, 60, .32) 50%, rgba(23, 20, 17, .04) 76%, transparent);
+  --panel-inner: rgba(216, 177, 132, .16);
+  --shadow-a: 0 1px 2px rgba(60, 48, 36, .07);
+  --shadow-b: 0 30px 64px -42px rgba(60, 48, 36, .5);
+  --halo: rgba(216, 177, 132, .36);
+  --grid-line: rgba(23, 20, 17, .07);
+
+  --btn-bg: rgba(23, 20, 17, .025);
+  --btn-bg-h: rgba(23, 20, 17, .055);
+  --btn-line: rgba(23, 20, 17, .11);
+  --card-a: #FFFFFF;
+  --card-b: #FBFAF7;
+  --scrim: rgba(56, 48, 40, .34);
+
+  --accent: #4A3F35;
+  --accent-h: #362D25;
+  --accent-ink: #FFFDF9;
+
+  --dot: #4C9A63;
+  --ok: #3F6B4C;
+  --ok-bg: #F1F7F0;
+  --ok-line: #D5E6D2;
+  --warn: #8A6A3F;
+  --warn-bg: #FBF4E8;
+  --warn-line: #E8D9BD;
+  --danger: #A13E46;
+
+  --bubble: #F6F3ED;
+  --bubble-line: #EBE5DC;
+  --bubble-mine: #F1F5F6;
+  --bubble-mine-line: #DFE7E7;
+
+  --portrait-bg: #F4F0EA;
+  color-scheme: light;
+}
+
+/* ---------- 2. 画布 ---------- */
+.page {
+  background:
+    radial-gradient(1100px 620px at 50% -14%, var(--glow-1), transparent 62%),
+    radial-gradient(760px 380px at 86% 6%, var(--glow-2), transparent 72%),
+    var(--scene);
+  color: var(--ink);
+  transition: background-color .5s var(--ease), color .5s var(--ease);
+}
+
+/* 纸纹：很细的噪声，让大色块不「塑料」 */
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.5'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+.spot {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(520px circle at var(--mx, 50%) var(--my, 20%), var(--spot), transparent 62%);
+  transition: background 120ms linear;
+}
+
+/* ---------- 3. 联络站 ---------- */
+.station-page {
+  background:
+    radial-gradient(1000px 560px at 50% -14%, var(--glow-1), transparent 64%),
+    radial-gradient(760px 380px at 88% 2%, var(--glow-2), transparent 72%),
+    var(--scene);
+  color: var(--ink);
+  transition: background-color .5s var(--ease), color .5s var(--ease);
+}
+
+.station-page .station-header { color: var(--ink-3); }
+.station-page .station-header a { color: inherit; transition: color .2s var(--ease); }
+.station-page .station-header a:hover { color: var(--ink-strong); }
+
+.station-page .station-workspace {
+  background: var(--panel-c);
+  border-color: var(--line);
+  box-shadow: var(--shadow-a), var(--shadow-b);
+}
+
+.station-page .station-sidebar {
+  background: var(--sunk);
+  border-color: var(--line-soft);
+  color: var(--ink-2);
+}
+.station-page .station-sidebar h1 { color: var(--ink-strong); }
+.station-page .station-sidebar > p { color: var(--ink-2); }
+.station-page .station-space-list span { color: var(--ink-2); }
+.station-page .station-space-list p { color: var(--ink-3); }
+.station-page .station-private-note { color: var(--ink-3); }
+
+.station-page .station-conversation-heading { border-bottom-color: var(--line-faint); }
+.station-page .station-conversation-heading h2 { color: var(--ink-strong); }
+.station-page .station-conversation-heading span { color: var(--ink-3); }
+
+.station-page .station-connection-state { color: var(--ink-3); }
+.station-page .station-connection-state h3 { color: var(--ink-strong); }
+.station-page .station-connection-state > p { color: var(--ink-2); }
+.station-page .station-connection-error {
+  background: var(--card-a);
+  border-color: var(--line-soft);
+  color: var(--ink-2);
+}
+
+.station-page .station-compose { border-top-color: var(--line-faint); }
+.station-page .station-compose label { color: var(--ink-2); }
+.station-page .station-compose textarea,
+.station-page .station-login input,
+.station-page .station-modal-form input,
+.station-page .station-modal-form textarea,
+.station-page .station-invite,
+.station-page input.gc-input {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  color: var(--ink);
+}
+.station-page .station-compose textarea::placeholder,
+.station-page input.gc-input::placeholder { color: var(--ink-3); }
+.station-page .station-file-selection { color: var(--ink-3); }
+.station-page .station-environment {
+  background: var(--card-a);
+  border-color: var(--line-soft);
+  color: var(--ink-2);
+}
+
+/* 会话气泡：己方偏冷、对方偏中性，两套主题各有一组值 */
+.station-page .station-message {
+  background: var(--bubble);
+  border-color: var(--bubble-line);
+  color: var(--ink);
+}
+.station-page .station-message.mine {
+  background: var(--bubble-mine);
+  border-color: var(--bubble-mine-line);
+}
+.station-page .station-message-meta { color: var(--ink-3); }
+.station-page .station-empty-message { color: var(--ink-3); }
+.station-page .station-attachment {
+  background: var(--btn-bg);
+  border-color: var(--btn-line);
+  color: var(--ink);
+}
+.station-page .station-attachment small { color: var(--ink-3); }
+
+/* 作者侧栏的会话列表 */
+.station-page .station-space { color: var(--ink-2); }
+.station-page .station-space.selected {
+  background: var(--btn-bg-h);
+  border-color: var(--line);
+}
+.station-page .station-space small { color: var(--ink-3); }
+.station-page .gc-inbox-title { color: var(--ink-2); }
+.station-page .gc-inbox-item {
+  background: var(--btn-bg);
+  border-color: var(--line-soft);
+}
+.station-page .gc-inbox-item.selected {
+  background: var(--btn-bg-h);
+  border-color: var(--line);
+}
+.station-page .gc-author-foot { border-top-color: var(--line-faint); }
+
+/* 提示条 / 横幅 / 说明块 */
+.station-page .gc-notice,
+.station-page .gc-preview-bar,
+.station-page .gc-invite-banner,
+.station-page .gc-disclaimer {
+  background: var(--card-a);
+  border-color: var(--line-soft);
+  color: var(--ink-2);
+}
+.station-page .gc-preview-bar button {
+  background: var(--btn-bg);
+  border-color: var(--btn-line);
+  color: var(--ink-2);
+}
+.station-page .gc-invite-banner-text strong { color: var(--ink-strong); }
+.station-page .gc-invite-banner-text p { color: var(--ink-3); }
+.station-page .gc-dialog-hint,
+.station-page .gc-invite-meta,
+.station-page .gc-char-count,
+.station-page .gc-text-link,
+.station-page .gc-footer-note,
+.station-page .gc-build,
+.station-page .gc-build-line { color: var(--ink-3); }
+.station-page .gc-text-link:hover { color: var(--ink-strong); }
+
+.station-page .small-control {
+  background: var(--btn-bg);
+  border-color: var(--btn-line);
+  color: var(--ink-2);
+}
+.station-page .small-control:hover:not(:disabled) {
+  background: var(--btn-bg-h);
+  color: var(--ink-strong);
+}
+.station-page .sample-toggle { color: var(--ink-3); }
+.station-page .sample-toggle:hover:not(:disabled) { color: var(--ink-strong); }
+
+.station-page .gc-author-link {
+  background: var(--btn-bg);
+  border-color: var(--btn-line);
+  color: var(--ink-2);
+}
+.station-page .gc-author-link:hover {
+  background: var(--btn-bg-h);
+  border-color: var(--line);
+  color: var(--ink-strong);
+}
+
+.station-page .gc-tabs { border-bottom-color: var(--line-faint); }
+.station-page .gc-tab { color: var(--ink-3); }
+.station-page .gc-tab.selected {
+  color: var(--ink-strong);
+  border-bottom-color: var(--warm);
+}
+
+/* 主按钮：颜色由 --accent 决定，暗色下是暖金、浅色下是深棕 */
+.station-page .gc-primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-ink) !important;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, .8) !important;
+}
+.station-page .gc-primary:hover:not(:disabled) {
+  background: var(--accent-h) !important;
+  border-color: var(--accent-h) !important;
+}
+.station-page .gc-primary-large {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 8px 22px -12px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+.station-page .gc-primary-large:hover {
+  background: var(--accent-h);
+  border-color: var(--accent-h);
+}
+
+/* 二维码必须永远是白底，否则扫不出来 —— 主题不该改它 */
+.station-page .gc-qr { background: #fff; border-color: var(--line-soft); }
+
+/* ---------- 4. 弹窗（首页与联络站共用一套） ---------- */
+.detail-dialog {
+  background: var(--panel-a);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, .8), inset 0 1px 0 var(--panel-hi);
+}
+.detail-dialog h2,
+.detail-dialog h3 { color: var(--ink-strong); }
+.detail-dialog p { color: var(--ink-2); }
+.detail-dialog h3 { color: var(--ink); }
+.detail-dialog label { color: var(--ink-2); }
+.detail-dialog::backdrop {
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+}
+.detail-dialog .close-button { color: var(--ink-3); border-radius: 8px; }
+.detail-dialog .close-button:hover {
+  color: var(--ink-strong);
+  background: var(--btn-bg-h);
+}
+.detail-dialog .copy-button {
+  border: 1px solid var(--btn-line);
+  background: var(--btn-bg);
+  color: var(--ink-2);
+  border-radius: 999px;
+}
+.detail-dialog .copy-button:hover {
+  background: var(--btn-bg-h);
+  color: var(--ink-strong);
+}
+.detail-dialog input,
+.detail-dialog select,
+.detail-dialog textarea {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  color: var(--ink);
+}
+.detail-dialog .form-error { color: var(--danger); }
+
+/* ---------- 5. 404 / 加载占位 ---------- */
+.not-found { background: var(--scene); color: var(--ink); }
+.not-found-card {
+  background: var(--panel-a);
+  border-color: var(--line-soft);
+  box-shadow: var(--shadow-a), var(--shadow-b);
+}
+.not-found-code { color: var(--line-strong); }
+.not-found h1 { color: var(--ink-strong); }
+.not-found p { color: var(--ink-3); }
+.not-found-home {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.not-found-home:hover { background: var(--accent-h); }
+
+.route-loading { background: var(--scene); color: var(--ink-3); }
+
+/* ---------- 6. 主题开关（首页胶囊 / 联络站圆形） ---------- */
+/* ---- 主题开关：一枚小胶囊，滑块 + 日月 ---- */
+.rail-r{display:inline-flex; align-items:center; gap:14px}
+.rail-time{white-space:nowrap}
+.theme-toggle{
+  position:relative; width:54px; height:24px; padding:0; border-radius:999px;
+  border:1px solid var(--btn-line); background:var(--btn-bg);
+  display:inline-flex; align-items:center; justify-content:space-between;
+  cursor:pointer; transition:background-color .3s var(--ease), border-color .3s var(--ease);
+  overflow:hidden;
+}
+.theme-toggle:hover{background:var(--btn-bg-h); border-color:var(--line-strong)}
+.theme-toggle:focus-visible{outline:2px solid var(--warm); outline-offset:3px}
+.theme-knob{
+  position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+  background:linear-gradient(180deg,#F4CE97,#C9985D); opacity:.95;
+  box-shadow:0 1px 3px rgba(0,0,0,.3), 0 0 12px rgba(216,177,132,.45);
+  transition:transform .42s cubic-bezier(.34,1.4,.5,1), background-color .3s var(--ease);
+}
+.theme-toggle.dark .theme-knob{transform:translateX(30px)}
+.theme-ico{position:relative; z-index:1; width:24px; display:inline-flex; align-items:center; justify-content:center; color:var(--ink-3); opacity:.5; transition:opacity .3s var(--ease), color .3s var(--ease)}
+.theme-ico.on{opacity:1; color:var(--ink-strong)}
+.theme-toggle.light .theme-ico.moon{opacity:.35}
+.theme-toggle.dark .theme-ico.sun{opacity:.35}
+
+/* 主题切换：从点击处扩散的圆形揭示（View Transition 覆盖默认淡入淡出） */
+html.theming ::view-transition-old(root),
+html.theming ::view-transition-new(root){ animation:none !important; }
+html.theming ::view-transition-old(root){ z-index:1 }
+html.theming ::view-transition-new(root){ z-index:2 }
+@media(prefers-reduced-motion:reduce){
+  html.theming ::view-transition-new(root){ animation:none !important }
+}
+
+/* 联络站用的单枚圆形开关：只有日/月一个图标，和页脚按钮同一高度 */
+.theme-icon{
+  width:26px; height:26px; padding:0; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--btn-line); background:var(--btn-bg);
+  color:var(--ink-3);
+  transition:background-color .22s var(--ease), border-color .22s var(--ease), color .22s var(--ease);
+}
+.theme-icon:hover{background:var(--btn-bg-h); border-color:var(--line); color:var(--ink-strong)}
+.theme-icon:focus-visible{outline:2px solid var(--warm); outline-offset:3px}
+
+/* 触屏上给主题按钮一个够大的点击区 */
+@media(max-width:767px){
+  .theme-icon{width:32px;height:32px}
+}

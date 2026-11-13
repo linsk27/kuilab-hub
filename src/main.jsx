@@ -2,6 +2,9 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
 import './styles.css';
+import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 styles.css 之后
+import { useTheme } from './theme';
+import ThemeToggle from './ThemeToggle';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -73,7 +76,7 @@ function PetCat() {
     <PetCat2D onPet={pet} petSignal={signal} />
   </div>;
 }
-// 顶部状态条：本地时间 + 可联系状态，给页面一点“产品”的呼吸
+// 顶部状态条：本地时间 + 主题开关，给页面一点“产品”的呼吸
 function StatusRail({ theme, onToggleTheme }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -81,27 +84,12 @@ function StatusRail({ theme, onToggleTheme }) {
     return () => window.clearInterval(id);
   }, []);
   const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const next = theme === 'dark' ? '亮色' : '暗色';
   return (
     <div className="rail">
       <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
       <span className="rail-r">
         <span className="rail-time">UTC+8 <b>{t}</b></span>
-        <button
-          type="button"
-          className={`theme-toggle ${theme}`}
-          onClick={onToggleTheme}
-          aria-label={`切换到${next}主题`}
-          title={`切换到${next}主题`}
-        >
-          <i className="theme-knob" aria-hidden="true" />
-          <span className={`theme-ico sun ${theme === 'light' ? 'on' : ''}`} aria-hidden="true">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6" /></svg>
-          </span>
-          <span className={`theme-ico moon ${theme === 'dark' ? 'on' : ''}`} aria-hidden="true">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 14.4A8.4 8.4 0 1 1 9.6 4a6.8 6.8 0 0 0 10.4 10.4Z" /></svg>
-          </span>
-        </button>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </span>
     </div>
   );
@@ -136,30 +124,7 @@ function Spotlight() {
 }
 
 function App({ managing }) {
-  const [theme, setTheme] = useState(() => {
-    if (typeof document === 'undefined') return 'dark';
-    // index.html 的内联脚本已先设好 data-theme（避免首帧闪一下），这里只读回来
-    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-  });
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try { window.localStorage.setItem('hub-theme', theme); } catch { /* 隐私模式下忽略 */ }
-  }, [theme]);
-  function toggleTheme(event) {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || !document.startViewTransition) { setTheme(next); return; }
-    const x = event ? event.clientX : window.innerWidth - 48;
-    const y = event ? event.clientY : 36;
-    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) * 1.05;
-    const vt = document.startViewTransition(() => setTheme(next));
-    vt.ready.then(() => {
-      document.documentElement.animate(
-        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-        { duration: 640, easing: 'cubic-bezier(.22,1,.36,1)', pseudoElement: '::view-transition-new(root)' }
-      );
-    });
-  }
+  const { theme, toggle: toggleTheme } = useTheme();
   const dialog = useRef(null);
   const editor = useRef(null);
   const [publishedLinks, setPublishedLinks] = useState([]);
