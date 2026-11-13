@@ -110,7 +110,7 @@ body {
   --glow-2: rgba(143, 178, 196, .15);
   --grain: .32;
   --spot: rgba(168, 118, 60, .10);
-  --specular: rgba(255, 255, 255, .38);
+  --specular: rgba(255, 255, 255, .2);
 
   --panel-a: #FFFEFC;
   --panel-b: #FBF9F5;
