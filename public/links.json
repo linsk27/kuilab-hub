@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "gblog",
+    "name": "gblog",
+    "url": "https://gblog.kuilab.cn/",
+    "detail": "笔记、作品与折腾记录。",
+    "color": "blue",
+    "icon": "note",
+    "feed": true
+  }
+]

@@ -23,17 +23,19 @@ const pages = {
   About: ['A little about this place', 'Personal Hub is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
   Uses: ['The everyday toolkit', 'Built with React and Tailwind CSS. Icons by Phosphor, with an original illustrated portrait.', 'A quiet space for projects, notes, sketches, and whatever comes next.'],
   Colophon: ['Made with a little care', 'A paper-inspired interface, soft pastel marks, and just enough room to breathe.', 'The portrait is an original AI-assisted illustration. All decoration stays in the margins so the links can do their job.'],
-  RSS: ['Keep in touch, quietly', 'An RSS feed can live here when your writing is ready.', 'No feed is connected in this preview. Add your feed URL alongside your personal links before publishing.'],
+  RSS: ['Keep in touch, quietly', '新写的文章先发在 gblog，首页「All Links」那张卡里的目录就是从它的 RSS 取的。', '订阅地址：https://gblog.kuilab.cn/index.xml 。只想翻文章，直接开 https://gblog.kuilab.cn/ 就好。'],
 };
 const STORAGE_KEY = 'personal-hub-links-v1';
 const PAGE_SIZE = 6;
+// links.json 里可以用 "icon": "note" 之类的短名挑图标，写不认识的就退回书签
+const CARD_ICONS = { note: NotePencil, github: GithubLogo, heart: Heart, chat: ChatCircle, brush: PaintBrush };
 function parseLinks(data) {
   if (!Array.isArray(data)) throw Error('链接数据格式错误');
   return data.map((link, index) => {
     if (!link || typeof link.name !== 'string' || !link.name.trim() || typeof link.url !== 'string') throw Error('链接数据格式错误');
     const url = new URL(link.url);
     if (!['http:', 'https:'].includes(url.protocol)) throw Error('链接网址格式错误');
-    return { id: typeof link.id === 'string' ? link.id : `published-${index}`, name: link.name, url: url.href, detail: typeof link.detail === 'string' ? link.detail : '', color: ['sand', 'pink', 'blue'].includes(link.color) ? link.color : 'sand', icon: BookmarkSimple };
+    return { id: typeof link.id === 'string' ? link.id : `published-${index}`, name: link.name, url: url.href, detail: typeof link.detail === 'string' ? link.detail : '', color: ['sand', 'pink', 'blue'].includes(link.color) ? link.color : 'sand', icon: CARD_ICONS[link.icon] ?? BookmarkSimple, feed: link.feed === true };
   });
 }
 function readDraft() {
@@ -235,6 +237,25 @@ function App({ managing }) {
   }, []);
   const [content, setContent] = useState(null);
   const [copied, setCopied] = useState(false);
+  // 带 feed 标记的那条链接（现在是 gblog）会把博客最近几篇直接排进卡片。
+  // 数据走 /api/blog：服务端抓 RSS + CDN 缓存，浏览器不用扛 1.3MB 的 XML，也不跨域。
+  const feedUrl = publishedLinks.find(link => link.feed)?.url;
+  const [blog, setBlog] = useState(null);
+  const [feedState, setFeedState] = useState('idle');
+  useEffect(() => {
+    if (!feedUrl) return undefined;
+    const controller = new AbortController();
+    setFeedState('loading');
+    fetch('/api/blog', { signal: controller.signal })
+      .then(response => (response.ok ? response.json() : null))
+      .then(data => {
+        if (controller.signal.aborted) return;
+        if (data?.posts?.length) { setBlog(data); setFeedState('ready'); }
+        else setFeedState('failed');
+      })
+      .catch(() => { if (!controller.signal.aborted) setFeedState('failed'); });
+    return () => controller.abort();
+  }, [feedUrl]);
   function open(name) {
     setCopied(false);
     setContent(pages[name] ? { title: name, paragraphs: pages[name] } : { title: name, paragraphs: [name === 'Contact' ? 'Say hello' : 'Your corner of the internet', name === 'Contact' ? 'Add your email address or preferred contact page to connect this card.' : `This ${name} card is ready for your personal link.`, 'Destinations are not connected in this design preview. Update the links array in src/main.jsx with your own URLs.'] });
@@ -273,9 +294,46 @@ function App({ managing }) {
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
           <div className="link-wall grid" aria-busy={loadState === 'loading'}>
-            {visibleLinks.map(({ id, name, detail, icon: Icon, color, url }, index) => {
+            {visibleLinks.map(({ id, name, detail, icon: Icon, color, url, feed }, index) => {
               const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3>{name}</h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
               const at = savedLinks.findIndex(x => x.id === id);
+              // 有订阅源的那张：横跨整行，左边身份、右边最近三篇。
+              // 还没取回目录时先把三行骨架占住 —— 否则卡片会从「一张小卡」突然长成整行，页面跳一下。
+              if (feed && url) {
+                const posts = blog ? blog.posts.slice(0, 3) : [];
+                return <div className="note-wrap is-feature" key={id || name}>
+                  <article className="link-note feature-note" data-feed={feedState}>
+                    <a className="feature-side" href={url} target="_blank" rel="noreferrer">
+                      <span className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={22} weight="light" /><ArrowUpRight className="visit-arrow" size={16} weight="light" /></span>
+                      <h3>{name}</h3>
+                      <p>{detail}</p>
+                      <span className={`marker ${color}`} aria-hidden="true" />
+                    </a>
+                    <div className="feature-feed">
+                      <div className="feed-head">
+                        <span>{blog ? `最新 ${String(posts.length).padStart(2, '0')} 篇` : feedState === 'failed' ? '目录没取到' : '正在取回目录'}</span>
+                        <a href={url} target="_blank" rel="noreferrer">{blog ? `全部 ${String(blog.total).padStart(2, '0')} 篇` : '去博客'} <ArrowUpRight size={12} weight="light" /></a>
+                      </div>
+                      {posts.length ? <ol className="feed-list">
+                        {posts.map(post => <li key={post.url}>
+                          <a href={post.url} target="_blank" rel="noreferrer">
+                            <span className="feed-date">{post.date ? post.date.slice(5).replace('-', '.') : '··'}</span>
+                            <span className="feed-title">{post.title}</span>
+                            <ArrowUpRight className="feed-arrow" size={13} weight="light" />
+                          </a>
+                        </li>)}
+                      </ol> : feedState === 'failed'
+                        ? <p className="feed-empty">这篇目录暂时没取到，直接去博客翻翻。</p>
+                        : <ol className="feed-list" aria-hidden="true">
+                          {[62, 44, 78].map(width => <li className="feed-skeleton" key={width}>
+                            <span className="skeleton-bar" style={{ width: `${width}%` }} />
+                          </li>)}
+                        </ol>}
+                    </div>
+                  </article>
+                  {managing && !showSamples && <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>}
+                </div>;
+              }
               return <div className="note-wrap" key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <>
                 <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>
                 {savedLinks.length > 1 && <div className="move-links">
