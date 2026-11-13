@@ -34,12 +34,23 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [act, setAct] = useState('');
   const [greet, setGreet] = useState(false);
   const [view, setView] = useState(0);        // 0 正面 / 1 侧面 / 2 背面
+  const [face, setFace] = useState('');       // happy / surprised / angry / shy
   const [purring, setPurring] = useState(false);
   const [ready, setReady] = useState(false);
   const greetTimers = useRef([]);
   const viewRef = useRef(0);
+  const faceTimer = useRef(0);
+  const petCount = useRef(0);
   const turnWarm = useRef(false);
   const turnReady = useRef(false);
+
+  // 四种表情都是同一只母版的整帧（交付包里统一 600×740、脚底对齐），
+  // 换帧只变脸和一点歪头，身体一模一样 —— 不会再出现"换了只猫"。
+  function showFace(name, hold) {
+    setFace(name);
+    window.clearTimeout(faceTimer.current);
+    faceTimer.current = window.setTimeout(() => setFace(''), hold);
+  }
 
   // 打招呼：不打手势（那只手的素材和默认帧不是同一套腿长，换整帧会“换张照片”），
   // 改成歪一下头 + 连着眨两次眼 —— 猫认出你时就是这个动作，而且只用变换，不会窜图。
@@ -193,6 +204,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         if (s.moved < 12) {
           s.purred = true;      // 长按算抚摸，松手时不要再当成“点了一下”
           setPurring(true);
+          showFace('shy', 6000); // 松手时由 release 清掉
           onPetRef.current?.();
         }
       }, 640);
@@ -220,11 +232,13 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       s.dragging = false;
       window.clearTimeout(pressTimer);
       setPurring(false);
+      window.clearTimeout(faceTimer.current);
+      setFace('');
       if (s.moved < 6 && !s.purred) {
         s.lift = 1;
-        // 被点一下：先眨一下眼再弹起来，比换一张表情图自然
-        setBlink(true);
-        window.setTimeout(() => setBlink(false), 110);
+        petCount.current += 1;
+        const n = petCount.current;
+        showFace(n % 5 === 0 ? 'happy' : 'surprised', n % 5 === 0 ? 2200 : 1200);
         onPetRef.current?.();
       }
       s.ty = 0;
@@ -299,6 +313,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       if (gazeRaf) cancelAnimationFrame(gazeRaf);
       window.clearTimeout(pressTimer);
       window.clearTimeout(hoverTimer);
+      window.clearTimeout(faceTimer.current);
       greetTimers.current.forEach(window.clearTimeout);
       greetTimers.current = [];
       host.removeEventListener('pointerdown', down);
@@ -392,6 +407,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       title="摸摸我"
       data-act={(greet ? 'greet' : act) || undefined}
       data-view={view || undefined}
+      data-face={face || undefined}
+      onDoubleClick={() => showFace('angry', 1600)}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
@@ -409,6 +426,9 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
             <span className="pet-2d-layer pet-2d-body" ref={bodyRef}>
               <span className="pet-2d-sprite pet-2d-sprite-body" />
             </span>
+
+            {/* 表情：同一只母版的整帧，只换脸 */}
+            <span className="pet-2d-face" aria-hidden="true" />
 
             {/* 拖拽转身：真三视图，和正面那张分层图同一套坐标 */}
             <span className="pet-2d-turn" aria-hidden="true" />
