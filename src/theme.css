@@ -551,7 +551,8 @@ body {
   position:relative; width:54px; height:24px; padding:0; border-radius:999px;
   border:1px solid var(--btn-line); background:var(--btn-bg);
   display:inline-flex; align-items:center; justify-content:space-between;
-  cursor:pointer; transition:background-color .3s var(--ease), border-color .3s var(--ease);
+  /* cursor 交给 styles.css 末尾那条统一的光标规则（这里写死 pointer 会盖掉爪印） */
+  transition:background-color .3s var(--ease), border-color .3s var(--ease);
   overflow:hidden;
 }
 .theme-toggle:hover{background:var(--btn-bg-h); border-color:var(--line-strong)}
