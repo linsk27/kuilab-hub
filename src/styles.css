@@ -483,8 +483,9 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
    颜色与主题见 theme.css：令牌挂在 body，[data-theme] 切「墨 / 纸」。
    ============================================================ */
 .page{
-  /* 底部留 44px：小猫挂在小卡片下沿往下 38px，留不够它就会把页面撑出 2~4px 的纵向滚动条 */
-  position:relative; padding-top:74px; padding-bottom:44px;
+  /* 底部留 40px：小猫挂在小卡片下沿往下 38px，必须留够；而且整页内容要比视口矮几像素，
+     否则小数高度（626.67 之类）在 2 倍屏上会被 scrollHeight 进位，平白多出一条 1px 滚动条 */
+  position:relative; padding-top:74px; padding-bottom:40px;
   isolation:isolate;
 }
 
