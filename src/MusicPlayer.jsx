@@ -12,6 +12,20 @@ import { Play, Pause, SkipBack, SkipForward, SpeakerHigh, SpeakerSlash, FolderOp
 const VOLUME_KEY = 'hub-player-volume';
 const PEAKS = 168;
 
+// 歌单里每首都带一份 base64 的柱子振幅（build_playlist.py 生成），
+// 这样画波形只要几十字节，不必把整首下载下来解码
+function decodePeaks(base64) {
+  try {
+    const bin = atob(base64);
+    const out = new Float32Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i) / 255;
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+
 function fmt(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const m = Math.floor(seconds / 60);
@@ -42,6 +56,8 @@ export default function MusicPlayer() {
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const peaksRef = useRef(null);
+  const barsRef = useRef(null);   // 歌单里预先算好的柱子（0~1）
+  const prefetchedRef = useRef('');   // 已经为哪个源发过预取
   const progressRef = useRef(0);
   const rafRef = useRef(0);
   const dragRef = useRef(false);
@@ -89,6 +105,8 @@ export default function MusicPlayer() {
   function prefetchAudio() {
     const audio = audioRef.current;
     if (!audio || !track || audio.readyState > 0) return;
+    if (prefetchedRef.current === src) return;   // 这个源已经发过请求，别重来
+    prefetchedRef.current = src;
     audio.preload = 'auto';
     audio.load();
   }
@@ -116,16 +134,20 @@ export default function MusicPlayer() {
   }, [open]);
 
   // 音源变化：换 src；如果本来在播（或刚点了播放），等能播了接着播
+  const src = track ? track.src : '';
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !track) return undefined;
-    audio.src = track.src;
+    audio.src = src;
     audio.load();
     setFailed(false);
     setBuffering(false);
     setTime(0);
     setDuration(0);
     peaksRef.current = null;
+    barsRef.current = track.peaks ? decodePeaks(track.peaks) : null;
+    prefetchedRef.current = '';
     progressRef.current = 0;
     draw();
     if (wantPlay.current) {
@@ -135,14 +157,14 @@ export default function MusicPlayer() {
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track]);
+  }, [src]);
 
   // 解码一次拿峰值（同源才行；跨域失败就退回进度线）
   // 两个前提，都是为了不跟「真正要听的声音」抢带宽：
   //   · 面板打开之后才解码 —— 收起状态没人看波形，没必要为它下一整首
   //   · 等音频能播了（canplay）再解码 —— 一首歌三四 MB，先让声音出来，波形随后补
   useEffect(() => {
-    if (!track || !open) return undefined;
+    if (!track || !open || barsRef.current) return undefined;   // 有预计算的柱子就不解码
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return undefined;
     const audio = audioRef.current;
@@ -153,7 +175,7 @@ export default function MusicPlayer() {
     const decode = () => {
       if (controller.signal.aborted) return;
       ctx = new AudioCtx();
-      fetch(track.src, { signal: controller.signal })
+      fetch(src, { signal: controller.signal })
         .then(res => res.arrayBuffer())
         .then(buffer => ctx.decodeAudioData(buffer))
         .then(decoded => {
@@ -176,7 +198,7 @@ export default function MusicPlayer() {
       audio?.removeEventListener('canplay', decode);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track, open]);
+  }, [src, open]);
 
   // 音量：写进 audio + 记住
   useEffect(() => {
@@ -271,9 +293,33 @@ export default function MusicPlayer() {
     const baseColor = css.getPropertyValue('--ink-3').trim() || '#8a827a';
     const warm = css.getPropertyValue('--warm').trim() || '#b08a5e';
     const peaks = peaksRef.current;
+    const bars = barsRef.current;
     const mid = height / 2;
     const audio = audioRef.current;
     const ratio = audio && audio.duration ? Math.min(1, audio.currentTime / audio.duration) : 0;
+
+    if (bars) {
+      const gap = 1.6;
+      const bar = Math.max(1, (width - gap * (bars.length - 1)) / bars.length);
+      const cut = width * ratio;
+      const span = mid - 2;
+      for (let i = 0; i < bars.length; i += 1) {
+        const x = i * (bar + gap);
+        const h = Math.max(1, bars[i] * span * 2);
+        ctx.globalAlpha = 0.34;
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(x, mid - h / 2, bar, h);
+        if (x <= cut) {
+          ctx.globalAlpha = 0.92;
+          ctx.fillStyle = warm;
+          ctx.fillRect(x, mid - h / 2, Math.min(bar, cut - x), h);
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = warm;
+      ctx.fillRect(cut - 0.5, 0, 1, height);
+      return;
+    }
 
     if (!peaks) {
       // 没解码成功：一条细线 + 已播部分
