@@ -950,6 +950,129 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .rail{gap:10px}
 }
 
+
+/* ============================================================
+   随身听：左下角一片小唱片，点开是一张波形卡
+   固定定位，不参与整页排版（不会把 900px 的一屏顶开）
+   ============================================================ */
+.player{position:fixed;left:22px;bottom:20px;z-index:40;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+
+/* ---- 收起态：唱片 + 曲名 + 跳动的三根小柱 ---- */
+.player-pill{
+  display:flex;align-items:center;gap:10px;max-width:260px;
+  padding:7px 15px 7px 7px;border-radius:999px;
+  border:1px solid var(--line-soft);background:var(--btn-bg);
+  color:var(--ink-2);text-align:left;font-size:12px;
+  box-shadow:0 10px 26px -18px var(--line-strong), inset 0 1px 0 var(--panel-hi);
+  backdrop-filter:blur(10px);
+  transition:border-color .22s var(--ease), background-color .22s var(--ease), transform .22s var(--ease);
+}
+.player-pill:hover{border-color:var(--line-strong);background:var(--btn-bg-h);transform:translateY(-1px)}
+.player-disc{
+  position:relative;flex:none;width:30px;height:30px;border-radius:50%;
+  /* 黑胶就是黑的：两套主题下都用同一块深色盘，浅色主题里才不会变成同心圆靶子 */
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.07) 0 1px, transparent 1px 3.2px),
+    radial-gradient(circle at 34% 30%, #4a4139, #1b1815 72%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.25);
+}
+.player-disc::after{
+  content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:linear-gradient(145deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 42%, rgba(0,0,0,.22) 100%);
+}
+.player-disc-label{
+  position:absolute;inset:9px;border-radius:50%;
+  background:radial-gradient(circle at 40% 34%, var(--warm), color-mix(in srgb, var(--warm) 58%, #000));
+  opacity:.9;
+}
+.player-disc-label::after{
+  content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;
+  border-radius:50%;background:var(--scene);
+}
+.player.is-playing .player-disc{animation:player-spin 4.2s linear infinite}
+@keyframes player-spin{to{transform:rotate(360deg)}}
+
+.player-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.player-meta strong{font-weight:500;color:var(--ink);font-size:12px;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-meta em{font-style:normal;font-size:10px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 播放时才跳的三根柱：宽度、时长各不相同，看起来才不像进度条 */
+.player-bars{display:flex;align-items:flex-end;gap:2.5px;height:13px;margin-left:2px}
+.player-bars i{width:2.5px;height:5px;border-radius:1.5px;background:var(--warm);opacity:.55}
+.player.is-playing .player-bars i{opacity:.85;animation:player-bar .9s ease-in-out infinite}
+.player.is-playing .player-bars i:nth-child(2){animation-duration:.72s;animation-delay:.12s}
+.player.is-playing .player-bars i:nth-child(3){animation-duration:1.05s;animation-delay:.24s}
+@keyframes player-bar{0%,100%{height:5px}50%{height:13px}}
+.player-waveicon{color:var(--ink-3);opacity:.6;flex:none}
+
+/* ---- 打开态：波形卡 ---- */
+.player-panel{
+  width:286px;padding:14px 15px 12px;border-radius:16px;
+  border:1px solid var(--line-soft);background:var(--panel-b);
+  box-shadow:0 24px 60px -30px var(--line-strong), inset 0 1px 0 var(--panel-hi);
+  backdrop-filter:blur(14px);
+  animation:player-rise .26s var(--ease) both;
+}
+@keyframes player-rise{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+.player-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.player-title{min-width:0;display:flex;flex-direction:column;gap:3px}
+.player-title strong{font-size:13px;font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-title em{font-style:normal;font-size:10px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-icon{
+  flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--ink-3);
+  transition:color .2s var(--ease), background-color .2s var(--ease);
+}
+.player-icon:hover:not(:disabled){color:var(--ink-strong);background:var(--btn-bg-h)}
+.player-icon:disabled{opacity:.3;cursor:default}
+
+.player-wave-wrap{margin:12px 0 0}
+.player-wave{display:block;width:100%;height:46px;cursor:pointer;touch-action:none;border-radius:4px}
+.player-wave:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
+.player-time{display:flex;justify-content:space-between;margin-top:4px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.06em;color:var(--ink-3)}
+
+.player-controls{display:flex;align-items:center;gap:6px;margin-top:8px}
+.player-play{
+  display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border:1px solid var(--btn-line);border-radius:50%;background:var(--btn-bg);color:var(--ink-strong);
+  transition:background-color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease);
+}
+.player-play:hover:not(:disabled){background:var(--btn-bg-h);border-color:var(--line-strong);transform:scale(1.04)}
+.player-play:disabled{opacity:.35;cursor:default}
+.player-vol{display:flex;align-items:center;gap:4px;margin-left:auto}
+.player-vol input[type="range"]{
+  width:66px;height:16px;appearance:none;background:transparent;cursor:pointer;
+}
+.player-vol input[type="range"]::-webkit-slider-runnable-track{
+  height:2px;border-radius:2px;background:var(--line-strong);
+}
+.player-vol input[type="range"]::-webkit-slider-thumb{
+  appearance:none;width:9px;height:9px;margin-top:-3.5px;border-radius:50%;
+  background:var(--ink-2);border:1px solid var(--scene);
+}
+.player-vol input[type="range"]::-moz-range-track{height:2px;border-radius:2px;background:var(--line-strong)}
+.player-vol input[type="range"]::-moz-range-thumb{width:9px;height:9px;border:1px solid var(--scene);border-radius:50%;background:var(--ink-2)}
+
+.player-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;
+  padding-top:9px;border-top:1px solid var(--line-faint)}
+.player-add{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--ink-3);font-size:10.5px;letter-spacing:.02em;padding:3px 0;
+  transition:color .2s var(--ease)}
+.player-add:hover{color:var(--ink-strong)}
+.player-count{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.1em;color:var(--ink-3)}
+
+/* 手机：缩小一点，避开右下角的小猫 */
+@media(max-width:767px){
+  .player{left:12px;bottom:calc(12px + env(safe-area-inset-bottom))}
+  .player-panel{width:min(78vw,286px);padding:12px 13px 10px}
+  .player-pill{max-width:200px}
+  .player-meta strong{font-size:11.5px}
+}
+@media(prefers-reduced-motion:reduce){
+  .player.is-playing .player-disc,.player.is-playing .player-bars i{animation:none}
+  .player-panel{animation:none}
+}
+
 /* ---- 小猫光标（白猫）：默认是白猫脸，指向可点的地方换成白爪印 ----
    图形在 tools/cursor/cat.svg / paw.svg（矢量），用 Chromium 渲成 256 再缩到 32×32，
    渐变、腮红、投影都烘在 PNG 里；不用 emoji 字形，因为各系统字体渲染完全不一样。

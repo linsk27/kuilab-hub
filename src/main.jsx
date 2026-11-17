@@ -9,6 +9,7 @@ import SplitWords from './SplitWords';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
+const MusicPlayer = lazy(() => import('./MusicPlayer'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -278,7 +279,7 @@ function App({ managing }) {
         {/* 边缘光（移植自 react-bits BorderGlow）：只在指针靠近卡片边缘时亮起那一段边 */}
         <span className="shell-edge" aria-hidden="true" />
         <aside className="profile flex flex-col items-center text-center">
-          <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.webp`} alt="Original anime portrait of a silver-haired young woman" decoding="async" fetchpriority="high" width="160" height="160" onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
+          <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.webp`} alt="Original anime portrait of a silver-haired young woman" decoding="async" fetchPriority="high" width="160" height="160" onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
           <h1><SplitWords text="Personal Hub" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
           {now && <dl className="now">
@@ -392,6 +393,7 @@ function App({ managing }) {
       </main>
       <div className="decoration bottom-hearts" aria-hidden="true"><Heart size={28} weight="duotone" /><Heart size={21} weight="duotone" /></div>
       <PetCat />
+      <Suspense fallback={null}><MusicPlayer /></Suspense>
       <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => open(name)}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
