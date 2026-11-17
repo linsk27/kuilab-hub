@@ -74,14 +74,14 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     const probe = new Image();
     probe.onload = () => setReady(true);
     probe.onerror = () => setReady(true);
-    probe.src = '/cat/cat-sprite.webp';
+    probe.src = '/cat/cat-sprite-sm.webp';
     if (probe.complete) setReady(true);
 
     // 转身三视图晚一步拉：首屏用不上，但要在用户第一次拖之前就位
     const warmTurn = () => {
       const img = new Image();
       img.onload = () => { turnReady.current = true; };
-      img.src = '/cat/cat-turn.webp';
+      img.src = '/cat/cat-turn-sm.webp';
       if (img.complete) turnReady.current = true;
     };
     let idle = 0;
@@ -189,7 +189,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
         turnWarm.current = true;
         const img = new Image();
         img.onload = () => { turnReady.current = true; };
-        img.src = '/cat/cat-turn.webp';
+        img.src = '/cat/cat-turn-sm.webp';
         if (img.complete) turnReady.current = true;
       }
       // 正在被摸的时候别同时打招呼：清掉待触发的招呼，也把正在做的那个收掉
