@@ -341,7 +341,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .pet-2d-layer{position:absolute;inset:0;pointer-events:none;will-change:transform}
 /* 头 / 身 / 闭眼帧 / 头影 拼成一张 2×2 雪碧图：首屏只要这一张。 */
 .pet-2d-sprite{position:absolute;inset:0;display:block;pointer-events:none;
-  background-image:url(/cat/cat-sprite-sm.webp);background-size:200% 200%;background-repeat:no-repeat}
+  background-image:url(/cat/cat-sprite.webp);background-size:200% 200%;background-repeat:no-repeat}
 .pet-2d-sprite-head{background-position:0 0}
 .pet-2d-sprite-body{background-position:100% 0}
 .pet-2d-sprite-blink{background-position:0 100%;opacity:0;transition:opacity 60ms linear}
@@ -353,22 +353,27 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
    “打招呼”是歪头 + 连眨两次眼（眨眼由 JS 打点）。 */
 /* 切口的柔影加在整只猫上（stage），不能加在头层上，否则切面会投出一条横黑线 */
 /* 表情：四帧同一只猫、同一脚底，只换脸。整帧盖上去，所以不会有"两层脸"的接缝 */
+/* 表情整帧（4 张）只在第一次交互/空闲时才请求：猫脸本来就画在雪碧图里，
+   到之前也不会“没有五官”，只是暂时不换表情。 */
 .pet-2d-face{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:4;
-  background-image:url(/cat/cat-face-sm.webp);background-size:400% 100%;background-repeat:no-repeat;
+  background-size:400% 100%;background-repeat:no-repeat;
   transition:opacity .1s ease}
+.pet-2d.is-faces .pet-2d-face{background-image:url(/cat/cat-face.webp)}
 .pet-2d[data-face="happy"] .pet-2d-face{opacity:1;background-position:0 0}
 .pet-2d[data-face="surprised"] .pet-2d-face{opacity:1;background-position:33.3333% 0}
 .pet-2d[data-face="angry"] .pet-2d-face{opacity:1;background-position:66.6667% 0}
 .pet-2d[data-face="shy"] .pet-2d-face{opacity:1;background-position:100% 0}
-.pet-2d[data-face] .pet-2d-head,
-.pet-2d[data-face] .pet-2d-body{opacity:0}
+/* 只在表情图真到位时才把头/身藏起来，否则 click 的瞬间会出现一只“没有五官的猫” */
+.pet-2d.is-faces[data-face] .pet-2d-head,
+.pet-2d.is-faces[data-face] .pet-2d-body{opacity:0}
 /* 正在转身时表情帧让位：两张整帧叠一起会穿帮 */
 .pet-2d[data-view] .pet-2d-face{opacity:0}
 
 /* 拖拽转身：三视图整帧，正面仍是分层那张。两者同一套画布坐标，切的时候只剩"它转过去了" */
 .pet-2d-turn{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:4;
-  background-image:url(/cat/cat-turn-sm.webp);background-size:300% 100%;background-repeat:no-repeat;
+  background-size:300% 100%;background-repeat:no-repeat;
   transition:opacity .1s ease}
+.pet-2d.is-turns .pet-2d-turn{background-image:url(/cat/cat-turn.webp)}
 .pet-2d[data-view="1"] .pet-2d-turn{opacity:1;background-position:50% 0}
 .pet-2d[data-view="2"] .pet-2d-turn{opacity:1;background-position:100% 0}
 /* 三视图素材里没有落地影，转身时补一层，别让它飘着 */

@@ -37,16 +37,22 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   const [face, setFace] = useState('');       // happy / surprised / angry / shy
   const [purring, setPurring] = useState(false);
   const [ready, setReady] = useState(false);
+  const [facesOn, setFacesOn] = useState(false);   // 表情整帧（4 张）到位后才挂上
+  const [turnsOn, setTurnsOn] = useState(false);   // 转身三视图同理
   const greetTimers = useRef([]);
   const viewRef = useRef(0);
   const faceTimer = useRef(0);
+  const warmFacesRef = useRef(null);
   const petCount = useRef(0);
   const turnWarm = useRef(false);
   const turnReady = useRef(false);
+  const faceWarm = useRef(false);
+  const faceReady = useRef(false);
 
   // 四种表情都是同一只母版的整帧（交付包里统一 600×740、脚底对齐），
   // 换帧只变脸和一点歪头，身体一模一样 —— 不会再出现"换了只猫"。
   function showFace(name, hold) {
+    warmFacesRef.current?.();   // 还没拉就开始拉，别等 200ms 才出表情
     setFace(name);
     window.clearTimeout(faceTimer.current);
     faceTimer.current = window.setTimeout(() => setFace(''), hold);
@@ -71,28 +77,47 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
   // 雪碧图是背景图，没有 onLoad 可等，这里主动探一次再淡入。
   // 整只猫只有这一张图：没有换帧、没有贴片，所以不存在“窜图”。
   useEffect(() => {
-    const probe = new Image();
-    probe.onload = () => setReady(true);
-    probe.onerror = () => setReady(true);
-    probe.src = '/cat/cat-sprite-sm.webp';
-    if (probe.complete) setReady(true);
+    let warmTimer = 0;
 
-    // 转身三视图晚一步拉：首屏用不上，但要在用户第一次拖之前就位
+    // 转身三视图 + 四张表情帧（共 230KB）都不在首屏关键路径上：
+    // 首屏只下「猫本体 + 人像」，这两组等画面稳定后再拉；用户一有交互就立刻拉。
     const warmTurn = () => {
+      if (turnWarm.current) return;
+      turnWarm.current = true;
       const img = new Image();
-      img.onload = () => { turnReady.current = true; };
-      img.src = '/cat/cat-turn-sm.webp';
-      if (img.complete) turnReady.current = true;
+      img.onload = () => { turnReady.current = true; setTurnsOn(true); };
+      img.onerror = () => { turnWarm.current = false; };
+      img.src = '/cat/cat-turn.webp';
+      if (img.complete) { turnReady.current = true; setTurnsOn(true); }
     };
-    let idle = 0;
-    if ('requestIdleCallback' in window) idle = window.requestIdleCallback(warmTurn, { timeout: 3000 });
-    else idle = window.setTimeout(warmTurn, 1500);
+    const warmFaces = () => {
+      if (faceWarm.current) return;
+      faceWarm.current = true;
+      const img = new Image();
+      img.onload = () => { faceReady.current = true; setFacesOn(true); };
+      img.onerror = () => { faceWarm.current = false; };
+      img.src = '/cat/cat-face.webp';
+      if (img.complete) { faceReady.current = true; setFacesOn(true); }
+    };
+    warmFacesRef.current = warmFaces;
+
+    // 省流 / 2G 环境就别自作主张预取了，等用户真的摸它
+    const connection = navigator.connection;
+    const frugal = connection && (connection.saveData || /(^|-)2g$/.test(connection.effectiveType || ''));
+
+    const probe = new Image();
+    probe.onload = () => {
+      setReady(true);
+      if (!frugal) warmTimer = window.setTimeout(() => { warmTurn(); warmFaces(); }, 1800);
+    };
+    probe.onerror = () => setReady(true);
+    probe.src = '/cat/cat-sprite.webp';
+    if (probe.complete) probe.onload();
 
     return () => {
       probe.onload = null;
       probe.onerror = null;
-      if ('cancelIdleCallback' in window) window.cancelIdleCallback?.(idle);
-      else window.clearTimeout(idle);
+      window.clearTimeout(warmTimer);
     };
   }, []);
 
@@ -399,7 +424,7 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
 
   return (
     <div
-      className={`pet-2d ${purring ? 'is-purring' : ''} ${ready ? 'is-ready' : ''}`}
+      className={`pet-2d ${purring ? 'is-purring' : ''} ${ready ? 'is-ready' : ''} ${facesOn ? 'is-faces' : ''} ${turnsOn ? 'is-turns' : ''}`}
       ref={hostRef}
       role="button"
       tabIndex={0}
@@ -408,6 +433,8 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
       data-act={(greet ? 'greet' : act) || undefined}
       data-view={view || undefined}
       data-face={face || undefined}
+      onPointerEnter={() => { warmFacesRef.current?.(); }}
+      onPointerDown={() => { warmFacesRef.current?.(); }}
       onDoubleClick={() => showFace('angry', 1600)}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
