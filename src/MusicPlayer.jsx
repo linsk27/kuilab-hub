@@ -101,14 +101,15 @@ export default function MusicPlayer() {
 
   useEffect(() => () => objectUrls.current.forEach(URL.revokeObjectURL), []);
 
-  // 悬停胶囊、打开面板时先把音频缓冲起来：点播放时不用从零等
+  // 悬停胶囊、打开面板时把「只取元数据」升级成「提前缓冲」。
+  // 注意只改 preload，不再调 load()：load() 会掐掉正在进行的请求重新拉一遍，
+  // 慢网下等于白扔几十上百 KB（实测会多出一个重复的 bytes=0- 请求）
   function prefetchAudio() {
     const audio = audioRef.current;
     if (!audio || !track || audio.readyState > 0) return;
-    if (prefetchedRef.current === src) return;   // 这个源已经发过请求，别重来
+    if (prefetchedRef.current === src) return;
     prefetchedRef.current = src;
     audio.preload = 'auto';
-    audio.load();
   }
 
   // 展开面板时补画一次：面板闭合期间 canvas 还没挂上，之前那次 draw() 是空跑的
