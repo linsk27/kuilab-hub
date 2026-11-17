@@ -172,7 +172,10 @@ export default function MusicPlayer() {
       if (playing) scheduleDraw();
     };
     const onMeta = () => setDuration(audio.duration || 0);
-    const onEnded = () => next();
+    const onEnded = () => {
+      setPlaying(false);
+      if (tracks.length > 1) next();
+    };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     const onError = () => setFailed(true);
@@ -280,6 +283,7 @@ export default function MusicPlayer() {
     if (!audio || !track) return;
     if (audio.paused) {
       wantPlay.current = true;
+      if (audio.ended) audio.currentTime = 0;
       audio.play().catch(() => setFailed(true));
     } else {
       wantPlay.current = false;
