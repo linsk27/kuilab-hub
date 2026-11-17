@@ -166,7 +166,7 @@ function App({ managing }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}links.json`, { signal: controller.signal, cache: 'no-cache' });
+        const response = await fetch(`${import.meta.env.BASE_URL}links.json`, { signal: controller.signal });
         if (!response.ok) throw Error('无法读取公开链接');
         const published = parseLinks(await response.json());
         if (controller.signal.aborted) return;
@@ -229,7 +229,7 @@ function App({ managing }) {
   const [now, setNow] = useState(null);
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${import.meta.env.BASE_URL}now.json`, { signal: controller.signal, cache: 'no-cache' })
+    fetch(`${import.meta.env.BASE_URL}now.json`, { signal: controller.signal })
       .then(response => (response.ok ? response.json() : null))
       .then(data => { if (data) setNow(data); })
       .catch(() => { /* 读不到就不显示这两块，不影响其它内容 */ });
