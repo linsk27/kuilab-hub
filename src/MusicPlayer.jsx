@@ -136,23 +136,45 @@ export default function MusicPlayer() {
   }, [track]);
 
   // 解码一次拿峰值（同源才行；跨域失败就退回进度线）
+  // 两个前提，都是为了不跟「真正要听的声音」抢带宽：
+  //   · 面板打开之后才解码 —— 收起状态没人看波形，没必要为它下一整首
+  //   · 等音频能播了（canplay）再解码 —— 一首歌三四 MB，先让声音出来，波形随后补
   useEffect(() => {
-    if (!track) return undefined;
-    const controller = new AbortController();
+    if (!track || !open) return undefined;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return undefined;
-    const ctx = new AudioCtx();
-    fetch(track.src, { signal: controller.signal })
-      .then(res => res.arrayBuffer())
-      .then(buffer => ctx.decodeAudioData(buffer))
-      .then(decoded => {
-        peaksRef.current = toPeaks(decoded);
-        draw();
-      })
-      .catch(() => { peaksRef.current = null; draw(); })
-      .finally(() => ctx.close().catch(() => {}));
-    return () => controller.abort();
-  }, [track]);
+    const audio = audioRef.current;
+    const controller = new AbortController();
+    let ctx = null;
+    let timer = 0;
+
+    const decode = () => {
+      if (controller.signal.aborted) return;
+      ctx = new AudioCtx();
+      fetch(track.src, { signal: controller.signal })
+        .then(res => res.arrayBuffer())
+        .then(buffer => ctx.decodeAudioData(buffer))
+        .then(decoded => {
+          peaksRef.current = toPeaks(decoded);
+          draw();
+        })
+        .catch(() => { peaksRef.current = null; draw(); })
+        .finally(() => ctx && ctx.close().catch(() => {}));
+    };
+
+    if (!audio || audio.readyState >= 3) decode();
+    else {
+      audio.addEventListener('canplay', decode, { once: true });
+      timer = window.setTimeout(decode, 7000);   // 用户一直没点播放，也别让波形永远空着
+    }
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+      audio?.removeEventListener('canplay', decode);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track, open]);
 
   // 音量：写进 audio + 记住
   useEffect(() => {
