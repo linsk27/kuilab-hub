@@ -70,7 +70,10 @@ def encode_webm(src, ff):
              "-b:a", WEBM_BITRATE, "-f", "webm", str(dst)],
             check=True,
         )
-    return dst if dst.exists() and dst.stat().st_size < src.stat().st_size else None
+    if dst.exists() and dst.stat().st_size >= src.stat().st_size:
+        dst.unlink()   # 比源文件还大就别留着了（《夜航》本来就是 64k 单声道）
+        return None
+    return dst
 
 
 def main():
