@@ -92,6 +92,17 @@ export default function MusicPlayer() {
     audio.load();
   }
 
+  // 展开面板时补画一次：面板闭合期间 canvas 还没挂上，之前那次 draw() 是空跑的
+  useEffect(() => {
+    if (!open) return undefined;
+    const raf = requestAnimationFrame(() => draw());
+    const canvas = canvasRef.current;
+    const ro = canvas && 'ResizeObserver' in window ? new ResizeObserver(() => draw()) : null;
+    if (canvas && ro) ro.observe(canvas);
+    return () => { cancelAnimationFrame(raf); ro?.disconnect(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   // 点面板外面收起（点小猫、卡片都算外面）
   useEffect(() => {
     if (!open) return undefined;
@@ -176,7 +187,7 @@ export default function MusicPlayer() {
     const onMeta = () => setDuration(audio.duration || 0);
     const onEnded = () => {
       setPlaying(false);
-      if (tracks.length > 1) next();
+      if (tracks.length > 1) go(index + 1, true);   // 自动接下一首，别停在这儿
     };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
@@ -293,11 +304,18 @@ export default function MusicPlayer() {
     }
   }
 
-  function go(nextIndex) {
+  // forcePlay：播完自动接下一首时必须传 true —— 那一刻 audio.paused 已经是 true，
+  // 用「原本在播吗」来判断会得出 false，歌就停在下一首的 0:00 不动
+  function go(nextIndex, forcePlay) {
     if (!tracks.length) return;
     const audio = audioRef.current;
-    wantPlay.current = Boolean(audio && !audio.paused);
+    wantPlay.current = forcePlay === true ? true : Boolean(audio && !audio.paused);
     setIndex(((nextIndex % tracks.length) + tracks.length) % tracks.length);
+  }
+  function selectTrack(i) {
+    if (i === index) { toggle(); return; }
+    wantPlay.current = true;
+    setIndex(i);
   }
   function next() { go(index + 1); }
   function prev() { go(index - 1); }
@@ -394,6 +412,30 @@ export default function MusicPlayer() {
               />
             </div>
           </div>
+
+          {/* 曲目列表：有歌单时直接挑，不用一直按下一首 */}
+          {tracks.length > 1 && (
+            <ol className="player-list" aria-label="曲目">
+              {tracks.map((item, i) => (
+                <li key={`${item.src}-${i}`}>
+                  <button
+                    type="button"
+                    className={`player-track ${i === index ? 'is-current' : ''}`}
+                    onClick={() => selectTrack(i)}
+                    aria-current={i === index ? 'true' : undefined}
+                  >
+                    <span className="player-track-no">
+                      {i === index && playing
+                        ? <span className="player-track-eq" aria-hidden="true"><i /><i /><i /></span>
+                        : String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="player-track-name">{item.title}</span>
+                    {item.tag && <span className="player-track-tag">{item.tag}</span>}
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
 
           <footer className="player-foot">
             <button type="button" className="player-add" onClick={() => fileRef.current?.click()}>

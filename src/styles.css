@@ -1054,9 +1054,40 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .player-vol input[type="range"]::-moz-range-track{height:2px;border-radius:2px;background:var(--line-strong)}
 .player-vol input[type="range"]::-moz-range-thumb{width:9px;height:9px;border:1px solid var(--scene);border-radius:50%;background:var(--ink-2)}
 
+/* ---- 曲目列表：最多露 4 行，多了在卡片里滚动 ---- */
+.player-list{
+  list-style:none;margin:10px 0 0;padding:4px 0 2px;max-height:205px;overflow-y:auto;
+  border-top:1px solid var(--line-faint);scrollbar-width:thin;overscroll-behavior:contain;
+}
+.player-list::-webkit-scrollbar{width:3px}
+.player-list::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:2px}
+.player-track{
+  display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:8px;
+  width:100%;padding:6px 4px;border:0;border-radius:6px;background:transparent;
+  color:var(--ink-3);text-align:left;font-size:11.5px;line-height:1.5;
+  transition:color .18s var(--ease), background-color .18s var(--ease);
+}
+.player-track:hover{color:var(--ink-2);background:var(--btn-bg-h)}
+.player-track-no{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.06em;
+  color:var(--ink-3);opacity:.75;font-variant-numeric:tabular-nums;
+}
+.player-track-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.01em}
+.player-track-tag{
+  font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);opacity:.6;padding-left:2px;
+}
+.player-track.is-current{color:var(--ink-strong)}
+.player-track.is-current .player-track-no{color:var(--warm);opacity:1}
+.player-track.is-current .player-track-name{font-weight:500}
+/* 当前在播：编号换成三根跳动的小柱，和胶囊上那三根呼应 */
+.player-track-eq{display:flex;align-items:flex-end;gap:1.5px;height:9px}
+.player-track-eq i{width:1.8px;height:3px;border-radius:1px;background:var(--warm);animation:player-bar .9s ease-in-out infinite}
+.player-track-eq i:nth-child(2){animation-duration:.66s;animation-delay:.1s}
+.player-track-eq i:nth-child(3){animation-duration:1.02s;animation-delay:.2s}
+
 .player-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;
-  padding-top:9px;border-top:1px solid var(--line-faint)}
-.player-add{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--ink-3);font-size:10.5px;letter-spacing:.02em;padding:3px 0;
+  padding-top:9px;border-top:1px solid var(--line-faint)}.player-add{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--ink-3);font-size:10.5px;letter-spacing:.02em;padding:3px 0;
   transition:color .2s var(--ease)}
 .player-add:hover{color:var(--ink-strong)}
 .player-count{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.1em;color:var(--ink-3)}
@@ -1065,11 +1096,12 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 @media(max-width:767px){
   .player{left:12px;bottom:calc(12px + env(safe-area-inset-bottom))}
   .player-panel{width:min(78vw,286px);padding:12px 13px 10px}
+  .player-list{max-height:176px}
   .player-pill{max-width:200px}
   .player-meta strong{font-size:11.5px}
 }
 @media(prefers-reduced-motion:reduce){
-  .player.is-playing .player-disc,.player.is-playing .player-bars i{animation:none}
+  .player.is-playing .player-disc,.player.is-playing .player-bars i,.player-track-eq i{animation:none}
   .player-panel{animation:none}
 }
 
