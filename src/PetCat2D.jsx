@@ -105,18 +105,24 @@ export default function PetCat2D({ onPet, petSignal = 0 }) {
     const connection = navigator.connection;
     const frugal = connection && (connection.saveData || /(^|-)2g$/.test(connection.effectiveType || ''));
 
-    const probe = new Image();
-    probe.onload = () => {
-      setReady(true);
-      if (!frugal) warmTimer = window.setTimeout(() => { warmTurn(); warmFaces(); }, 1800);
+    // 预取时机：等页面 load（首屏资源都下完了）再开始，绝不跟首屏抢带宽
+    const scheduleWarm = () => {
+      if (frugal) return;
+      warmTimer = window.setTimeout(() => { warmFaces(); warmTurn(); }, 400);
     };
+    if (document.readyState === 'complete') scheduleWarm();
+    else window.addEventListener('load', scheduleWarm, { once: true });
+
+    const probe = new Image();
+    probe.onload = () => setReady(true);
     probe.onerror = () => setReady(true);
     probe.src = '/cat/cat-sprite.webp';
-    if (probe.complete) probe.onload();
+    if (probe.complete) setReady(true);
 
     return () => {
       probe.onload = null;
       probe.onerror = null;
+      window.removeEventListener('load', scheduleWarm);
       window.clearTimeout(warmTimer);
     };
   }, []);
