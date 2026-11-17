@@ -231,7 +231,7 @@ export default function MusicPlayer() {
 
     if (!peaks) {
       // 没解码成功：一条细线 + 已播部分
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = 0.5;
       ctx.fillStyle = baseColor;
       ctx.fillRect(0, mid - 0.75, width, 1.5);
       ctx.globalAlpha = 0.9;
@@ -366,7 +366,7 @@ export default function MusicPlayer() {
 
           <div className="player-time">
             <span>{fmt(time)}</span>
-            <span>{fmt(duration)}</span>
+            <span>{duration > 0 ? fmt(duration) : '--:--'}</span>
           </div>
 
           <div className="player-controls">
