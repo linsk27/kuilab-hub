@@ -65,6 +65,7 @@ export default function MusicPlayer() {
   });
   const [muted, setMuted] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [buffering, setBuffering] = useState(false);   // 点了播放但还没声音（慢网时给个交代）
 
   const track = tracks[index] || null;
 
@@ -121,6 +122,7 @@ export default function MusicPlayer() {
     audio.src = track.src;
     audio.load();
     setFailed(false);
+    setBuffering(false);
     setTime(0);
     setDuration(0);
     peaksRef.current = null;
@@ -213,13 +215,20 @@ export default function MusicPlayer() {
     };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
-    const onError = () => setFailed(true);
+    const onError = () => { setFailed(true); setBuffering(false); };
+    const onWaiting = () => setBuffering(true);
+    const onPlaying = () => { setBuffering(false); setPlaying(true); };
+    const onCanPlay = () => setBuffering(false);
     audio.addEventListener('timeupdate', onTime);
     audio.addEventListener('loadedmetadata', onMeta);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('error', onError);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('stalled', onWaiting);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('canplay', onCanPlay);
     return () => {
       audio.removeEventListener('timeupdate', onTime);
       audio.removeEventListener('loadedmetadata', onMeta);
@@ -227,6 +236,10 @@ export default function MusicPlayer() {
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('error', onError);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('stalled', onWaiting);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('canplay', onCanPlay);
     };
   });
 
@@ -373,7 +386,7 @@ export default function MusicPlayer() {
             <div className="player-title">
               <strong>{hasTrack ? track.title : listState === 'loading' ? '正在准备' : '还没有歌'}</strong>
               <em>{hasTrack
-                ? (failed ? '放不了这首，换一首试试' : track.artist)
+                ? (failed ? '放不了这首，换一首试试' : buffering ? '正在缓冲…' : track.artist)
                 : listState === 'loading' ? '正在取歌单…' : '把歌拖进来，或写进 playlist.json'}</em>
             </div>
             <button type="button" className="player-icon" onClick={() => setOpen(false)} aria-label="收起播放器">
@@ -413,7 +426,13 @@ export default function MusicPlayer() {
             <button type="button" className="player-icon" onClick={prev} disabled={tracks.length < 2} aria-label="上一首">
               <SkipBack size={17} weight="fill" />
             </button>
-            <button type="button" className="player-play" onClick={toggle} disabled={!hasTrack} aria-label={playing ? '暂停' : '播放'}>
+            <button
+              type="button"
+              className={`player-play ${buffering ? 'is-buffering' : ''}`}
+              onClick={toggle}
+              disabled={!hasTrack}
+              aria-label={playing ? '暂停' : '播放'}
+            >
               {playing ? <Pause size={18} weight="fill" /> : <Play size={18} weight="fill" />}
             </button>
             <button type="button" className="player-icon" onClick={next} disabled={tracks.length < 2} aria-label="下一首">
@@ -486,7 +505,7 @@ export default function MusicPlayer() {
         </span>
         <span className="player-meta">
           <strong>{hasTrack ? track.title : '随身听'}</strong>
-          <em>{playing ? '正在播放' : hasTrack ? '点开听一段' : listState === 'loading' ? '正在准备…' : '拖首歌进来'}</em>
+          <em>{buffering ? '正在缓冲…' : playing ? '正在播放' : hasTrack ? '点开听一段' : listState === 'loading' ? '正在准备…' : '拖首歌进来'}</em>
         </span>
         <span className="player-bars" aria-hidden="true"><i /><i /><i /></span>
         <CaretUp size={13} weight="bold" className="player-waveicon" aria-hidden="true" />

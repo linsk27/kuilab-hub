@@ -1040,6 +1040,14 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 .player-play:hover:not(:disabled){background:var(--btn-bg-h);border-color:var(--line-strong);transform:scale(1.04)}
 .player-play:disabled{opacity:.35;cursor:default}
+/* 缓冲中：按钮外圈慢慢转，比一个静止的「播放」图标诚实 */
+.player-play.is-buffering{position:relative;color:var(--ink-3)}
+.player-play.is-buffering::after{
+  content:"";position:absolute;inset:-3px;border-radius:50%;
+  border:1.5px solid transparent;border-top-color:var(--warm);border-right-color:var(--warm);
+  animation:player-buffer .9s linear infinite;
+}
+@keyframes player-buffer{to{transform:rotate(360deg)}}
 .player-vol{display:flex;align-items:center;gap:4px;margin-left:auto}
 .player-vol input[type="range"]{
   width:66px;height:16px;appearance:none;background:transparent;cursor:pointer;
@@ -1101,7 +1109,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .player-meta strong{font-size:11.5px}
 }
 @media(prefers-reduced-motion:reduce){
-  .player.is-playing .player-disc,.player.is-playing .player-bars i,.player-track-eq i{animation:none}
+  .player.is-playing .player-disc,.player.is-playing .player-bars i,.player-track-eq i,.player-play.is-buffering::after{animation:none}
   .player-panel{animation:none}
 }
 
