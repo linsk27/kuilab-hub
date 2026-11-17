@@ -12,6 +12,15 @@ import { Play, Pause, SkipBack, SkipForward, SpeakerHigh, SpeakerSlash, FolderOp
 const VOLUME_KEY = 'hub-player-volume';
 const PEAKS = 168;
 
+// WebM/Opus：同样的音质只有 MP3 的一半多点，而且 Chrome 不像 Ogg 那样去读文件尾
+const WEBM_OK = (() => {
+  try {
+    return new Audio().canPlayType('audio/webm; codecs="opus"') !== '';
+  } catch {
+    return false;
+  }
+})();
+
 // 歌单里每首都带一份 base64 的柱子振幅（build_playlist.py 生成），
 // 这样画波形只要几十字节，不必把整首下载下来解码
 function decodePeaks(base64) {
@@ -110,6 +119,7 @@ export default function MusicPlayer() {
     if (prefetchedRef.current === src) return;
     prefetchedRef.current = src;
     audio.preload = 'auto';
+    audio.load();   // 只改 preload 并不会让 Chrome 真的去下，必须 load 一次；靠上面的标记保证只发一次
   }
 
   // 展开面板时补画一次：面板闭合期间 canvas 还没挂上，之前那次 draw() 是空跑的
@@ -134,8 +144,8 @@ export default function MusicPlayer() {
     return () => document.removeEventListener('pointerdown', onDown);
   }, [open]);
 
-  // 音源变化：换 src；如果本来在播（或刚点了播放），等能播了接着播
-  const src = track ? track.src : '';
+  // 音源：能放 WebM 就用 WebM（Opus 64k，体积约为 MP3 的 40%），Safari 之类退回 MP3
+  const src = !track ? '' : (WEBM_OK && track.webm ? track.webm : track.src);
 
   useEffect(() => {
     const audio = audioRef.current;

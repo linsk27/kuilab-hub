@@ -576,7 +576,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   }
 
   // URL 邀请：用自己的高熵 secret 兑换并切换空间。
-  function dismissInvite() { setPendingInvite(null); setInviteJoinError(''); }
+  function dismissInvite() { cleanInviteParam(); setPendingInvite(null); setInviteJoinError(''); }
   async function redeemFromUrl() {
     if (inviteJoinBusy || !pendingInvite) return;
     setInviteJoinBusy(true); setInviteJoinError('');
