@@ -51,6 +51,7 @@ export default function MusicPlayer() {
   const wantPlay = useRef(false);
 
   const [tracks, setTracks] = useState([]);
+  const [listState, setListState] = useState('loading');   // loading | ready
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -75,8 +76,9 @@ export default function MusicPlayer() {
       .then(data => {
         const list = Array.isArray(data?.tracks) ? data.tracks.filter(t => t && t.src) : [];
         if (list.length) setTracks(list);
+        setListState('ready');
       })
-      .catch(() => { /* 没有歌单就是空的，本地文件照样能放 */ });
+      .catch(() => setListState('ready'));   // 没有歌单就是空的，本地文件照样能放
     return () => controller.abort();
   }, []);
 
@@ -329,8 +331,10 @@ export default function MusicPlayer() {
         <section className="player-panel" aria-label="随身听">
           <header className="player-head">
             <div className="player-title">
-              <strong>{hasTrack ? track.title : '还没有歌'}</strong>
-              <em>{hasTrack ? (failed ? '放不了这首，换一首试试' : track.artist) : '把歌拖进来，或写进 playlist.json'}</em>
+              <strong>{hasTrack ? track.title : listState === 'loading' ? '正在准备' : '还没有歌'}</strong>
+              <em>{hasTrack
+                ? (failed ? '放不了这首，换一首试试' : track.artist)
+                : listState === 'loading' ? '正在取歌单…' : '把歌拖进来，或写进 playlist.json'}</em>
             </div>
             <button type="button" className="player-icon" onClick={() => setOpen(false)} aria-label="收起播放器">
               <X size={15} weight="light" />
@@ -418,7 +422,7 @@ export default function MusicPlayer() {
         </span>
         <span className="player-meta">
           <strong>{hasTrack ? track.title : '随身听'}</strong>
-          <em>{playing ? '正在播放' : hasTrack ? '点开听一段' : '拖首歌进来'}</em>
+          <em>{playing ? '正在播放' : hasTrack ? '点开听一段' : listState === 'loading' ? '正在准备…' : '拖首歌进来'}</em>
         </span>
         <span className="player-bars" aria-hidden="true"><i /><i /><i /></span>
         <CaretUp size={13} weight="bold" className="player-waveicon" aria-hidden="true" />
