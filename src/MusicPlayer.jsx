@@ -82,9 +82,18 @@ export default function MusicPlayer() {
 
   useEffect(() => () => objectUrls.current.forEach(URL.revokeObjectURL), []);
 
+  // 悬停胶囊、打开面板时先把音频缓冲起来：点播放时不用从零等
+  function prefetchAudio() {
+    const audio = audioRef.current;
+    if (!audio || !track || audio.readyState > 0) return;
+    audio.preload = 'auto';
+    audio.load();
+  }
+
   // 点面板外面收起（点小猫、卡片都算外面）
   useEffect(() => {
     if (!open) return undefined;
+    prefetchAudio();
     const onDown = event => {
       if (!event.target.closest?.('.player')) setOpen(false);
     };
@@ -393,7 +402,8 @@ export default function MusicPlayer() {
       <button
         type="button"
         className="player-pill"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => { setOpen(o => !o); prefetchAudio(); }}
+        onPointerEnter={prefetchAudio}
         onDragOver={event => event.preventDefault()}
         onDrop={onDrop}
         aria-expanded={open}

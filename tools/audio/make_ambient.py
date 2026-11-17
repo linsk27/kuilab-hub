@@ -3,7 +3,7 @@
 思路：四个和弦各 11 秒、首尾交叠 3 秒做交叉淡化；
 每个和弦由基频 + 2 次/3 次谐波的正弦叠加，起音 2.6s、收音 3.4s，音量很低；
 上面零星撒几颗五声音阶的钟声（指数衰减），像风铃。
-单声道 32kHz / 80kbps MP3 —— 只有用户点开播放器才会去下载。
+单声道 32kHz / 64kbps MP3 —— 只有用户点开播放器才会去下载。
 
 用法：python tools/audio/make_ambient.py
 """
@@ -120,7 +120,7 @@ def main() -> None:
         wf.writeframes(bytes(samples))
 
     encoder = lameenc.Encoder()
-    encoder.set_bit_rate(80)
+    encoder.set_bit_rate(64)
     encoder.set_in_sample_rate(SR)
     encoder.set_channels(1)
     encoder.set_quality(2)
