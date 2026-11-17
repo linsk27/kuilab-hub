@@ -36,6 +36,14 @@ def ffmpeg():
         raise SystemExit("找不到 ffmpeg：pip install imageio-ffmpeg 或把 ffmpeg 加进 PATH")
 
 
+def duration_of(path):
+    try:
+        from mutagen.mp3 import MP3
+        return round(MP3(str(path)).info.length, 1)
+    except Exception:
+        return None
+
+
 def peaks_of(path, ff):
     """单声道 8kHz 的 PCM，足够算出柱状图，又不用把整首读进内存解析格式。"""
     rate = 8000
@@ -92,6 +100,9 @@ def main():
             track["webm"] = track["src"].rsplit(".", 1)[0] + ".webm"
         else:
             track.pop("webm", None)
+        seconds = duration_of(src)
+        if seconds:
+            track["duration"] = seconds
         peaks = peaks_of(src, ff)
         track["peaks"] = base64.b64encode(peaks).decode() if peaks else ""
         sizes = f'{src.stat().st_size // 1024:5d}KB mp3'

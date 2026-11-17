@@ -459,7 +459,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
     try {
       const url = new URL(location.href);
       url.searchParams.delete('invite');
-      history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
     } catch { /* 忽略地址改写失败 */ }
   }
 

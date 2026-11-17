@@ -91,6 +91,9 @@ export default function MusicPlayer() {
   const [muted, setMuted] = useState(false);
   const [failed, setFailed] = useState(false);
   const [buffering, setBuffering] = useState(false);   // 点了播放但还没声音（慢网时给个交代）
+  // 用户还没表示要听（没悬停、没展开、没点播放）之前，audio 连 src 都不设：
+  // 这样「提前取」只有一次请求，不会先拉元数据再掐掉重来
+  const [armed, setArmed] = useState(false);
 
   const track = tracks[index] || null;
 
@@ -114,12 +117,8 @@ export default function MusicPlayer() {
   // 注意只改 preload，不再调 load()：load() 会掐掉正在进行的请求重新拉一遍，
   // 慢网下等于白扔几十上百 KB（实测会多出一个重复的 bytes=0- 请求）
   function prefetchAudio() {
-    const audio = audioRef.current;
-    if (!audio || !track || audio.readyState > 0) return;
-    if (prefetchedRef.current === src) return;
-    prefetchedRef.current = src;
-    audio.preload = 'auto';
-    audio.load();   // 只改 preload 并不会让 Chrome 真的去下，必须 load 一次；靠上面的标记保证只发一次
+    if (!track) return;
+    setArmed(true);
   }
 
   // 展开面板时补画一次：面板闭合期间 canvas 还没挂上，之前那次 draw() 是空跑的
@@ -149,7 +148,8 @@ export default function MusicPlayer() {
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !track) return undefined;
+    if (!audio || !track || !armed) return undefined;
+    audio.preload = 'auto';
     audio.src = src;
     audio.load();
     setFailed(false);
@@ -168,7 +168,7 @@ export default function MusicPlayer() {
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]);
+  }, [src, armed]);
 
   // 解码一次拿峰值（同源才行；跨域失败就退回进度线）
   // 两个前提，都是为了不跟「真正要听的声音」抢带宽：
@@ -388,6 +388,7 @@ export default function MusicPlayer() {
     if (!audio || !track) return;
     if (audio.paused) {
       wantPlay.current = true;
+      if (!armed) { setArmed(true); return; }   // 还没取过音频：交给换源 effect 加载并自动播放
       if (audio.ended) audio.currentTime = 0;
       audio.play().catch(() => setFailed(true));
     } else {
@@ -407,6 +408,7 @@ export default function MusicPlayer() {
   function selectTrack(i) {
     if (i === index) { toggle(); return; }
     wantPlay.current = true;
+    setArmed(true);
     setIndex(i);
   }
   function next() { go(index + 1); }
@@ -476,7 +478,7 @@ export default function MusicPlayer() {
 
           <div className="player-time">
             <span>{fmt(time)}</span>
-            <span>{duration > 0 ? fmt(duration) : '--:--'}</span>
+            <span>{duration > 0 ? fmt(duration) : track?.duration ? fmt(track.duration) : '--:--'}</span>
           </div>
 
           <div className="player-controls">
