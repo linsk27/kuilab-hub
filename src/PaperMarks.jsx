@@ -62,9 +62,11 @@ export function StampLayer() {
       place(event.clientX, event.clientY);
     }
 
-    function onAsk() {
-      // 从 ⌘K 触发时没有鼠标坐标：盖在视口中间偏上，跟双击走同一套夹取逻辑
-      place(window.innerWidth / 2, window.innerHeight * 0.46);
+    function onAsk(event) {
+      // 带坐标就盖在那儿（右键菜单），没有就盖在视口中间偏上（⌘K）；都走同一套夹取逻辑
+      const point = event?.detail;
+      if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) place(point.x, point.y);
+      else place(window.innerWidth / 2, window.innerHeight * 0.46);
     }
 
     window.addEventListener('dblclick', onDouble);

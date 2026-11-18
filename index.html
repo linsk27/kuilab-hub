@@ -10,6 +10,10 @@
     <script>
       // 首帧前定主题：默认深色，用户手动切过就记住
       (function () {
+        // 季节色：只影响 accent 一族，跟着日历自己走，不用人工换肤
+        var m = new Date().getMonth() + 1;
+        document.documentElement.dataset.season =
+          m === 12 || m <= 2 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn';
         try {
           var t = localStorage.getItem('hub-theme');
           if (t !== 'light' && t !== 'dark') t = 'dark';

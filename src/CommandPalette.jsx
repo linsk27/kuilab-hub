@@ -29,12 +29,14 @@ function score(text, query) {
   return -1;
 }
 
-export default function CommandPalette({ pageNames, onOpenPage, links, onToggleTheme }) {
+export default function CommandPalette({ pageNames, onOpenPage, links, onToggleTheme, onSearch }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
 
   useEffect(() => {
     const onKey = event => {
@@ -62,6 +64,12 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
     return () => window.clearTimeout(t);
   }, [open]);
 
+  // 搜索即预览：把当前输入交给首页，命中的卡片会亮起来、其余淡下去。
+  // 面板一关就发空串，页面立刻复原。
+  useEffect(() => {
+    onSearchRef.current?.(open ? query : '');
+  }, [open, query]);
+
   const items = useMemo(() => {
     const list = [];
     pageNames.forEach(name => list.push({
@@ -72,14 +80,20 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
       icon: FileText,
       run: () => onOpenPage(name),
     }));
-    links.forEach(link => list.push({
-      id: `link:${link.id || link.name}`,
-      group: '链接',
-      label: link.name,
-      hint: link.detail || (() => { try { return new URL(link.url).hostname; } catch { return link.url; } })(),
-      icon: LinkSimple,
-      external: link.url,
-    }));
+    links.forEach(link => {
+      let host = '';
+      try { host = new URL(link.url).hostname.replace(/^www\./, ''); } catch { host = ''; }
+      list.push({
+        id: `link:${link.id || link.name}`,
+        group: '链接',
+        label: link.name,
+        hint: link.detail || host || link.url,
+        icon: LinkSimple,
+        external: link.url,
+        // 域名也算关键词：输 dsmoney 能搜到「大肥鱼账本」，跟首页卡片的高亮保持一致
+        keywords: `${link.detail || ''} ${host}`,
+      });
+    });
     list.push(
       { id: 'act:theme', group: '动作', label: '切换明暗主题', hint: '墨色 / 纸色', icon: PaintBrush, run: onToggleTheme, keywords: 'theme dark light 主题 明暗' },
       { id: 'act:play', group: '动作', label: '播放 / 暂停音乐', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'toggle' })), keywords: 'music play pause 音乐 播放' },
@@ -116,7 +130,7 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
   if (!open) return null;
 
   return (
-    <div className="palette-scrim" role="presentation" onPointerDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
+    <div className={`palette-scrim ${query ? 'is-previewing' : ''}`} role="presentation" onPointerDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
       <div className="palette" role="dialog" aria-modal="true" aria-label="快速跳转">
         <div className="palette-input">
           <MagnifyingGlass size={16} weight="light" aria-hidden="true" />

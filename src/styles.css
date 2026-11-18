@@ -1127,6 +1127,12 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   position:fixed;inset:0;z-index:80;display:flex;justify-content:center;
   padding:16vh 16px 16px;background:color-mix(in srgb, var(--scene) 46%, transparent);
   backdrop-filter:blur(6px);animation:palette-fade .16s var(--ease) both;
+  transition:background-color .18s var(--ease), backdrop-filter .18s var(--ease);
+}
+/* 一敲字就把遮罩收薄：要让背后的卡片亮起来，得先看得见它们 */
+.palette-scrim.is-previewing{
+  background:color-mix(in srgb, var(--scene) 20%, transparent);
+  backdrop-filter:blur(2px) saturate(120%);
 }
 @keyframes palette-fade{from{opacity:0}to{opacity:1}}
 .palette{
@@ -1284,7 +1290,7 @@ input, textarea, [contenteditable="true"]{cursor:text}
   padding:8px 14px; border-radius:999px;
   border:1px solid var(--line-strong); background:var(--panel-b); color:var(--ink-2);
   font-size:11.5px; letter-spacing:.04em; white-space:nowrap;
-  box-shadow:var(--shadow-b);
+  box-shadow:var(--shadow-b); pointer-events:none;
   animation:stamp-hint-in .5s var(--ease) both;
 }
 @keyframes stamp-hint-in{from{opacity:0; transform:translate(-50%,6px)}to{opacity:1; transform:translate(-50%,0)}}
@@ -1337,4 +1343,54 @@ input, textarea, [contenteditable="true"]{cursor:text}
 }
 @media(prefers-reduced-motion:reduce){
   .cat-speech{transform:none}
+}
+
+/* ============================================================
+   搜索即预览 · 右键手账菜单
+   ============================================================ */
+
+/* 在 ⌘K 里敲字：命中的卡片留着，其余退到纸背后去 */
+.page .link-wall.has-search .note-wrap{
+  opacity:.26; filter:saturate(.45);
+  transition:opacity .18s var(--ease), filter .18s var(--ease);
+}
+.page .link-wall.has-search .note-wrap.is-hit{opacity:1; filter:none}
+.page .link-wall.has-search .note-wrap.is-hit .link-note{
+  border-color:var(--warm);
+  box-shadow:0 0 0 1px var(--warm-line), var(--shadow-a);
+}
+
+/* 右键菜单：一张贴了胶带的小纸条 */
+.ctx-menu{
+  position:fixed; z-index:90; width:188px; padding:7px;
+  border:1px solid var(--line-strong); border-radius:12px;
+  background:var(--panel-b); color:var(--ink-2);
+  box-shadow:var(--shadow-b), inset 0 1px 0 var(--panel-hi);
+  animation:ctx-in .16s var(--ease) both;
+}
+@keyframes ctx-in{from{opacity:0; transform:translateY(-4px) scale(.985)}to{opacity:1; transform:none}}
+.ctx-menu button{
+  display:flex; align-items:center; gap:9px; width:100%;
+  padding:7px 8px; border:0; border-radius:7px; background:transparent;
+  color:var(--ink-2); font-size:12.5px; line-height:1.4; text-align:left;
+  transition:background-color .16s var(--ease), color .16s var(--ease);
+}
+.ctx-menu button:hover{background:var(--btn-bg-h); color:var(--ink-strong)}
+.ctx-menu button svg{color:var(--ink-3); flex:none; transition:color .16s var(--ease)}
+.ctx-menu button:hover svg{color:var(--warm)}
+.ctx-go{margin-left:auto; opacity:.45}
+.ctx-rule{display:block; height:1px; margin:5px 4px; background:var(--line-faint)}
+.ctx-tape{
+  position:absolute; top:-5px; left:50%; margin-left:-18px; width:36px; height:10px;
+  background:color-mix(in srgb, var(--warm) 30%, transparent);
+  clip-path:polygon(2% 10%,36% 0,74% 8%,100% 0,98% 90%,64% 100%,28% 92%,0 100%);
+  transform:rotate(-1.6deg); pointer-events:none;
+}
+@media(max-width:767px){
+  /* 手机上右键少见，但长按菜单在部分浏览器会触发；位置收窄一点 */
+  .ctx-menu{width:172px}
+}
+@media(prefers-reduced-motion:reduce){
+  .page .link-wall.has-search .note-wrap{transition:none}
+  .ctx-menu{animation:none}
 }

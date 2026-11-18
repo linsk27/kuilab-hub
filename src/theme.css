@@ -155,6 +155,32 @@ body {
   color-scheme: light;
 }
 
+/* ---------- 1b. 季节色 ----------
+   只换「暖色」这一族：它管着标记条、图标、胶带、墨线、荧光笔、指针微光。
+   --warm-line / --warm-faint / --glow-1 / --spot / --halo 全由 --warm 派生，
+   换季只改一个值，其余自动跟着走，不会漏掉哪一处。
+   季节由 index.html 的首帧脚本写到 <html data-season>，所以不会加载完再变色。 */
+body {
+  --warm-line: color-mix(in srgb, var(--warm) 32%, transparent);
+  --warm-faint: color-mix(in srgb, var(--warm) 14%, transparent);
+  --spot: color-mix(in srgb, var(--warm) 5.5%, transparent);
+}
+/* 浅色那套的比例不同（线更淡、微光更亮），单独再派一次；
+   写在这里才压得住上面主题块里写死的 rgba。 */
+[data-theme="light"] body {
+  --warm-line: color-mix(in srgb, var(--warm) 30%, transparent);
+  --warm-faint: color-mix(in srgb, var(--warm) 12%, transparent);
+  --spot: color-mix(in srgb, var(--warm) 10%, transparent);
+}
+[data-season="autumn"] body { --warm: #D9A374 }
+[data-season="winter"] body { --warm: #B3BECC }
+[data-season="spring"] body { --warm: #A9BE8C }
+[data-season="summer"] body { --warm: #A8C7B2 }
+[data-theme="light"][data-season="autumn"] body { --warm: #AF7440 }
+[data-theme="light"][data-season="winter"] body { --warm: #6B7A92 }
+[data-theme="light"][data-season="spring"] body { --warm: #6F8A52 }
+[data-theme="light"][data-season="summer"] body { --warm: #5C8A72 }
+
 /* ---------- 2. 画布 ---------- */
 .page {
   background:
@@ -188,9 +214,12 @@ body {
 
 /* ---------- 3. 首页卡片：玻璃面板 ---------- */
 .page .paper-shell{
+  /* 第一层是纸纹：直接混进卡片背景，文字层不参与混合，小字不会发虚 */
   background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23p)' opacity='.30'/></svg>"),
     radial-gradient(760px 300px at 26% -6%, var(--panel-hi), transparent 70%),
     linear-gradient(180deg, var(--panel-a), var(--panel-c) 58%, var(--panel-b));
+  background-blend-mode: overlay, normal, normal;
   border:1px solid var(--line);
   box-shadow:
     inset 0 1px 0 var(--panel-hi),

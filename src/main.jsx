@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle';
 import SplitWords from './SplitWords';
 import { HandUnderline, StampLayer } from './PaperMarks';
 import PawTrail from './PawTrail';
+import ContextMenu from './ContextMenu';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -252,6 +253,18 @@ function App({ managing }) {
   const [showSamples, setShowSamples] = useState(false);
   const [formError, setFormError] = useState('');
   const [notice, setNotice] = useState('');
+  // 搜索即预览：⌘K 里敲字时，命中的卡片亮起来、其余淡下去
+  const [search, setSearch] = useState('');
+  // 右键菜单里点「复制」「盖个章」之后给一句反馈，1.8 秒自己消失
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef(0);
+  const handleSearch = React.useCallback(query => setSearch(query.trim().toLowerCase()), []);
+  const flash = React.useCallback(text => {
+    setToast(text);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(''), 1800);
+  }, []);
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
   const links = showSamples ? sampleLinks : savedLinks;
   const pageCount = Math.max(1, Math.ceil(links.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -362,7 +375,7 @@ function App({ managing }) {
           <header className="flex items-center justify-between"><h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /></h2><HandUnderline /><span className="tiny-note">a few places to find me</span></header>
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
-          <div className="link-wall grid" aria-busy={loadState === 'loading'}>
+          <div className={`link-wall grid ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
             {visibleLinks.map(({ id, name, detail, icon: Icon, color, url, feed }, index) => {
               const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3><span className="ink-name">{name}</span></h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
               const at = savedLinks.findIndex(x => x.id === id);
@@ -370,7 +383,8 @@ function App({ managing }) {
               // 还没取回目录时先把三行骨架占住 —— 否则卡片会从「一张小卡」突然长成整行，页面跳一下。
               if (feed && url) {
                 const posts = blog ? blog.posts.slice(0, 3) : [];
-                return <div className="note-wrap is-feature" key={id || name}>
+                const hot = search && `${name} ${detail || ''} ${url}`.toLowerCase().includes(search);
+                return <div className={`note-wrap is-feature ${hot ? 'is-hit' : ''}`} key={id || name}>
                   <article className="link-note feature-note" data-feed={feedState}>
                     <a className="feature-side" href={url} target="_blank" rel="noreferrer">
                       <span className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={22} weight="light" /><ArrowUpRight className="visit-arrow" size={16} weight="light" /></span>
@@ -404,7 +418,8 @@ function App({ managing }) {
                   {managing && !showSamples && <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>}
                 </div>;
               }
-              return <div className="note-wrap" key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <>
+              const hot = search && `${name} ${detail || ''} ${url}`.toLowerCase().includes(search);
+              return <div className={`note-wrap ${hot ? 'is-hit' : ''}`} key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <>
                 <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>
                 {savedLinks.length > 1 && <div className="move-links">
                   <button className="move-link" aria-label={`上移 ${name}`} disabled={at <= 0} onClick={() => moveLink(id, -1)}>↑</button>
@@ -462,7 +477,16 @@ function App({ managing }) {
       <div className="decoration bottom-hearts" aria-hidden="true"><Heart size={28} weight="duotone" /><Heart size={21} weight="duotone" /></div>
       <PetCat />
       <Suspense fallback={null}><MusicPlayer /></Suspense>
-      <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} /></Suspense>
+      <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} onSearch={handleSearch} /></Suspense>
+      <ContextMenu
+        onStamp={point => window.dispatchEvent(new CustomEvent('hub:stamp', { detail: point }))}
+        onCopy={() => {
+          navigator.clipboard?.writeText(window.location.href).then(() => flash('链接已复制')).catch(() => flash('浏览器不让复制，手动选中吧'));
+        }}
+        onTheme={point => toggleTheme(point)}
+        onStation={() => { window.location.href = '/hub'; }}
+      />
+      {toast && <span className="stamp-hint" role="status">{toast}</span>}
       <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => open(name)}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
