@@ -71,10 +71,19 @@ export default function StationTile() {
       }
     }
 
-    // 等首屏资源下完再问状态：之前一挂载就发，和图片/脚本抢连接，常常直接失败
-    const start = () => { timer = window.setTimeout(tick, 300); };
+    // 尽量等首屏资源下完再问状态（挂载就发容易和图片抢连接），
+    // 但慢网下 load 可能要半分钟，所以最多等 2.5 秒就先问一次
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      timer = window.setTimeout(tick, 250);
+    };
     if (document.readyState === 'complete') start();
-    else window.addEventListener('load', start, { once: true });
+    else {
+      window.addEventListener('load', start, { once: true });
+      timer = window.setTimeout(start, 2500);
+    }
 
     const id = window.setInterval(() => { if (!document.hidden) tick(); }, POLL);
     const onVisible = () => { if (!document.hidden) tick(); };
