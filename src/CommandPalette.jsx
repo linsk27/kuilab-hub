@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp } from '@phosphor-icons/react';
 
 // ⌘K 面板：全站的一个入口。
 // 只做三件事 —— 跳（页面/链接）、做（切主题、控制音乐、复制链接）、找（模糊匹配）。
@@ -85,6 +85,8 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
       { id: 'act:play', group: '动作', label: '播放 / 暂停音乐', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'toggle' })), keywords: 'music play pause 音乐 播放' },
       { id: 'act:next', group: '动作', label: '下一首', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'next' })), keywords: 'next 下一首 切歌' },
       { id: 'act:hub', group: '动作', label: '去联络站', hint: '留言 / 邀请', icon: ChatCircle, external: '/hub', keywords: 'hub station 联络 留言' },
+      // 日期章平时藏在双击里，这里给一条能搜到的入口，免得没人发现
+      { id: 'act:stamp', group: '动作', label: '盖今天的日期章', hint: '纸感彩蛋', icon: Stamp, run: () => window.dispatchEvent(new Event('hub:stamp')), keywords: 'stamp date 印章 日期 盖章' },
       { id: 'act:copy', group: '动作', label: '复制本站链接', hint: window.location.host, icon: Copy, run: () => navigator.clipboard?.writeText(window.location.href), keywords: 'copy url 复制 链接' },
     );
     return list;

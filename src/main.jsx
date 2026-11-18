@@ -6,6 +6,7 @@ import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 s
 import { useTheme } from './theme';
 import ThemeToggle from './ThemeToggle';
 import SplitWords from './SplitWords';
+import { HandUnderline, StampLayer } from './PaperMarks';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -271,6 +272,7 @@ function App({ managing }) {
   }
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
     <Spotlight />
+    <StampLayer />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
     <StatusRail theme={theme} onToggleTheme={toggleTheme} />
     <div className="composition relative w-full">
@@ -294,12 +296,12 @@ function App({ managing }) {
           <Suspense fallback={<a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span className="station-entry-text"><span className="station-entry-line">联络站</span></span><ArrowUpRight size={15} aria-hidden="true" /></a>}><StationEntry /></Suspense>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
-          <header className="flex items-center justify-between"><h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /></h2><span className="tiny-note">a few places to find me</span></header>
+          <header className="flex items-center justify-between"><h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /></h2><HandUnderline /><span className="tiny-note">a few places to find me</span></header>
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
           <div className="link-wall grid" aria-busy={loadState === 'loading'}>
             {visibleLinks.map(({ id, name, detail, icon: Icon, color, url, feed }, index) => {
-              const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3>{name}</h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
+              const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3><span className="ink-name">{name}</span></h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
               const at = savedLinks.findIndex(x => x.id === id);
               // 有订阅源的那张：横跨整行，左边身份、右边最近三篇。
               // 还没取回目录时先把三行骨架占住 —— 否则卡片会从「一张小卡」突然长成整行，页面跳一下。
@@ -309,7 +311,7 @@ function App({ managing }) {
                   <article className="link-note feature-note" data-feed={feedState}>
                     <a className="feature-side" href={url} target="_blank" rel="noreferrer">
                       <span className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={22} weight="light" /><ArrowUpRight className="visit-arrow" size={16} weight="light" /></span>
-                      <h3>{name}</h3>
+                      <h3><span className="ink-name">{name}</span></h3>
                       <p>{detail}</p>
                       <span className={`marker ${color}`} aria-hidden="true" />
                     </a>
