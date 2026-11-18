@@ -459,4 +459,11 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }, { once: true });
+
+  // 新版本接管后自动刷新一次，免得页面停在旧的 HTML/JS 上（浏览器缓存叠加 SW 时很容易）
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (sessionStorage.getItem('hub-sw-reloaded') === '1') return;
+    sessionStorage.setItem('hub-sw-reloaded', '1');
+    window.location.reload();
+  });
 }

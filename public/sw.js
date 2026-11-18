@@ -8,7 +8,7 @@
  *
  * 改版本号就会清掉旧缓存；部署新构建后第一次访问会顺带刷新。
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const ASSETS = `hub-assets-${VERSION}`;
 const PAGES = `hub-pages-${VERSION}`;
 
@@ -32,8 +32,15 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => !key.endsWith(VERSION)).map(key => caches.delete(key)));
+    const stale = keys.filter(key => !key.endsWith(VERSION));
+    await Promise.all(stale.map(key => caches.delete(key)));
     await self.clients.claim();
+    // 有旧缓存 = 这是一次升级。旧页面还停在旧的 index.html 上，
+    // 它引用的 hash 文件已经不在缓存里，不如直接让它重载一次，换成新版本。
+    if (stale.length) {
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => client.navigate(client.url).catch(() => {}));
+    }
   })());
 });
 
@@ -50,11 +57,11 @@ async function cacheFirst(request, cacheName) {
   return response;
 }
 
-async function networkFirst(request, cacheName, timeout = 2000) {
+async function networkFirst(request, cacheName, timeout = 2000, noStore = false) {
   const cache = await caches.open(cacheName);
   try {
     const response = await Promise.race([
-      fetch(request),
+      fetch(request, noStore ? { cache: 'no-store' } : undefined),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout)),
     ]);
     if (response && response.ok) cache.put(request, response.clone());
@@ -78,7 +85,7 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        return await networkFirst(request, PAGES, 12000);
+        return await networkFirst(request, PAGES, 12000, true);
       } catch {
         const cache = await caches.open(PAGES);
         const shell = await cache.match('/index.html') || await cache.match('/') || await caches.match('/index.html');
