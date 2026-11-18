@@ -8,12 +8,25 @@
  *
  * 改版本号就会清掉旧缓存；部署新构建后第一次访问会顺带刷新。
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const ASSETS = `hub-assets-${VERSION}`;
 const PAGES = `hub-pages-${VERSION}`;
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
+// 安装时先把「壳」存下来：断网时至少能看到首页，而不是白屏
+// （运行时缓存只覆盖用户真正访问过的页面，第一次访问就断网会没东西可用）
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/favicon.svg'];
+
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(PAGES);
+    await Promise.all(SHELL.map(async url => {
+      try {
+        const response = await fetch(url, { cache: 'reload' });
+        if (response.ok) await cache.put(url, response);
+      } catch { /* 单个失败不影响安装 */ }
+    }));
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
@@ -68,7 +81,7 @@ self.addEventListener('fetch', event => {
         return await networkFirst(request, PAGES, 12000);
       } catch {
         const cache = await caches.open(PAGES);
-        const shell = await cache.match('/index.html') || await caches.match('/');
+        const shell = await cache.match('/index.html') || await cache.match('/') || await caches.match('/index.html');
         return shell || new Response('离线了，连上网络再刷新一次。', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
     })());
