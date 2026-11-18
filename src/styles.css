@@ -1162,12 +1162,12 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* 右上角那个 ⌘K 提示：不用很大，看到的人自然会按 */
 .rail-hint{
-  display:inline-flex;align-items:center;gap:3px;padding:3px 6px;margin-right:10px;
-  border:1px solid var(--line-soft);border-radius:5px;background:transparent;
-  font:9.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;color:var(--ink-3);
+  display:inline-flex;align-items:center;gap:4px;padding:4px 8px;margin-right:12px;
+  border:1px solid var(--line-strong);border-radius:6px;background:var(--btn-bg);
+  font:10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;color:var(--ink-2);
   transition:color .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease);
 }
-.rail-hint:hover{color:var(--ink-2);border-color:var(--line-strong);background:var(--btn-bg-h)}
+.rail-hint:hover{color:var(--ink-strong);border-color:var(--warm);background:var(--btn-bg-h)}
 
 /* ---- 右下角「联络站」：一行，在线点 + 一句话 + 箭头 ---- */
 .station-tile{
