@@ -901,16 +901,6 @@ export default function GuestContact({ openAuthorLogin = false }) {
           <p>已验证 · 自动刷新</p>
           <div className="station-space-list gc-inbox-list">
             <span>联络会话 · {authorSpaces.length}</span>
-            {pendingDelete && <div className="gc-delete-confirm" role="alertdialog" aria-label="确认删除会话">
-              <p>删除「{pendingDelete.title || '未命名联络'}」？
-                <span>这个会话里的消息会一起删掉，不能撤销。</span></p>
-              <div>
-                <button type="button" className="small-control gc-danger" disabled={deleting} onClick={deleteSpace}>
-                  {deleting ? '删除中…' : '确认删除'}
-                </button>
-                <button type="button" className="small-control" disabled={deleting} onClick={() => setPendingDelete(null)}>取消</button>
-              </div>
-            </div>}
             {authorSpaces.map(item => <div className={`gc-inbox-row ${item.space === selectedSpace ? 'selected' : ''}`} key={item.space}>
               <button type="button"
                 className={`station-space gc-inbox-item ${item.space === selectedSpace ? 'selected' : ''}`}
@@ -970,6 +960,19 @@ export default function GuestContact({ openAuthorLogin = false }) {
         </section>
       </main>
     )}
+
+    <Dialog open={!!pendingDelete} onClose={() => { if (!deleting) setPendingDelete(null); }} labelledBy="gc-del-title">
+      <div className="dialog-inner">
+        <h2 id="gc-del-title">删除这个会话？</h2>
+        <p className="gc-del-text">「{pendingDelete?.title || '未命名联络'}」里的消息会一起删掉，不能撤销。</p>
+        <div className="gc-del-actions">
+          <button type="button" className="small-control" disabled={deleting} onClick={() => setPendingDelete(null)}>取消</button>
+          <button type="button" className="small-control gc-danger" disabled={deleting} onClick={deleteSpace}>
+            {deleting ? '删除中…' : '确认删除'}
+          </button>
+        </div>
+      </div>
+    </Dialog>
 
     <footer className="gc-footer">
       <span className="gc-footer-note">联络站 · 留言会保存在云端{buildTag && <span className="gc-build"> · 构建 {buildTag}</span>}</span>

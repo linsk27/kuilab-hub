@@ -434,10 +434,11 @@ body {
 .station-page .gc-author-foot { border-top-color: var(--line-faint); }
 .station-page .gc-inbox-del { color: var(--ink-3); }
 .station-page .gc-inbox-del:hover { color: var(--danger); background: var(--btn-bg-h); }
-.station-page .gc-delete-confirm { background: var(--panel-b); border-color: var(--line-strong); }
-.station-page .gc-delete-confirm p { color: var(--ink-2); }
-.station-page .gc-delete-confirm p span { color: var(--ink-3); }
-.station-page .gc-danger { color: var(--danger); border-color: var(--danger); }
+.station-page .gc-del-text { color: var(--ink-2); }
+/* 实心危险按钮：暗色下 --danger 是浅红，字用底色才对 */
+.station-page .gc-danger { background: var(--danger); color: var(--scene); border-color: var(--danger); }
+.station-page .gc-danger:hover { filter: brightness(1.06); }
+.station-page .gc-danger:disabled { opacity: .6; }
 
 /* 提示条 / 横幅 / 说明块 */
 .station-page .gc-notice,
