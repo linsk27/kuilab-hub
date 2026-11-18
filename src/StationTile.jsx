@@ -40,40 +40,45 @@ export default function StationTile() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    let running = false;
+    let cancelled = false;
+    let retry = 0;
+    let timer = 0;
 
-    // skipHidden：轮询时后台标签页就别打了；但第一次无论如何都要拿到状态，
-    // 否则用户在一个隐藏标签页里打开，回来看到的是“留言当天回”这种兜底文案
-    async function tick(skipHidden = true) {
-      if (running || (skipHidden && document.hidden)) return;
-      running = true;
+    async function tick() {
       try {
         if (guestbook) {
           const data = await rpc('guest_read', { space: guestbook.space, secret: guestbook.secret });
-          if (!alive) return;
+          if (cancelled) return;
           const list = Array.isArray(data?.messages) ? data.messages : [];
           const mine = list.filter(m => m && m.body && m.sender !== 'author');
           setLatest(mine.length ? mine[mine.length - 1] : null);
           setOnline(Boolean(data?.online));
         } else {
           const data = await rpc('presence', {});
-          if (alive) setOnline(Boolean(data?.online));
+          if (cancelled) return;
+          setOnline(Boolean(data?.online));
         }
+        retry = 0;
       } catch {
-        if (alive) setOnline(false);
-      } finally {
-        running = false;
+        if (cancelled) return;
+        // 首屏并发抢带宽时这个请求偶尔会失败一次，别让用户等一分钟：退避重试两回
+        if (retry < 2) {
+          retry += 1;
+          timer = window.setTimeout(tick, retry * 4000);
+          return;
+        }
+        setOnline(false);
       }
     }
 
-    tick(false);
-    const timer = window.setInterval(() => tick(true), POLL);
-    const onVisible = () => { if (!document.hidden) tick(true); };
+    tick();
+    const id = window.setInterval(() => { if (!document.hidden) tick(); }, POLL);
+    const onVisible = () => { if (!document.hidden) tick(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      alive = false;
-      window.clearInterval(timer);
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.clearInterval(id);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [guestbook]);
