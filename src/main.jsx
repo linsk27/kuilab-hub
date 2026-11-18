@@ -460,8 +460,12 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }, { once: true });
 
-  // 新版本接管后自动刷新一次，免得页面停在旧的 HTML/JS 上（浏览器缓存叠加 SW 时很容易）
+  // 新版本接管后自动刷新一次，免得页面停在旧的 HTML/JS 上（浏览器缓存叠加 SW 时很容易）。
+  // 首次安装时 controller 从无到有，也算一次 controllerchange —— 那种情况不用刷，
+  // 否则每个新访客都要白刷一遍（慢网下就是多等一倍时间）。
+  const hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
     if (sessionStorage.getItem('hub-sw-reloaded') === '1') return;
     sessionStorage.setItem('hub-sw-reloaded', '1');
     window.location.reload();
