@@ -22,11 +22,14 @@ function timeAgo(iso) {
 }
 
 async function callStation(action, payload) {
+  // 加超时：线上的请求偶尔会一直挂着（不报错也不返回），那样状态会永远停在“未决”，
+  // 界面上就一直是“留言一般当天回”。超时后按失败处理，走重试/离线判定。
   const res = await fetch('/api/station', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, payload }),
     cache: 'no-store',
+    signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined,
   });
   if (!res.ok) throw new Error(`station ${res.status}`);
   const data = await res.json();
