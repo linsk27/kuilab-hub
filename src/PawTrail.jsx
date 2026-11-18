@@ -4,9 +4,9 @@ import React, { useEffect, useRef } from 'react';
 // 只用一块 canvas，一个 rAF 循环；没有爪印时循环立刻停，静止页面零开销。
 // 只在有精确指针的设备上跑（触屏没有"光标走过"这回事），减弱动效时整体关掉。
 
-const LIFE = 1050;    // 一枚爪印活多久（ms）
-const GAP = 46;       // 走多远盖一枚，太密会糊成一片
-const MAX = 12;       // 同时最多几枚
+const LIFE = 900;     // 一枚爪印活多久（ms）
+const GAP = 96;       // 走多远盖一枚：太密会糊成一条地毯，96px 刚好能一眼看出是"走过"
+const MAX = 8;        // 同时最多几枚（按最坏情况：极快的鼠标）
 
 function warmRGB() {
   try {
@@ -36,6 +36,8 @@ export default function PawTrail() {
 
     let dpr = 1;
     let color = warmRGB();
+    // 墨底上同一个透明度看起来更淡，所以暗色给得足一点
+    let strength = 0.58;
     let raf = 0;
     let last = null;
     const paws = [];
@@ -71,7 +73,7 @@ export default function PawTrail() {
         ctx.translate(p.x, p.y);
         ctx.rotate(p.a);
         ctx.scale(p.s * (1 - 0.12 * t), p.s * (1 - 0.12 * t));
-        ctx.globalAlpha = fade * fade * 0.58;   // 平方：淡出得更"快一点"，尾巴不拖泥带水
+        ctx.globalAlpha = fade * fade * strength;   // 平方：淡出得更"快一点"，尾巴不拖泥带水
         ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
         ctx.fill(paw);
         ctx.restore();
@@ -102,8 +104,13 @@ export default function PawTrail() {
 
     function leave() { last = null; }
 
-    // 换主题时暖色变了，重新取一次；这个属性很少变，开销可忽略
-    const observer = new MutationObserver(() => { color = warmRGB(); });
+    // 换主题时暖色和透明度都要重取一次；这个属性很少变，开销可忽略
+    const readTheme = () => {
+      color = warmRGB();
+      strength = document.documentElement.dataset.theme === 'light' ? 0.54 : 0.68;
+    };
+    readTheme();
+    const observer = new MutationObserver(readTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     resize();
