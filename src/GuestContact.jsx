@@ -168,6 +168,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   // 作者书签 #/author 直接打开登录框；已保存令牌时不弹，交给自动恢复进入工作台。
   const [loginOpen, setLoginOpen] = useState(() => Boolean(openAuthorLogin) && !readAuthorToken());
   const [loginPass, setLoginPass] = useState('');
+  const [showPass, setShowPass] = useState(false);   // 长口令可以点开看一眼再粘贴
   const [loginError, setLoginError] = useState('');
   const [loginBusy, setLoginBusy] = useState(false);
 
@@ -621,7 +622,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   }
   function openLogin() {
     if (previewAsGuest && token) { exitPreview(); return; }
-    setLoginPass(''); setLoginError(''); setLoginOpen(true);
+    setLoginPass(''); setShowPass(false); setLoginError(''); setLoginOpen(true);
   }
   async function submitLogin(event) {
     event.preventDefault();
@@ -943,10 +944,16 @@ export default function GuestContact({ openAuthorLogin = false }) {
           <h2>作者登录</h2>
           <button type="button" className="small-control" onClick={() => setLoginOpen(false)}>关闭</button>
         </div>
-        <p className="gc-dialog-hint">输入作者口令登录。</p>
+        <p className="gc-dialog-hint">口令是固定的，只用输这一次 —— 登录后这台设备会自动记住，换浏览器或清缓存才需要重来。</p>
         <label htmlFor="gc-author-pass">口令</label>
-        <input id="gc-author-pass" type="password" autoComplete="current-password" required value={loginPass}
-          onChange={event => { setLoginPass(event.target.value); setLoginError(''); }} />
+        <div className="gc-pass-row">
+          <input id="gc-author-pass" type={showPass ? 'text' : 'password'} autoComplete="current-password" required value={loginPass}
+            onChange={event => { setLoginPass(event.target.value); setLoginError(''); }} />
+          <button type="button" className="small-control gc-pass-toggle" onClick={() => setShowPass(v => !v)}
+            aria-label={showPass ? '隐藏口令' : '显示口令'} aria-pressed={showPass}>
+            {showPass ? '隐藏' : '显示'}
+          </button>
+        </div>
         <p role="alert" className="form-error">{loginError}</p>
         <div className="gc-dialog-actions">
           <button className="small-control gc-primary" disabled={loginBusy}>{loginBusy ? '登录中…' : '登录'}</button>

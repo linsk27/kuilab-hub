@@ -1185,6 +1185,11 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .palette-scrim,.palette{animation:none}
 }
 
+/* 作者登录：口令输入框右边一个「显示/隐藏」，长口令能看一眼再粘贴 */
+.gc-pass-row{display:flex; align-items:center; gap:8px}
+.gc-pass-row input{flex:1; min-width:0}
+.gc-pass-toggle{flex:none; padding:6px 10px; font-size:11px; letter-spacing:.04em}
+
 /* ---- 小猫光标（白猫）：默认是白猫脸，指向可点的地方换成白爪印 ----
    图形在 tools/cursor/cat.svg / paw.svg（矢量），用 Chromium 渲成 256 再缩到 32×32，
    渐变、腮红、投影都烘在 PNG 里；不用 emoji 字形，因为各系统字体渲染完全不一样。
