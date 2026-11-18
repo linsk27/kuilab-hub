@@ -1,0 +1,62 @@
+[
+  {
+    "space": {
+      "id": "64e92c0d-0bfd-4846-8036-1861c1540ea2",
+      "title": "访客联络 · 11/11 19:12",
+      "created_at": "2026-11-11T19:12:19.107124+08:00",
+      "guest_hash": "cc248171e7111909efb39be1b4435a3d91328c85b1e4d62e7b83974b17791e61",
+      "last_message_at": "2026-11-11T19:12:28.076815+08:00"
+    },
+    "members": [],
+    "messages": [
+      {
+        "id": 7,
+        "body": "你好",
+        "sender": "guest",
+        "space_id": "64e92c0d-0bfd-4846-8036-1861c1540ea2",
+        "client_id": "a27d96e0-046a-4780-b92b-4ed5d207c679",
+        "created_at": "2026-11-11T19:12:28.076815+08:00"
+      }
+    ]
+  },
+  {
+    "space": {
+      "id": "870e8531-c423-4149-8ef2-8265480926ad",
+      "title": "linda",
+      "created_at": "2026-11-12T10:19:46.342253+08:00",
+      "guest_hash": "85b082c8f24bb414f92217fbcee7c54526f966b4eaa4cc6c2e28b178365c0ded",
+      "last_message_at": "2026-11-12T10:19:58.223108+08:00"
+    },
+    "members": [],
+    "messages": [
+      {
+        "id": 35,
+        "body": "期待你的回信，linda",
+        "sender": "guest",
+        "space_id": "870e8531-c423-4149-8ef2-8265480926ad",
+        "client_id": "9947b760-f850-4340-854c-ef83031b0005",
+        "created_at": "2026-11-12T10:19:58.223108+08:00"
+      }
+    ]
+  },
+  {
+    "space": {
+      "id": "d2c80c1d-6f64-44d4-920b-e1644a54ddba",
+      "title": "测试一下第一句话能不能直接发出去",
+      "created_at": "2026-11-13T15:57:17.438992+08:00",
+      "guest_hash": "64c870f86bddbfd2c90b0b64a1076f57bce6242604febc402972fefcc39a7a3f",
+      "last_message_at": "2026-11-13T15:57:17.588435+08:00"
+    },
+    "members": [],
+    "messages": [
+      {
+        "id": 36,
+        "body": "测试一下第一句话能不能直接发出去",
+        "sender": "guest",
+        "space_id": "d2c80c1d-6f64-44d4-920b-e1644a54ddba",
+        "client_id": "bf6d7516-d7ed-4fe4-a4d0-1f00c1fc17a0",
+        "created_at": "2026-11-13T15:57:17.588435+08:00"
+      }
+    ]
+  }
+]

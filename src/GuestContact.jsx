@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChatCircle } from '@phosphor-icons/react';
+import { ChatCircle, Trash } from '@phosphor-icons/react';
 import { rpc, rpcErrorText } from './station-rpc';
 import { useTheme } from './theme';
 import ThemeToggle from './ThemeToggle';
@@ -162,6 +162,9 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const [authorText, setAuthorText] = useState('');
   const [authorError, setAuthorError] = useState('');
   const [authorBusy, setAuthorBusy] = useState('');
+  // 删除会话：先点一次「×」问一句，确认后才真的删（消息一起删，不能撤销）
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [stats, setStats] = useState(null);            // 访问统计（仅作者可见）
   const [seen, setSeen] = useState({});                // 各会话已读消息数基准
 
@@ -673,6 +676,31 @@ export default function GuestContact({ openAuthorLogin = false }) {
     if (item) setSeen(previous => ({ ...previous, [space]: Number(item.count) || 0 }));
     refreshConversation(space);
   }
+  async function deleteSpace() {
+    if (!pendingDelete || deleting) return;
+    const target = pendingDelete;
+    setDeleting(true);
+    try {
+      await rpc('author_delete', { token, space: target.space });
+      // 本地先摘掉，不等下一轮轮询；轮询回来也是同样的结果
+      setAuthorSpaces(previous => previous.filter(item => item.space !== target.space));
+      if (selectedSpaceRef.current === target.space) {
+        selectedSpaceRef.current = '';
+        setSelectedSpace(''); setAuthorMessages([]); setAuthorText('');
+      }
+      delete authorCache.current[target.space];
+      setPendingDelete(null);
+      setNotice(`已删除「${target.title || '未命名联络'}」。`);
+      setAuthorError('');
+    } catch (e) {
+      setPendingDelete(null);
+      if (e?.business === 'unauthorized' || e?.business === 'invalid_pass') {
+        clearAuthorToken(); setToken(''); setView('guest'); setNotice('作者会话已失效，请重新登录。');
+        return;
+      }
+      setAuthorError(rpcErrorText(e));
+    } finally { setDeleting(false); }
+  }
   async function sendAuthor(event) {
     event.preventDefault();
     const body = authorText.trim();
@@ -873,13 +901,30 @@ export default function GuestContact({ openAuthorLogin = false }) {
           <p>已验证 · 自动刷新</p>
           <div className="station-space-list gc-inbox-list">
             <span>联络会话 · {authorSpaces.length}</span>
-            {authorSpaces.map(item => <button type="button" key={item.space}
-              className={`station-space gc-inbox-item ${item.space === selectedSpace ? 'selected' : ''}`}
-              onClick={() => chooseSpace(item.space)}>
-              <span className="gc-inbox-title">{item.title || '未命名联络'}{unread[item.space] ? <span className="gc-unread" aria-label="有新消息">新</span> : null}</span>
-              <small className="gc-inbox-preview">{item.preview || '（暂无消息）'}</small>
-              <small>{formatTime(item.last_at)} · {Number(item.count) || 0} 条</small>
-            </button>)}
+            {pendingDelete && <div className="gc-delete-confirm" role="alertdialog" aria-label="确认删除会话">
+              <p>删除「{pendingDelete.title || '未命名联络'}」？
+                <span>这个会话里的消息会一起删掉，不能撤销。</span></p>
+              <div>
+                <button type="button" className="small-control gc-danger" disabled={deleting} onClick={deleteSpace}>
+                  {deleting ? '删除中…' : '确认删除'}
+                </button>
+                <button type="button" className="small-control" disabled={deleting} onClick={() => setPendingDelete(null)}>取消</button>
+              </div>
+            </div>}
+            {authorSpaces.map(item => <div className={`gc-inbox-row ${item.space === selectedSpace ? 'selected' : ''}`} key={item.space}>
+              <button type="button"
+                className={`station-space gc-inbox-item ${item.space === selectedSpace ? 'selected' : ''}`}
+                onClick={() => chooseSpace(item.space)}>
+                <span className="gc-inbox-title">{item.title || '未命名联络'}{unread[item.space] ? <span className="gc-unread" aria-label="有新消息">新</span> : null}</span>
+                <small className="gc-inbox-preview">{item.preview || '（暂无消息）'}</small>
+                <small>{formatTime(item.last_at)} · {Number(item.count) || 0} 条</small>
+              </button>
+              <button type="button" className="gc-inbox-del"
+                aria-label={`删除会话「${item.title || '未命名联络'}」`} title="删除会话"
+                onClick={() => { setAuthorError(''); setPendingDelete({ space: item.space, title: item.title }); }}>
+                <Trash size={13} weight="light" aria-hidden="true" />
+              </button>
+            </div>)}
             {!authorSpaces.length && <p>还没有访客发起联络。</p>}
           </div>
           <div className="gc-author-foot">
