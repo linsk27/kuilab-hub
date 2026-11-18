@@ -8,7 +8,7 @@
  *
  * 改版本号就会清掉旧缓存；部署新构建后第一次访问会顺带刷新。
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const ASSETS = `hub-assets-${VERSION}`;
 const PAGES = `hub-pages-${VERSION}`;
 
@@ -65,7 +65,7 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        return await networkFirst(request, PAGES, 4000);
+        return await networkFirst(request, PAGES, 12000);
       } catch {
         const cache = await caches.open(PAGES);
         const shell = await cache.match('/index.html') || await caches.match('/');
