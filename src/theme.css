@@ -435,10 +435,11 @@ body {
 .station-page .gc-inbox-del { color: var(--ink-3); }
 .station-page .gc-inbox-del:hover { color: var(--danger); background: var(--btn-bg-h); }
 .station-page .gc-del-text { color: var(--ink-2); }
-/* 实心危险按钮：暗色下 --danger 是浅红，字用底色才对 */
-.station-page .gc-danger { background: var(--danger); color: var(--scene); border-color: var(--danger); }
-.station-page .gc-danger:hover { filter: brightness(1.06); }
-.station-page .gc-danger:disabled { opacity: .6; }
+/* 实心危险按钮：暗色下 --danger 是浅红，字用底色才对。
+   选择器要带上 .small-control，否则会被后面同权重的按钮底色盖掉。 */
+.station-page .small-control.gc-danger { background: var(--danger); color: var(--scene); border-color: var(--danger); }
+.station-page .small-control.gc-danger:hover:not(:disabled) { background: var(--danger); color: var(--scene); filter: brightness(1.06); }
+.station-page .small-control.gc-danger:disabled { opacity: .6; }
 
 /* 提示条 / 横幅 / 说明块 */
 .station-page .gc-notice,
