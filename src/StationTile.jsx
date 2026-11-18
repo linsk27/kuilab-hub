@@ -43,8 +43,10 @@ export default function StationTile() {
     let alive = true;
     let running = false;
 
-    async function tick() {
-      if (running || document.hidden) return;
+    // skipHidden：轮询时后台标签页就别打了；但第一次无论如何都要拿到状态，
+    // 否则用户在一个隐藏标签页里打开，回来看到的是“留言当天回”这种兜底文案
+    async function tick(skipHidden = true) {
+      if (running || (skipHidden && document.hidden)) return;
       running = true;
       try {
         if (guestbook) {
@@ -65,9 +67,9 @@ export default function StationTile() {
       }
     }
 
-    tick();
-    const timer = window.setInterval(tick, POLL);
-    const onVisible = () => { if (!document.hidden) tick(); };
+    tick(false);
+    const timer = window.setInterval(() => tick(true), POLL);
+    const onVisible = () => { if (!document.hidden) tick(true); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       alive = false;
