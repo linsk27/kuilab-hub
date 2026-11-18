@@ -11,7 +11,7 @@ import SplitWords from './SplitWords';
 const GuestContact = lazy(() => import('./GuestContact'));
 const MusicPlayer = lazy(() => import('./MusicPlayer'));
 const CommandPalette = lazy(() => import('./CommandPalette'));
-const StationTile = lazy(() => import('./StationTile'));
+const StationEntry = lazy(() => import('./StationEntry'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -291,7 +291,7 @@ function App({ managing }) {
             {now.doing && <div className="now-row"><dt>在做</dt><dd>{now.doing}</dd></div>}
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
-          <a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span>联络站</span><ArrowUpRight size={15} aria-hidden="true" /></a>
+          <Suspense fallback={<a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span className="station-entry-text"><span className="station-entry-line">联络站</span></span><ArrowUpRight size={15} aria-hidden="true" /></a>}><StationEntry /></Suspense>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           <header className="flex items-center justify-between"><h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /></h2><span className="tiny-note">a few places to find me</span></header>
@@ -384,7 +384,6 @@ function App({ managing }) {
               {item.tag && <span className="recent-tag">{item.tag}</span>}
             </li>)}
           </ol> : null}
-          <Suspense fallback={null}><StationTile /></Suspense>
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           <div className="meta-grid" aria-hidden="true">
