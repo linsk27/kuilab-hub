@@ -10,6 +10,8 @@ import SplitWords from './SplitWords';
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
 const MusicPlayer = lazy(() => import('./MusicPlayer'));
+const CommandPalette = lazy(() => import('./CommandPalette'));
+const StationTile = lazy(() => import('./StationTile'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -92,6 +94,7 @@ function StatusRail({ theme, onToggleTheme }) {
     <div className="rail">
       <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
       <span className="rail-r">
+        <button type="button" className="rail-hint" onClick={() => window.dispatchEvent(new Event('hub:palette'))} aria-label="打开快速跳转（⌘K）">⌘K</button>
         <span className="rail-time">UTC+8 <b>{t}</b></span>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </span>
@@ -381,6 +384,7 @@ function App({ managing }) {
               {item.tag && <span className="recent-tag">{item.tag}</span>}
             </li>)}
           </ol> : null}
+          <Suspense fallback={null}><StationTile /></Suspense>
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           <div className="meta-grid" aria-hidden="true">
@@ -394,6 +398,7 @@ function App({ managing }) {
       <div className="decoration bottom-hearts" aria-hidden="true"><Heart size={28} weight="duotone" /><Heart size={21} weight="duotone" /></div>
       <PetCat />
       <Suspense fallback={null}><MusicPlayer /></Suspense>
+      <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} /></Suspense>
       <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => open(name)}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
@@ -447,3 +452,11 @@ function Router() {
   return <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
+
+// 离线缓存：只在生产构建里注册，首屏渲染完再装，不跟首屏抢带宽。
+// 开发环境不注册——否则改动会被缓存住，热更新看起来像没生效。
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }, { once: true });
+}

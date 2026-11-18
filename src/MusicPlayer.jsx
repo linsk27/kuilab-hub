@@ -113,6 +113,18 @@ export default function MusicPlayer() {
 
   useEffect(() => () => objectUrls.current.forEach(URL.revokeObjectURL), []);
 
+  // 命令面板（⌘K）遥控：hub:player 事件带 'toggle' | 'next' | 'prev'
+  useEffect(() => {
+    const onCmd = event => {
+      const what = event.detail;
+      if (what === 'toggle') toggle();
+      else if (what === 'next') go(index + 1);
+      else if (what === 'prev') go(index - 1);
+    };
+    window.addEventListener('hub:player', onCmd);
+    return () => window.removeEventListener('hub:player', onCmd);
+  });
+
   // 悬停胶囊、打开面板时把「只取元数据」升级成「提前缓冲」。
   // 注意只改 preload，不再调 load()：load() 会掐掉正在进行的请求重新拉一遍，
   // 慢网下等于白扔几十上百 KB（实测会多出一个重复的 bytes=0- 请求）
