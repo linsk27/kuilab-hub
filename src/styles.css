@@ -1413,3 +1413,22 @@ input, textarea, [contenteditable="true"]{cursor:text}
   .station-page .gc-inbox-list .gc-inbox-row{flex:0 0 auto;width:136px}
   .station-page .gc-inbox-list .gc-inbox-row .gc-inbox-item{width:100%;margin:0}
 }
+
+/* ============================================================
+   首页当一张纸看：文字不让选中、图片不让拖
+   ------------------------------------------------------------
+   只关首页和 404。联络站（/hub）里留言要能复制，不动那边。
+   输入框单独放开 —— 否则搜索框和表单里连自己写的字都选不了。
+   ============================================================ */
+.page, .page *, .not-found, .not-found *{
+  -webkit-user-select: none;
+  user-select: none;
+}
+.page input, .page textarea, .page select, .page [contenteditable="true"]{
+  -webkit-user-select: text;
+  user-select: text;
+}
+.page img, .page canvas, .page svg{
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
