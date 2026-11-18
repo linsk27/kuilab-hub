@@ -62,16 +62,20 @@ export default function StationTile() {
       } catch {
         if (cancelled) return;
         // 首屏并发抢带宽时这个请求偶尔会失败一次，别让用户等一分钟：退避重试两回
-        if (retry < 2) {
+        if (retry < 3) {
           retry += 1;
-          timer = window.setTimeout(tick, retry * 4000);
+          timer = window.setTimeout(tick, retry * 1500 + 300);
           return;
         }
         setOnline(false);
       }
     }
 
-    tick();
+    // 等首屏资源下完再问状态：之前一挂载就发，和图片/脚本抢连接，常常直接失败
+    const start = () => { timer = window.setTimeout(tick, 300); };
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+
     const id = window.setInterval(() => { if (!document.hidden) tick(); }, POLL);
     const onVisible = () => { if (!document.hidden) tick(); };
     document.addEventListener('visibilitychange', onVisible);
@@ -79,11 +83,14 @@ export default function StationTile() {
       cancelled = true;
       window.clearTimeout(timer);
       window.clearInterval(id);
+      window.removeEventListener('load', start);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [guestbook]);
 
-  const state = online === null ? 'unknown' : online ? 'on' : 'off';
+  // 还没问到就按“不在线”画：这一行永远有一个明确的信号，问到了再变绿
+  const state = online ? 'on' : 'off';
+  const settled = online !== null;
   const line = latest
     ? <><span className="station-quote">“{String(latest.body).slice(0, 42)}{String(latest.body).length > 42 ? '…' : ''}”</span><span className="station-when">{timeAgo(latest.created_at)}</span></>
     : <span className="station-status">{state === 'on' ? '此刻在线，留言一般当天回' : state === 'off' ? '不在线，留言也会看到' : '留言当天回'}</span>;
@@ -93,7 +100,7 @@ export default function StationTile() {
       <span className={`station-dot is-${state}`} aria-hidden="true" />
       <span className="station-head">联络站</span>
       {latest ? <span className="station-quote">“{String(latest.body).slice(0, 26)}{String(latest.body).length > 26 ? '…' : ''}”</span>
-        : <span className="station-status">{state === 'on' ? '此刻在线，留言当天回' : state === 'off' ? '不在线，留言也会看到' : '留言当天回'}</span>}
+        : <span className="station-status">{state === 'on' ? '此刻在线，留言当天回' : settled ? '不在线，留言也会看到' : '留言一般当天回'}</span>}
       {latest && <span className="station-when">{timeAgo(latest.created_at)}</span>}
       <ArrowUpRight size={13} weight="light" className="station-go" aria-hidden="true" />
     </a>
