@@ -97,6 +97,14 @@ export default function MusicPlayer() {
 
   const track = tracks[index] || null;
 
+  // 对外只广播「现在在放什么」这一件事：写进 <html> 的 dataset，
+  // 小猫说话时会读它（"在听《早晨的咖啡》。"）。不走全局变量，也不和懒加载的播放器互相 import。
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.track = track?.title || '';
+    root.dataset.playing = playing ? '1' : '0';
+  }, [track, playing]);
+
   // 歌单：public/playlist.json，改它不用重新构建
   useEffect(() => {
     const controller = new AbortController();

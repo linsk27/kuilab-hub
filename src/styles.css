@@ -1309,3 +1309,32 @@ input, textarea, [contenteditable="true"]{cursor:text}
   .page .link-note::before,
   .page .link-note h3 .ink-name::before{transition:none}
 }
+
+/* ============================================================
+   猫爪拖尾 · 小猫说话
+   ============================================================ */
+
+/* 拖尾：一块铺满视口的画布，只画不吃事件；没有爪印时 rAF 已经停了 */
+.paw-trail{position:fixed; inset:0; width:100%; height:100%; z-index:4; pointer-events:none}
+/* 触屏没有“光标走过”这回事，直接不挂 */
+@media(hover:none){.paw-trail{display:none}}
+
+/* 气泡：跟主题走的小纸条 + 一个尖角，最多两行，不挡小猫本身 */
+.cat-speech{
+  width:170px; padding:9px 11px; margin-bottom:5px;
+  border:1px solid var(--line); border-radius:10px;
+  background:var(--panel-a); color:var(--ink-2);
+  font-size:11.5px; line-height:1.75; letter-spacing:.01em;
+  box-shadow:0 16px 28px -24px var(--line-strong), 0 2px 6px -4px rgba(0,0,0,.16);
+  opacity:0; transform:translateY(4px) scale(.97); transform-origin:100% 100%;
+  transition:opacity .2s var(--ease), transform .24s var(--ease);
+}
+.cat-speech.visible{opacity:1; transform:none}
+.cat-speech::after{
+  content:""; position:absolute; right:22px; bottom:-5.5px; width:9px; height:9px;
+  background:var(--panel-a); border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+  transform:rotate(45deg); border-bottom-right-radius:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  .cat-speech{transform:none}
+}

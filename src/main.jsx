@@ -1,12 +1,13 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, Cat, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
+import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
 import './styles.css';
 import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 styles.css 之后
 import { useTheme } from './theme';
 import ThemeToggle from './ThemeToggle';
 import SplitWords from './SplitWords';
 import { HandUnderline, StampLayer } from './PaperMarks';
+import PawTrail from './PawTrail';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -53,33 +54,94 @@ function serializeLinks(links) {
 }
 import PetCat2D from './PetCat2D';
 
-function CatSticker({ pets, awake, onPet }) {
-  return <button className="cat-sticker cat-button" onClick={onPet}
-    aria-label={`摸摸小猫，已经摸了 ${pets} 次`} title="摸摸我">
-    <span className="cat-heart" aria-hidden="true">{awake ? '♡' : 'z z'}</span>
-    <Cat size={65} weight={awake ? 'duotone' : 'thin'} aria-hidden="true" />
-  </button>;
-}
+// 小猫说的每句话都从当下情境里挑：几点、摸了几次、在放什么歌。
+// 不是随机句子库 —— 同一句话半夜和下午听到，感觉完全不同。
+const LINES = {
+  late: ['这个点还醒着？陪你把这首听完。', '夜里安静，适合慢慢翻两页。', '睡不着的话，我也不睡。'],
+  dawn: ['早。今天也别太赶。', '早上光最好看，先坐一会儿。', '先喝一杯水再开工。'],
+  noon: ['中午了，别空着肚子敲键盘。', '这个点最容易困，我趴一下。', '吃饭的时候别看屏幕。'],
+  afternoon: ['下午三点，人最钝的时候。', '歇五分钟吧，看看窗外。', '要不要起来走两步。'],
+  evening: ['天黑了，灯开小一点。', '今天收个尾，剩下的明天再说。', '晚饭吃了什么？'],
+  music: ['这首我也在听。', '音量再大一点？', '换个安静点的？'],
+  touched: ['呼噜呼噜，喜欢你。', '摸摸收到啦。', '陪你翻一页。'],
+};
 
 function PetCat() {
-  const [pets, setPets] = useState(0);
-  const [awake, setAwake] = useState(false);
-  const [reaction, setReaction] = useState('');
+  const [speech, setSpeech] = useState(null);   // { text, silent }
   const [signal, setSignal] = useState(0);
   const timer = useRef(null);
+  const count = useRef(0);
+  const lastLine = useRef('');
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  function pet(event) {
-    const next = pets + 1;
-    setPets(next); setAwake(true); setSignal(next);
-    setReaction(next % 5 === 0 ? '呼噜呼噜，喜欢你。' : ['喵，欢迎回来。', '今天也要好好休息。', '摸摸收到啦。', '陪你翻一页。'][(next - 1) % 4]);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => { setReaction(''); setAwake(false); }, 3500);
+  function poolFor(n) {
+    const hour = new Date().getHours();
+    const playing = document.documentElement.dataset.playing === '1';
+    const title = document.documentElement.dataset.track || '';
+    if (n && n % 50 === 0) return ['五十次了。你是不是有点闲。'];
+    if (n && n % 25 === 0) return ['二十五次，我记住你了。', '再摸要收小鱼干了。'];
+    if (n === 10) return ['第十次了，你手真勤。'];
+    // 正在放歌时，三分之一的概率把话题拐到音乐上；歌名太长就只说一句泛的
+    if (playing && title && title.length <= 9 && Math.random() < 0.5) return [`在听《${title}》。`, '这首我也在听。'];
+    if (playing && Math.random() < 0.3) return LINES.music;
+    if (hour < 5) return LINES.late;
+    if (hour < 11) return LINES.dawn;
+    if (hour < 14) return LINES.noon;
+    if (hour < 18) return LINES.afternoon;
+    if (hour < 23) return LINES.evening;
+    return LINES.late;
   }
 
+  function say(pool, hold, silent) {
+    const fresh = pool.filter(line => line !== lastLine.current);
+    const list = fresh.length ? fresh : pool;
+    const text = list[Math.floor(Math.random() * list.length)];
+    lastLine.current = text;
+    setSpeech({ text, silent: Boolean(silent) });
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setSpeech(null), hold);
+  }
+
+  function pet() {
+    const n = count.current + 1;
+    count.current = n;
+    setSignal(n);
+    say(n % 5 === 0 ? LINES.touched : poolFor(n), n % 5 === 0 ? 2600 : 3800, false);
+  }
+
+  // 一个人待久了它会自己嘀咕一句：整页安静 55~85 秒才开口，一次会话最多两句。
+  // 这种自言自语不进屏幕阅读器（role 只在真的被摸时才挂上）。
+  useEffect(() => {
+    let idle = 0;
+    let used = 0;
+    const arm = () => {
+      clearTimeout(idle);
+      if (used >= 2) return;
+      idle = window.setTimeout(() => {
+        if (document.hidden) return;
+        used += 1;
+        say(poolFor(0), 4800, true);
+        arm();
+      }, 55000 + Math.random() * 30000);
+    };
+    const wake = () => arm();
+    arm();
+    window.addEventListener('pointerdown', wake, { passive: true });
+    window.addEventListener('keydown', wake);
+    return () => {
+      clearTimeout(idle);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('keydown', wake);
+    };
+  }, []);
+
   return <div className="cat-companion is-2d">
-    <span role="status" className={`cat-speech ${reaction ? 'visible' : ''}`}>{reaction}</span>
+    <span
+      className={`cat-speech ${speech ? 'visible' : ''}`}
+      role={speech && !speech.silent ? 'status' : undefined}
+      aria-hidden={speech?.silent ? 'true' : undefined}
+    >{speech?.text || ''}</span>
     <PetCat2D onPet={pet} petSignal={signal} />
   </div>;
 }
@@ -273,6 +335,7 @@ function App({ managing }) {
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
     <Spotlight />
     <StampLayer />
+    <PawTrail />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
     <StatusRail theme={theme} onToggleTheme={toggleTheme} />
     <div className="composition relative w-full">
