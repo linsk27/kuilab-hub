@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { bump } from './counters';
 
 // 纸感两处需要 DOM 参与的：
 //   1) 标题下面那条手绘墨线（SVG stroke-dashoffset 动画，只在首屏画一次）
@@ -39,6 +40,7 @@ export function StampLayer() {
 
     function stampAt(x, y) {
       window.clearTimeout(timer.current);
+      bump('stamps');
       setStamp({ id: `${Date.now()}-${Math.random()}`, x, y, text: todayText() });
       // 动画 2.3s 走完就卸掉，别在 DOM 里留一层透明节点
       timer.current = window.setTimeout(() => setStamp(null), 2400);

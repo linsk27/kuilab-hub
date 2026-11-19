@@ -15,12 +15,20 @@ const ACTIONS = new Set([
   'author_inbox', 'author_read', 'author_reply', 'author_space_create', 'author_stats',
   'guest_open', 'guest_post', 'guest_read',
   'guest_rename', 'guest_invite_create', 'guest_invite_redeem',
-  'author_delete',
+  'author_delete', 'site_stats',
 ]);
 
 // 有的动作不挂在 station_rpc 上：这里单独映射到各自的函数，参数名也换一套。
 // 好处是不用去改那个已经跑了很久、10KB 的 station_rpc。
-const CUSTOM = { author_delete: 'station_author_delete' };
+const CUSTOM = {
+  author_delete: {
+    fn: 'station_author_delete',
+    needsSpace: true,
+    body: payload => ({ p_token: String(payload.token || ''), p_space: String(payload.space || '') }),
+  },
+  // 公开的站点总量：只有聚合数字，没有任何访客信息
+  site_stats: { fn: 'station_site_stats', body: () => ({}) },
+};
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function hostOf(value) {
@@ -59,19 +67,18 @@ export default async function handler(req, res) {
     return;
   }
   const custom = CUSTOM[action];
-  const space = String(payload.space || '');
-  if (custom && !UUID_RE.test(space)) {
+  if (custom?.needsSpace && !UUID_RE.test(String(payload.space || ''))) {
     res.status(400).json({ ok: false, error: 'bad_space' });
     return;
   }
   const body = custom
-    ? JSON.stringify({ p_token: String(payload.token || ''), p_space: space })
+    ? JSON.stringify(custom.body(payload))
     : JSON.stringify({ p_action: action, p_payload: payload });
   if (body.length > MAX_BODY) {
     res.status(413).json({ ok: false, error: 'payload_too_large' });
     return;
   }
-  const url = custom ? `${ENDPOINT}/.cloud/database/rest/rpc/${custom}` : RPC_URL;
+  const url = custom ? `${ENDPOINT}/.cloud/database/rest/rpc/${custom.fn}` : RPC_URL;
 
   try {
     // 不转发 Origin / Referer：这是服务端到服务端的调用。

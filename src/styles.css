@@ -1958,3 +1958,110 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
   .arc-row{grid-template-columns:22px minmax(0,1fr); row-gap:3px; padding:10px 0}
   .arc-tag{grid-column:2; justify-self:start; margin-top:1px}
 }
+
+/* ============================================================
+   一些数字 #/stats
+   一页里只三种东西：四个大数、一张十四天的柱图、一台设备的三个痕迹。
+   数字用衬线（和「这一年」「这站是怎么搭的」同一套语气），标注仍是等宽小字。
+   ============================================================ */
+.st-figures{
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr));
+  margin-top:30px; padding:20px 0 22px;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+}
+.st-figure{padding:0 22px; border-left:1px solid var(--line-faint); min-width:0}
+.st-figure:first-child{padding-left:0; border-left:0}
+.st-figure-label{
+  display:block; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+.st-figure-value{
+  display:block; margin:12px 0 0;
+  font-family:Georgia,"Times New Roman",serif; font-weight:400;
+  font-size:42px; line-height:1; letter-spacing:-.035em;
+  color:var(--ink-strong); font-variant-numeric:tabular-nums;
+}
+
+.st-chart{margin-top:32px}
+.st-chart-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  padding-bottom:9px; border-bottom:1px solid var(--line-soft);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+}
+.st-chart-sum{letter-spacing:.06em; opacity:.85; white-space:nowrap}
+.st-bars{display:flex; align-items:flex-end; gap:8px; height:132px; margin-top:16px}
+.st-bar-col{flex:1; min-width:0; height:100%; display:flex; align-items:flex-end}
+.st-bar{
+  display:block; width:100%; border-radius:3px 3px 1px 1px;
+  background:linear-gradient(180deg, var(--warm), color-mix(in srgb, var(--warm) 45%, transparent));
+  transition:height .5s var(--ease), opacity .2s var(--ease);
+}
+.st-bar.is-zero{background:var(--line-soft); border-radius:1px}
+.st-bar-col:hover .st-bar{opacity:.78}
+.st-ticks{
+  display:flex; gap:8px; margin-top:8px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:8.5px; letter-spacing:.04em; color:var(--ink-3);
+}
+.st-ticks span{flex:1; min-width:0; text-align:center; white-space:nowrap}
+
+.st-split{margin-top:34px}
+.st-split-list{list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:11px}
+.st-split-list li{display:grid; grid-template-columns:64px minmax(0,1fr) 56px; align-items:center; gap:16px}
+.st-split-name{font-size:12px; color:var(--ink-2)}
+.st-split-track{height:4px; border-radius:2px; background:var(--line-faint); overflow:hidden}
+.st-split-track i{display:block; height:100%; border-radius:2px; background:var(--warm); opacity:.72}
+.st-split-value{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px;
+  text-align:right; color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+
+.st-local{margin-top:34px; padding-top:18px; border-top:1px solid var(--line)}
+.st-local-list{list-style:none; margin:16px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:18px 46px}
+.st-local-list li{display:flex; flex-direction:column; gap:7px}
+.st-local-list b{
+  font-family:Georgia,"Times New Roman",serif; font-weight:400;
+  font-size:26px; line-height:1; color:var(--ink-strong); font-variant-numeric:tabular-nums;
+}
+.st-local-num{display:inline-flex; align-items:baseline; gap:4px}
+.st-local-name{font-size:11.5px; color:var(--ink-3); letter-spacing:.02em}
+.st-local-num em{font-style:normal; font-size:11px; color:var(--ink-3); opacity:.7}
+.st-local-empty{font-size:12.5px; line-height:1.8; color:var(--ink-3); margin-top:14px}
+.st-local-since{font-size:11px; line-height:1.7; color:var(--ink-3); opacity:.75; margin-top:16px}
+
+@media(max-width:900px){
+  .st-figures{grid-template-columns:repeat(2, minmax(0,1fr)); row-gap:22px}
+  .st-figure:nth-child(3){padding-left:0; border-left:0}
+  .st-figure-value{font-size:34px}
+}
+@media(max-width:600px){
+  .st-bars{height:96px; gap:5px}
+  .st-ticks{gap:5px; font-size:7.5px}
+  .st-bar-col:nth-child(2n) ~ .st-bar-col .st-bar{border-radius:2px}
+  .st-split-list li{grid-template-columns:52px minmax(0,1fr) 44px; gap:10px}
+  .st-local-list{gap:14px 28px}
+  .st-local-list b{font-size:22px}
+}
+
+/* 柱子需要一条基线：没有它，涨潮退潮都像浮在空中 */
+.st-bars{border-bottom:1px solid var(--line)}
+.st-bar{background:linear-gradient(180deg, var(--warm), color-mix(in srgb, var(--warm) 74%, transparent))}
+.st-bar.is-zero{background:var(--line-soft); height:2px !important}
+/* 大数字后面的单位要小一号，否则「9 天」里的天会和数字一样重 */
+.st-figure-value i{font-style:normal; font-size:15px; letter-spacing:0; margin-left:5px; color:var(--ink-3)}
+
+/* 手机上 14 个刻度挤在一起，「11.6」会和「7」叠字 —— 隔一个显示一个 */
+@media(max-width:600px){
+  .st-ticks span:nth-child(2n){visibility:hidden}
+}
+/* 页脚现在有六项，窄屏允许换行，别撑出去 */
+.page .footer nav{flex-wrap:wrap}
+
+@media(max-width:400px){ .page .footer nav{gap:14px} }
+
+/* 手机上两栏只有 127px，「TOTAL VISITS · 总访问」会把中文拆成两行 —— 英文部分让位 */
+.st-figure-label i{font-style:normal}
+@media(max-width:600px){
+  .st-figure-label i{display:none}
+}

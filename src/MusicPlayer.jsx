@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, SpeakerHigh, SpeakerSlash, FolderOpen, X, CaretUp } from '@phosphor-icons/react';
+import { bump } from './counters';
 
 // 随身听：一片厚纸上的小唱片。
 // 播放走原生 <audio>（移动端最稳），波形是自己按解码后的峰值画的 —— 这样颜色能跟
@@ -408,6 +409,7 @@ export default function MusicPlayer() {
     if (!audio || !track) return;
     if (audio.paused) {
       wantPlay.current = true;
+      bump('plays');
       if (!armed) { setArmed(true); return; }   // 还没取过音频：交给换源 effect 加载并自动播放
       if (audio.ended) audio.currentTime = 0;
       audio.play().catch(() => setFailed(true));
@@ -423,6 +425,7 @@ export default function MusicPlayer() {
     if (!tracks.length) return;
     const audio = audioRef.current;
     wantPlay.current = forcePlay === true ? true : Boolean(audio && !audio.paused);
+    if (wantPlay.current) bump('plays');   // 自动接下一首也算听了一首
     setIndex(((nextIndex % tracks.length) + tracks.length) % tracks.length);
   }
   function selectTrack(i) {

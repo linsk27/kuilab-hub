@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, Stack, ClockCounterClockwise } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, Stack, ClockCounterClockwise, ChartLineUp } from '@phosphor-icons/react';
 
 // ⌘K 面板：全站的一个入口。
 // 只做三件事 —— 跳（页面/链接）、做（切主题、控制音乐、复制链接）、找（模糊匹配）。
@@ -76,6 +76,7 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
     const full = {
       Uses: { hash: '#/uses', hint: '这站怎么搭的', icon: Stack, keywords: 'colophon 装备 技术栈' },
       Archive: { hash: '#/archive', hint: '这一年写过的和改过的', icon: ClockCounterClockwise, keywords: 'timeline 年表 归档 文章' },
+      Stats: { hash: '#/stats', hint: '一些数字', icon: ChartLineUp, keywords: 'stats 统计 访问 数字 数据' },
     };
     pageNames.forEach(name => {
       const page = full[name];

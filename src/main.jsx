@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle';
 import SplitWords from './SplitWords';
 import { HandUnderline } from './PaperMarks';
 import SiteEffects from './SiteEffects';
+import { bump } from './counters';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -16,6 +17,7 @@ const CommandPalette = lazy(() => import('./CommandPalette'));
 const StationEntry = lazy(() => import('./StationEntry'));
 const UsesPage = lazy(() => import('./UsesPage'));
 const ArchivePage = lazy(() => import('./ArchivePage'));
+const StatsPage = lazy(() => import('./StatsPage'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -27,11 +29,12 @@ const sampleLinks = [
   { name: 'Contact', detail: 'A good conversation starts here.', icon: ChatCircle, color: 'sand', url: null },
 ];
 // 这几项不是弹窗，是独立页面
-const PAGE_ROUTES = { Uses: '#/uses', Archive: '#/archive' };
+const PAGE_ROUTES = { Uses: '#/uses', Archive: '#/archive', Stats: '#/stats' };
 const pages = {
   About: ['A little about this place', 'Personal Hub is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
   Uses: ['The everyday toolkit', 'Built with React and Tailwind CSS. Icons by Phosphor, with an original illustrated portrait.', 'A quiet space for projects, notes, sketches, and whatever comes next.'],
   Archive: ['Everything, in order', '写过的文章和这座站的改动，按月份排成一条线。', '完整年表在 #/archive。'],
+  Stats: ['Some numbers', '访问、内容量，以及你在这台设备上留下的痕迹。', '一些数字在 #/stats。'],
   Colophon: ['Made with a little care', 'A paper-inspired interface, soft pastel marks, and just enough room to breathe.', 'The portrait is an original AI-assisted illustration. All decoration stays in the margins so the links can do their job.'],
   RSS: ['Keep in touch, quietly', '新写的文章先发在 gblog，首页「All Links」那张卡里的目录就是从它的 RSS 取的。', '订阅地址：https://gblog.kuilab.cn/index.xml 。只想翻文章，直接开 https://gblog.kuilab.cn/ 就好。'],
 };
@@ -117,6 +120,7 @@ function PetCat() {
   function pet() {
     const n = count.current + 1;
     count.current = n;
+    bump('pets');   // 只记在这台设备上
     setSignal(n);
     say(n % 5 === 0 ? LINES.touched : poolFor(n), n % 5 === 0 ? 2600 : 3800, false);
   }
@@ -636,10 +640,11 @@ function Router() {
     </Suspense>;
   }
   // #/uses 装备页：一张能滚的清单页，不挂猫和随身听
-  if (route === '#/uses' || route === '#/archive') {
+  if (route === '#/uses' || route === '#/archive' || route === '#/stats') {
+    const Page = route === '#/archive' ? ArchivePage : route === '#/stats' ? StatsPage : UsesPage;
     return <>
       <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
-        {route === '#/archive' ? <ArchivePage /> : <UsesPage />}
+        <Page />
       </Suspense>
       <SiteEffects />
     </>;
