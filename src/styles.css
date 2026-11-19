@@ -2649,3 +2649,18 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
   .rail-nav a{padding:10px 3px}
   .rail{gap:8px}
 }
+
+/* ============================================================
+   手机：主题开关搬到右上角
+   ------------------------------------------------------------
+   之前它和导航排在同一行，怎么调都像两块挤在一起。
+   现在导航在左侧区域居中（右边留 56px 给开关），
+   开关绝对定位到状态条右上，和导航彻底分开。
+   ============================================================ */
+@media(max-width:767px){
+  .rail{justify-content:center; align-items:center; position:relative; padding-right:56px; flex-wrap:nowrap}
+  .rail-r{
+    position:absolute; top:50%; right:0; transform:translateY(-50%);
+    margin:0; gap:0;
+  }
+}
