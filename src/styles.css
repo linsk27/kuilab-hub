@@ -1588,3 +1588,279 @@ input, textarea, [contenteditable="true"]{cursor:text}
 .page .now-skeleton .ghost-bar,
 .page .recent-skeleton .ghost-bar{height:7px; display:block; border-radius:3px; background:var(--line-faint); opacity:.7}
 .page .recent-skeleton .recent-item{align-items:center}
+
+/* ============================================================
+   版式重排 v2 · 一套外框 / 一套内框 / 一套字号阶梯
+   ------------------------------------------------------------
+   量出来的四个毛病（1440 下）：
+   1) 卡片内边距左右不对称：左 31、右 53，看着整块内容往右缩。
+   2) 名字 38px 和「All Links.」34px 抢主次，两个都像标题。
+   3) 右栏底部比左栏高 51px，右下角塌下去一块。
+   4) 副标题悬在标题右侧 450px 外，中间那片空白没有归属。
+   改法：内框对称 44px；名字 40 / 章节 28 / 卡片 18 拉成三档；
+   右栏改成 flex 列，最后一条 margin-top:auto 沉到底；页头拆成两行。
+   ============================================================ */
+
+/* ---- 1. 内框：左栏 264 + 栏距 44 + 右栏自适应，四边等距 ---- */
+.page .paper-shell{
+  grid-template-columns:264px minmax(0,1fr);
+  column-gap:44px;
+  padding:44px 44px 32px;
+}
+.page .profile{padding:0}
+
+/* ---- 2. 字号阶梯：一档只做一件事 ---- */
+.page h1{font-size:40px; line-height:1.06; letter-spacing:-.03em}
+.page h2{font-size:28px; letter-spacing:-.02em}
+
+/* ---- 3. 右栏：flex 列，底部统计沉到底 ---- */
+.page .links-panel{display:flex; flex-direction:column; padding-left:0}
+/* 栏间线退到栏距正中，两端渐隐 */
+.page .links-panel::before{
+  left:-22px; top:0; bottom:0;
+  background:linear-gradient(180deg, var(--line-soft), var(--line-soft) 86%, transparent);
+}
+
+/* ---- 4. 页头：编号与说明各占一端，标题单独一行 ---- */
+.page .panel-head{display:block; position:relative; margin-bottom:24px}
+.page .head-top{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  margin-bottom:12px;
+}
+.page .head-kicker,
+.page .head-note{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-style:normal;
+  font-size:9.5px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-3); white-space:nowrap;
+}
+.page .head-kicker{color:var(--ink-2)}
+/* 编号从 h2::before 挪到真元素上了，伪元素收掉 */
+.page .links-panel h2{position:relative}
+.page .links-panel h2::before{content:none}
+
+/* ---- 5. 卡片：内边距统一；订阅卡左栏定宽、上下撑满 ---- */
+.page .link-note{padding:18px 18px 16px}
+.page .link-wall .note-wrap.is-feature .feature-note{
+  grid-template-columns:150px minmax(0,1fr); column-gap:20px;
+  padding:18px 20px 16px; align-items:stretch;
+}
+.page .feature-side{justify-content:space-between}
+.page .feature-side h3{margin-top:6px}
+.page .feature-side .marker{margin-top:0}
+.page .feature-feed{padding-left:20px; justify-content:center}
+
+/* ---- 6. 最近 / 统计：节奏收一档，小字统一 9.5 ---- */
+.page .recent{margin-top:18px}
+.page .recent-head{padding:7px 0 6px; font-size:9.5px}
+.page .recent-item{padding:6px 0}
+.page .now-head,
+.page .feed-head{font-size:9.5px}
+.page .panel-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--line-faint)}
+.page .meta-grid{margin-top:0; padding-top:0; border-top:0}
+.page .meta-cell span{font-size:9px}
+.page .meta-cell b{font-size:15px}
+.page .panel-signoff{margin-top:10px}
+
+/* ---- 7. 页脚：一句话 + 导航合成一条居中的线 ----
+   拉满整行会撞上左下角的随身听和右下角的小猫，所以还是居中，
+   但收成一行：左边格言、右边导航，中间一个点隔开。 */
+.page .footer{
+  flex-direction:row; align-items:center; justify-content:center;
+  gap:0; padding-top:16px;
+}
+.page .footer nav{gap:26px}
+.page .footer>p{
+  margin:0 20px 0 0; padding-right:20px; position:relative;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-3); opacity:.9; white-space:nowrap;
+}
+.page .footer>p::after{
+  content:""; position:absolute; right:0; top:50%; width:1px; height:10px;
+  transform:translateY(-50%); background:var(--line);
+}
+
+/* 顶上那道随手画的箭头像误笔，去掉；云和心留着 */
+.page .decoration.top-arrow{display:none}
+
+/* ---- 8. 断点：必须写在这块之后，否则会被上面的同名规则压掉 ---- */
+@media(min-width:1400px){
+  .page .paper-shell{padding-top:52px; padding-bottom:40px}
+}
+@media(max-width:1050px){
+  .page .paper-shell{grid-template-columns:210px minmax(0,1fr); column-gap:32px; padding:36px 32px 28px}
+  .page .links-panel::before{left:-16px}
+  .page .link-wall .note-wrap.is-feature .feature-note{grid-template-columns:132px minmax(0,1fr); column-gap:16px}
+}
+@media(max-width:767px){
+  .page .paper-shell{grid-template-columns:minmax(0,1fr); column-gap:0; padding:30px 22px 26px; min-height:0}
+  .page .profile{padding:0 0 26px}
+  .page .links-panel{padding-top:24px; border-top:1px solid var(--line-soft)}
+  .page .links-panel::before{display:none}
+  .page h1{font-size:30px}
+  .page h2{font-size:24px}
+  .page .panel-head{margin-bottom:20px}
+  .page .head-top{margin-bottom:10px}
+  .page .head-note{display:none}
+  .page .link-note{padding:16px 15px 14px}
+  .page .link-wall .note-wrap.is-feature .feature-note{grid-template-columns:minmax(0,1fr); column-gap:0; padding:16px 15px 14px}
+  .page .footer{flex-direction:column; align-items:center; gap:6px; padding-top:14px}
+  .page .footer>p{margin:0; padding:0}
+  .page .footer>p::after{display:none}
+  .page .footer nav{justify-content:center; gap:20px}
+}
+
+/* 标签去掉小方框，只留字——三个边框挤在右端太吵 */
+.page .recent-tag{border:0; padding:0; opacity:.9}
+
+/* ---- 9. 纸色主题下卡片要「立」得起来 ---- */
+[data-theme="light"] .page .link-note{
+  border-color: rgba(23,20,17,.10);
+  box-shadow: 0 1px 2px rgba(60,48,36,.06), 0 8px 18px -12px rgba(60,48,36,.28), inset 0 1px 0 #FFFFFF;
+}
+[data-theme="light"] .page .link-note:hover{
+  border-color: var(--warm-line);
+  box-shadow: 0 10px 26px -14px rgba(60,48,36,.34), 0 0 0 1px var(--warm-faint), inset 0 1px 0 #FFFFFF;
+}
+/* 订阅卡里的竖分隔在浅色下要看得见 */
+[data-theme="light"] .page .feature-feed{border-left-color: rgba(23,20,17,.08)}
+
+/* 页脚格言放到导航前面 */
+.page .footer>p{order:-1}
+
+/* ---- 10. 装备页：页头加一行元信息，小节拉开一档 ---- */
+.uses-top{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  margin-bottom:14px;
+}
+.uses-kicker{margin:0}
+.uses-meta{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+.uses-block{padding-top:32px}
+.uses-block-head h2{font-size:16px; letter-spacing:-.005em}
+.uses-row{grid-template-columns:92px minmax(0,1fr); gap:18px; padding:10px 0}
+.uses-row dt{font-size:11px}
+.uses-row dd{font-size:12.5px; line-height:1.8}
+@media(max-width:640px){
+  .uses-top{margin-bottom:12px}
+  .uses-block{padding-top:26px}
+  .uses-row{grid-template-columns:72px minmax(0,1fr); gap:12px; padding:9px 0}
+}
+
+/* ---- 11. 整体抬半档字号：整张卡是 1140×646，字一直在 9~12px，看着「稀」 ---- */
+.page .link-note h3{font-size:19px}
+.page .link-note p{font-size:11.5px; line-height:1.65}
+.page .feature-side h3{font-size:19px}
+.page .recent-item{padding:7px 0}
+.page .recent-text{font-size:12.5px}
+.page .now-row dd{font-size:12.5px}
+.page .feed-title{font-size:13px}
+.page .feed-list a{padding:7px 0}
+
+/* ---- 12. 底部收成一行：两格数据 + 右端落款 ----
+   原来「Zone +08」和顶栏的 UTC+8 是同一件事，去掉；落款单独一行也并进来。
+   这样右栏下方那条 88px 的空洞缩到 40，还少了一条孤立的小字。 */
+.page .panel-foot{display:flex; align-items:flex-end; justify-content:space-between; gap:20px}
+.page .panel-foot .meta-grid{flex:1; min-width:0}
+.page .meta-cell{flex:0 0 auto; min-width:190px}
+.page .panel-signoff{margin:0 0 2px; text-align:right; white-space:nowrap}
+
+/* 订阅卡左栏说明放宽到整栏：11.5px 下「笔记、作品与所想记录。」会在 120px 处折行 */
+.page .link-wall .note-wrap.is-feature .feature-side p{max-width:150px}
+@media(max-width:1050px){
+  .page .meta-cell{min-width:140px}
+  .page .link-wall .note-wrap.is-feature .feature-side p{max-width:132px}
+}
+@media(max-width:767px){
+  .page .panel-foot{flex-direction:column; align-items:flex-start; gap:10px}
+  .page .meta-cell{min-width:0; flex:1}
+  .page .panel-signoff{text-align:left; white-space:normal}
+  .page .link-wall .note-wrap.is-feature .feature-side p{max-width:none}
+}
+
+/* ---- 13. 把右栏那段空洞填掉：卡片长高 24px、最近三行各加 4px ----
+   右栏比左栏矮 98px，靠 margin-top:auto 沉底后，空洞全挤在「最近」和底部之间。 */
+.page .link-note{min-height:186px}
+.page .recent{margin-top:20px}
+.page .recent-item{padding:9px 0}
+.page .panel-foot{padding-top:18px}
+
+/* 卡片 186 太高：只有两张卡，内容撑不满，中间全是空气。回到 168，
+   把余量留给「最近」和底部 —— 空隙放在两段之间比放在卡片内部好看。 */
+.page .link-note{min-height:168px}
+.page .feature-side{justify-content:flex-start}
+.page .feature-side .marker{margin-top:16px}
+
+/* ---- 14. 让余量均分，而不是全堆在一处 ----
+   两个 margin-top:auto 会把自由空间平分：卡片 → 46 → 最近 → 46 → 底部统计。
+   一处 92px 的空洞看着像漏了东西，两处 46px 才像有意留的呼吸。 */
+.page .recent,
+.page .recent-skeleton{margin-top:auto}
+
+/* ============================================================
+   装备页 v3：拉宽 + 左侧章节索引
+   ------------------------------------------------------------
+   之前是一条 792px 的单列长清单，读起来像小票：没有目录、
+   没有当前位置，六节之间只靠一条细线分。现在 1000px 宽，
+   左 164 索引（滚动跟随高亮、可点击跳转），右 628 正文。
+   ============================================================ */
+.uses-sheet{width:min(100% - 48px, 1000px); padding:44px 52px 26px}
+.uses-main{
+  display:grid; grid-template-columns:164px minmax(0,1fr);
+  column-gap:52px; margin-top:26px; align-items:start;
+}
+.uses-toc{
+  position:sticky; top:28px; align-self:start;
+  display:flex; flex-direction:column; gap:1px; padding:2px 0;
+}
+.uses-toc-item{
+  display:flex; align-items:baseline; gap:10px; width:100%;
+  padding:7px 10px; margin-left:-10px; border:0; border-radius:8px;
+  background:transparent; color:var(--ink-3); text-align:left;
+  font-size:12px; line-height:1.5;
+  transition:background-color .18s var(--ease), color .18s var(--ease);
+}
+.uses-toc-num{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.12em; opacity:.65; transition:color .18s var(--ease), opacity .18s var(--ease);
+}
+.uses-toc-item:hover{background:var(--btn-bg-h); color:var(--ink-2)}
+.uses-toc-item.is-active{color:var(--ink-strong)}
+.uses-toc-item.is-active .uses-toc-num{color:var(--warm); opacity:1}
+/* 索引里已经有编号，正文里那颗悬挂的号就不必重复（手机上索引隐藏，再放回来） */
+.uses-num{display:none}
+.uses-body{margin-top:0}
+.uses-block-head h2{font-size:17px}
+.uses-block{padding-top:6px}
+.uses-block + .uses-block{padding-top:30px}
+@media(max-width:900px){
+  .uses-main{grid-template-columns:minmax(0,1fr); column-gap:0; margin-top:22px}
+  .uses-toc{display:none}
+  .uses-num{display:inline; position:static; width:auto; margin:0 0 5px; font-size:9px}
+  .uses-block{padding-top:10px}
+  .uses-block + .uses-block{padding-top:28px}
+}
+
+/* 索引收窄一档：164px 的栏里只有两个字，空得发慌；同时把正文小标题抬起来，
+   免得「骨架」在左边和右边并排出现时像是重复了一遍错误。 */
+.uses-main{grid-template-columns:132px minmax(0,1fr); column-gap:44px}
+.uses-toc-item{font-size:11.5px; padding:6px 8px; margin-left:-8px}
+.uses-toc-num{font-size:8.5px}
+.uses-toc-item.is-active{background:var(--btn-bg-h)}
+.uses-block-head h2{font-size:19px; letter-spacing:-.012em}
+.uses-block + .uses-block{padding-top:34px}
+
+/* 断点必须写在新栅格之后 —— 否则 132px 的索引栏会把手机上的正文压成一条 */
+@media(max-width:900px){
+  .uses-main{grid-template-columns:minmax(0,1fr); column-gap:0}
+  .uses-toc{display:none}
+  .uses-block + .uses-block{padding-top:28px}
+}
+
+/* 当前位置用一道暖色竖标，比整块灰底安静 */
+.uses-toc-item.is-active{background:transparent; box-shadow:inset 2px 0 0 var(--warm)}
+
+/* 墨线改成相对 h2 定位之后，-11px 落得太低，收回来贴住字形 */
+.page .panel-head .hand-rule{bottom:-5px; left:-2px; width:min(58%,188px)}

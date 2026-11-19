@@ -129,8 +129,9 @@ body {
   --btn-bg: rgba(23, 20, 17, .025);
   --btn-bg-h: rgba(23, 20, 17, .055);
   --btn-line: rgba(23, 20, 17, .11);
-  --card-a: #FFFFFF;
-  --card-b: #FBFAF7;
+  /* 纸色主题：卡片要比纸面更暖一档，否则 #FFF 贴在 #FFFEFC 上等于没有边 */
+  --card-a: #FDFAF3;
+  --card-b: #F7F1E6;
   --scrim: rgba(56, 48, 40, .34);
 
   --accent: #4A3F35;

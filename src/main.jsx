@@ -425,7 +425,15 @@ function App({ managing }) {
           <Suspense fallback={<a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span className="station-entry-text"><span className="station-entry-line">联络站</span></span><ArrowUpRight size={15} aria-hidden="true" /></a>}><StationEntry /></Suspense>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
-          <header className="flex items-center justify-between"><h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /></h2><HandUnderline /><span className="tiny-note">a few places to find me</span></header>
+          {/* 页头两行：上面一排「编号 + 说明」各占一端，下面才是标题。
+              原来那句说明孤零零吊在标题右边 450px 外，看着像没对齐。 */}
+          <header className="panel-head">
+            <div className="head-top">
+              <span className="head-kicker">02 — Index</span>
+              <span className="head-note">a few places to find me</span>
+            </div>
+            <h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /><HandUnderline /></h2>
+          </header>
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
           <div className={`link-wall grid ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
@@ -557,12 +565,14 @@ function App({ managing }) {
           </ol> : null}
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
-          <div className="meta-grid" aria-hidden="true">
-            <div className="meta-cell"><span>Links</span><b>{links.length ? String(links.length).padStart(2, '0') : '—'}</b></div>
-            <div className="meta-cell"><span>Status</span><b>Open</b></div>
-            <div className="meta-cell"><span>Zone</span><b>+08</b></div>
+          {/* 底部这一条用 margin-top:auto 沉到底：右栏比左栏矮 51px 的缺口就是这么补上的 */}
+          <div className="panel-foot">
+            <div className="meta-grid" aria-hidden="true">
+              <div className="meta-cell"><span>Links</span><b>{links.length ? String(links.length).padStart(2, '0') : '—'}</b></div>
+              <div className="meta-cell"><span>Status</span><b>Open</b></div>
+            </div>
+            <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
           </div>
-          <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
         </section>
       </main>
       <div className="decoration bottom-hearts" aria-hidden="true"><Heart size={28} weight="duotone" /><Heart size={21} weight="duotone" /></div>

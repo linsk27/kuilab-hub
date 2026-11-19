@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
@@ -76,6 +76,37 @@ const SECTIONS = [
 
 export default function UsesPage() {
   const { theme, toggle } = useTheme();
+  // 左侧索引：跟着滚动高亮当前一节，点一下滚过去。
+  // 页面本来就只有一条读线，加了索引才像一份「文档」而不是一串清单。
+  const [active, setActive] = useState(SECTIONS[0].kicker);
+  const blocks = useRef({});
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries
+        .filter(entry => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]) setActive(visible[0].target.dataset.kicker);
+    }, { rootMargin: '-10% 0px -72% 0px', threshold: 0 });
+    Object.values(blocks.current).forEach(node => node && observer.observe(node));
+
+    // 最后一节滚不到页面顶部（到底就停住了），光靠观察器会一直停在倒数第二节
+    const onScroll = () => {
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8;
+      if (atBottom) setActive(SECTIONS[SECTIONS.length - 1].kicker);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { observer.disconnect(); window.removeEventListener('scroll', onScroll); };
+  }, []);
+
+  function jump(kicker) {
+    const node = blocks.current[kicker];
+    if (!node) return;
+    const top = node.getBoundingClientRect().top + window.scrollY - 28;
+    window.scrollTo({ top, behavior: 'smooth' });
+    setActive(kicker);
+  }
+
   return (
     <div className="page uses-page">
       <main className="uses-sheet">
@@ -84,7 +115,10 @@ export default function UsesPage() {
             <ArrowLeft size={14} weight="light" aria-hidden="true" />
             回到首页
           </a>
-          <p className="uses-kicker">05 — Colophon</p>
+          <div className="uses-top">
+            <span className="uses-kicker">05 — Colophon</span>
+            <span className="uses-meta">六节 · 二十八条</span>
+          </div>
           <h1>这站是怎么搭的</h1>
           <p className="uses-lede">
             一份给自己留的清单：用了什么、为什么这么选、哪些地方是踩过坑才改成现在这样的。
@@ -92,9 +126,23 @@ export default function UsesPage() {
           </p>
         </header>
 
-        <div className="uses-body">
+        <div className="uses-main">
+          <nav className="uses-toc" aria-label="章节索引">
+            {SECTIONS.map(section => (
+              <button type="button" key={section.kicker}
+                className={`uses-toc-item ${active === section.kicker ? 'is-active' : ''}`}
+                aria-current={active === section.kicker ? 'true' : undefined}
+                onClick={() => jump(section.kicker)}>
+                <span className="uses-toc-num">{section.kicker}</span>
+                <span className="uses-toc-title">{section.title}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="uses-body">
           {SECTIONS.map(section => (
-            <section className="uses-block" key={section.kicker}>
+            <section className="uses-block" key={section.kicker}
+              data-kicker={section.kicker}
+              ref={node => { blocks.current[section.kicker] = node; }}>
               <div className="uses-block-head">
                 <span className="uses-num">{section.kicker}</span>
                 <h2>{section.title}</h2>
@@ -109,6 +157,7 @@ export default function UsesPage() {
               </dl>
             </section>
           ))}
+          </div>
         </div>
 
         <footer className="uses-foot">
