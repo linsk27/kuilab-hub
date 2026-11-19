@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, startTransition, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, ArrowBendUpRight, X, Copy, Check, House, ArrowsClockwise } from '@phosphor-icons/react';
 import './styles.css';
@@ -19,6 +19,7 @@ const StationEntry = lazy(() => import('./StationEntry'));
 const UsesPage = lazy(() => import('./UsesPage'));
 const ArchivePage = lazy(() => import('./ArchivePage'));
 const StatsPage = lazy(() => import('./StatsPage'));
+const InfoPage = lazy(() => import('./InfoPage'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -29,12 +30,19 @@ const sampleLinks = [
   { name: 'Social', detail: 'Small moments, shared.', icon: Heart, color: 'pink', url: null },
   { name: 'Contact', detail: 'A good conversation starts here.', icon: ChatCircle, color: 'sand', url: null },
 ];
+// 五个独立页面：都是真地址，都能分享和后退
+const PAGE_ROUTE = {
+  '#/about': { Page: InfoPage, name: 'About' },
+  '#/uses': { Page: UsesPage, name: 'Uses' },
+  '#/archive': { Page: ArchivePage, name: 'Archive' },
+  '#/stats': { Page: StatsPage, name: 'Stats' },
+  '#/rss': { Page: InfoPage, name: 'RSS' },
+};
 const pages = {
   About: ['A little about this place', 'Personal Hub is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
   Uses: ['The everyday toolkit', 'Built with React and Tailwind CSS. Icons by Phosphor, with an original illustrated portrait.', 'A quiet space for projects, notes, sketches, and whatever comes next.'],
   Archive: ['Everything, in order', '写过的文章和这座站的改动，按月份排成一条线。', '完整年表在 #/archive。'],
   Stats: ['Some numbers', '访问、内容量，以及你在这台设备上留下的痕迹。', '一些数字在 #/stats。'],
-  Colophon: ['Made with a little care', 'A paper-inspired interface, soft pastel marks, and just enough room to breathe.', 'The portrait is an original AI-assisted illustration. All decoration stays in the margins so the links can do their job.'],
   RSS: ['Keep in touch, quietly', '新写的文章先发在 gblog，首页「All Links」那张卡里的目录就是从它的 RSS 取的。', '订阅地址：https://gblog.kuilab.cn/index.xml 。只想翻文章，直接开 https://gblog.kuilab.cn/ 就好。'],
 };
 // 模块级缓存：同一次会话里离开首页再回来，直接用上一次的响应渲染，
@@ -160,7 +168,7 @@ function PetCat() {
   </div>;
 }
 // 顶部状态条：本地时间 + 主题开关，给页面一点“产品”的呼吸
-function StatusRail({ theme, onToggleTheme, onOpenInfo }) {
+function StatusRail({ theme, onToggleTheme }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 20000);
@@ -170,7 +178,7 @@ function StatusRail({ theme, onToggleTheme, onOpenInfo }) {
   return (
     <div className="rail">
       <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
-      <SiteNav onOpenInfo={onOpenInfo} className="rail-nav" />
+      <SiteNav className="rail-nav" />
       <span className="rail-r">
         <button type="button" className="rail-hint" onClick={() => window.dispatchEvent(new Event('hub:palette'))} aria-label="打开快速跳转" title="快速跳转：Ctrl / ⌘ + K">⌘K</button>
         <span className="rail-time">UTC+8 <b>{t}</b></span>
@@ -237,7 +245,7 @@ function Spotlight() {
   return <div className="spot" ref={ref} aria-hidden="true" />;
 }
 
-function App({ managing, initialInfo = '' }) {
+function App({ managing }) {
   const { theme, toggle: toggleTheme } = useTheme();
   const dialog = useRef(null);
   const editor = useRef(null);
@@ -354,12 +362,6 @@ function App({ managing, initialInfo = '' }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice('已导出 links.json。替换项目 public/links.json 并重新部署后，所有访客才会看到更新。');
   }
-  // 从 #about / #colophon / #rss 进来：等 DOM 就绪再开弹窗
-  useEffect(() => {
-    if (!initialInfo || !pages[initialInfo] || !dialog.current) return;
-    setContent({ title: initialInfo, paragraphs: pages[initialInfo] });
-    dialog.current.showModal();
-  }, [initialInfo]);
   const [portraitReady, setPortraitReady] = useState(false);
   // 左栏「现在」与右栏「最近」来自 public/now.json：改内容不用重新构建
   const [now, setNow] = useState(() => nowCache);
@@ -410,7 +412,7 @@ function App({ managing, initialInfo = '' }) {
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
     <Spotlight />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
-    <StatusRail theme={theme} onToggleTheme={toggleTheme} onOpenInfo={open} />
+    <StatusRail theme={theme} onToggleTheme={toggleTheme} />
     <div className="composition relative w-full">
       <div className="decoration cloud" aria-hidden="true"><Cloud size={43} weight="thin" /></div>
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
@@ -612,9 +614,20 @@ function NotFound() {
 function Router() {
   const [route, setRoute] = useState(() => location.hash);
   useEffect(() => {
-    const update = () => setRoute(location.hash);
+    // 用 transition 更新：新页面的 chunk 还没到时，React 会先留着旧页面，
+    // 而不是先卸掉、露出「正在打开…」再换上来 —— 那一闪就是这么来的
+    const update = () => startTransition(() => setRoute(location.hash));
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
+  }, []);
+
+  // 首页稳定之后把三张内容页悄悄取回来，点导航就是瞬间的
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const warm = mod => import(mod).catch(() => { /* 预取失败不影响点进去时的正常加载 */ });
+      warm('./UsesPage'); warm('./ArchivePage'); warm('./StatsPage'); warm('./InfoPage');
+    }, 1500);
+    return () => window.clearTimeout(id);
   }, []);
   // 每次会话只上报一次访问，用于作者后台看今日/近 7 天访问量；不采集 IP、UA 等个人信息。
   useEffect(() => {
@@ -636,32 +649,29 @@ function Router() {
   const path = location.pathname.replace(/\/+$/, '') || '/';
   // /hub/chat 这类深链也要能直接打开（历史书签、分享出去的地址），不让它掉到 404
   const isStationPath = /^\/(chat|hub)(\/.+)?$/.test(path);
-  if (!['/', '/index.html'].includes(path) && !isStationPath && !callback) {
-    return <><NotFound /><SiteEffects /></>;
-  }
   const station = isStationPath || route === '#/chat' || authorEntry || callback;
-  if (station) {
-    return <Suspense fallback={<div className="route-loading" role="status">正在打开联络站…</div>}>
-      <GuestContact openAuthorLogin={authorEntry} />
-    </Suspense>;
+
+  // 关键：整站只用一个 Suspense 包住，而且放在最外层。
+  // 以前每个分支各自包一层，切页时旧的那层被卸载、新的那层开始加载，
+  // 中间必然露出一次 fallback（深色主题下那块还是写死的浅色底，闪得像白屏）。
+  // 现在边界只有一层，加上 startTransition，React 会等新 chunk 到齐再整体替换。
+  let view;
+  if (!['/', '/index.html'].includes(path) && !isStationPath && !callback) {
+    view = <><NotFound /><SiteEffects /></>;
+  } else if (station) {
+    view = <><GuestContact openAuthorLogin={authorEntry} /><SiteEffects /></>;
+  } else if (PAGE_ROUTE[route]) {
+    const { Page, name } = PAGE_ROUTE[route];
+    view = <><Page name={name} /><SiteEffects /></>;
+  } else {
+    view = <><App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} /><SiteEffects /></>;
   }
-  // #/uses 装备页：一张能滚的清单页，不挂猫和随身听
-  if (route === '#/uses' || route === '#/archive' || route === '#/stats') {
-    const Page = route === '#/archive' ? ArchivePage : route === '#/stats' ? StatsPage : UsesPage;
-    return <>
-      <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
-        <Page />
-      </Suspense>
-      <SiteEffects />
-    </>;
-  }
-  // #about / #colophon / #rss：子页面上的导航点过来的，回首页并把那张介绍卡打开
-  const info = route.startsWith('#') && !route.startsWith('#/') ? route.slice(1) : '';
-  const initialInfo = info && pages[info[0].toUpperCase() + info.slice(1)] ? info[0].toUpperCase() + info.slice(1) : '';
-  return <>
-    <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} initialInfo={initialInfo} />
-    <SiteEffects />
-  </>;
+
+  return (
+    <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
+      {view}
+    </Suspense>
+  );
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
 

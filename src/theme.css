@@ -607,11 +607,16 @@ body {
 .theme-toggle.light .theme-ico.moon{opacity:.35}
 .theme-toggle.dark .theme-ico.sun{opacity:.35}
 
-/* 主题切换：从点击处扩散的圆形揭示（View Transition 覆盖默认淡入淡出） */
-html.theming ::view-transition-old(root),
-html.theming ::view-transition-new(root){ animation:none !important; }
-html.theming ::view-transition-old(root){ z-index:1 }
-html.theming ::view-transition-new(root){ z-index:2 }
+/* 主题切换：从点击处扩散的圆形揭示。
+   ⚠️ 这里的 animation:none 必须是「无作用域」的写法：带 .theming 前缀时实测压不住
+   浏览器给 view-transition 伪元素挂的默认 250ms 交叉淡入，结果一次切换同时跑
+   圆形揭示和整页淡入两套动画 —— 看着就是闪一下。
+   全站只有主题切换会开 View Transition（@view-transition 已移除），所以放开写是安全的。 */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root){ animation:none; mix-blend-mode:normal; }
+::view-transition-old(root){ z-index:1 }
+::view-transition-new(root){ z-index:2 }
 @media(prefers-reduced-motion:reduce){
   html.theming ::view-transition-new(root){ animation:none !important }
 }

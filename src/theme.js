@@ -53,7 +53,8 @@ export function useTheme() {
       Math.max(y, window.innerHeight - y),
     ) * 1.05;
 
-    // .theming 会关掉默认的整页交叉淡入，只留这次圆形揭示，否则两种动画会叠在一起
+    // 默认的整页交叉淡入已经在 theme.css 里用 ::view-transition-* 关掉了，
+    // 这里这一个类只是给调试留的抓手（z-index 也在那边定）
     const root = document.documentElement;
     root.classList.add('theming');
     const done = () => root.classList.remove('theming');

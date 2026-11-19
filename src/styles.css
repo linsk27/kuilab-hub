@@ -310,7 +310,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 @media(hover:hover) and (pointer:fine){.not-found-home:hover{background:#362d25}}
 
 /* ---- 联络站加载占位 ---- */
-.route-loading{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;color:#8a7b6d;font-size:13px;background:#fdfdfc}
+.route-loading{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:12px;letter-spacing:.08em;background:var(--scene)}
 
 /* ---- 链接顺序调整 ---- */
 .move-links{position:absolute;left:7px;bottom:7px;display:flex;flex-direction:column;gap:4px;z-index:2}
@@ -477,12 +477,9 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .cat-companion.is-3d{width:112px;height:129px;right:6px;bottom:calc(8px + env(safe-area-inset-bottom))}
 }
 
-/* ---- 页面之间淡入淡出（支持的浏览器生效，其他忽略） ---- */
-@view-transition{navigation:auto}
-::view-transition-old(root){animation:vt-out 180ms ease both}
-::view-transition-new(root){animation:vt-in 260ms cubic-bezier(.05,.7,.1,1) both}
-@keyframes vt-out{to{opacity:0}}
-@keyframes vt-in{from{opacity:0}}
+/* 这里原来有一条 @view-transition{navigation:auto} + 整页交叉淡入。
+   实测它和主题切换的圆形揭示会同时跑：新快照一边淡入一边被圆形裁切，
+   看着就是「闪一下再亮」。现在只保留揭示，默认过渡交给 theme.css 里的 .theming。 */
 
 /* ---- 便签卡片依次入场：340ms 落在卡片 200-350ms 区间，退出比进入快 ---- */
 @keyframes note-in{from{opacity:0;transform:translateY(10px) scale(.996) rotate(-.8deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
@@ -2147,3 +2144,83 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
   .uses-sheet{width:calc(100% - 24px); padding:30px 20px 22px; border-radius:16px}
   .uses-head{padding-bottom:18px}
 }
+
+/* ============================================================
+   入场只放一次
+   ------------------------------------------------------------
+   以前每次从子页面回到首页，标题逐词上浮、卡片依次落下、状态条从模糊里
+   浮出来，全都会重放一遍。那串动作加起来一秒多，看着就是「闪」。
+   现在由 index.html 首帧加的 html.enter 控制，2.4 秒后摘掉。
+   ============================================================ */
+.page .rail,
+.page .paper-shell,
+.page .footer,
+.page .panel-foot .meta-cell,
+.page .link-note,
+.page .split-word{animation:none}
+
+html.enter .page .rail{animation:ink-focus .8s var(--ease) both}
+html.enter .page .paper-shell{animation:ink-rise .8s var(--ease) both}
+html.enter .page .footer{animation:ink-focus .9s var(--ease) .2s both}
+html.enter .page .panel-foot .meta-cell:nth-child(1){animation:ink-rise .8s var(--ease) .18s both}
+html.enter .page .panel-foot .meta-cell:nth-child(2){animation:ink-rise .8s var(--ease) .24s both}
+html.enter .page .link-note{animation:note-in 340ms cubic-bezier(.05,.7,.1,1) backwards}
+html.enter .page .note-wrap:nth-child(2) .link-note{animation-delay:40ms}
+html.enter .page .note-wrap:nth-child(3) .link-note{animation-delay:80ms}
+html.enter .page .note-wrap:nth-child(4) .link-note{animation-delay:120ms}
+html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
+
+/* ============================================================
+   About / RSS：两张说明页
+   和装备页共用同一张纸、同一个页头，正文只有一段话的宽度。
+   ============================================================ */
+.info-sheet{max-width:1000px}
+.info-body{max-width:62ch; margin-top:34px}
+.info-body p{
+  margin:0 0 22px; font-size:13px; line-height:2.05;
+  color:var(--ink-2); text-wrap:pretty;
+}
+.info-body p:last-child{margin-bottom:0}
+.info-body a{
+  color:var(--ink); text-decoration:none;
+  border-bottom:1px solid var(--warm-line);
+  transition:color .2s var(--ease), border-color .2s var(--ease);
+}
+.info-body a:hover{color:var(--warm); border-bottom-color:var(--warm)}
+
+/* 订阅地址：做成一条可以整行选中的地址条 */
+.info-body .info-link-row{
+  display:inline-flex; align-items:center; gap:10px;
+  margin:0 0 26px; padding:11px 16px;
+  border:1px solid var(--line); border-radius:10px; background:var(--panel-b);
+  color:var(--ink); font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px;
+}
+.info-body .info-link-row a{
+  display:inline-flex; align-items:center; gap:5px; border-bottom:0;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px; letter-spacing:0;
+}
+.info-body .info-link-row a:hover{color:var(--warm)}
+.info-body .info-link-row svg{color:var(--warm); opacity:.85}
+
+@media(max-width:767px){
+  .info-body{margin-top:24px}
+  .info-body p{font-size:12.5px; line-height:1.95; margin-bottom:18px}
+  .info-body .info-link-row{font-size:11.5px; padding:10px 12px; max-width:100%; overflow-wrap:anywhere}
+  .info-body .info-link-row a{font-size:11.5px}
+}
+
+/* 说明页只有一段话：纸收窄一点、导语比正文大一档，右下角才不至于空一大块 */
+.info-sheet{max-width:820px}
+.info-body{max-width:66ch}
+.info-sheet .uses-lede{font-size:14px; line-height:1.95; color:var(--ink); margin-top:14px}
+.info-sheet .uses-head h1{font-size:32px}
+@media(max-width:767px){
+  .info-sheet .uses-lede{font-size:13px}
+  .info-sheet .uses-head h1{font-size:27px}
+}
+
+/* 全站默认禁选（首页当一张纸看），但订阅地址就是拿来复制的 —— 这里放开，
+   并且点一下就整条选中，省得拖着选半行 */
+.info-body .info-link-row,
+.info-body .info-link-row *{-webkit-user-select:text; user-select:text}
+.info-body .info-link-row a{-webkit-user-select:all; user-select:all}

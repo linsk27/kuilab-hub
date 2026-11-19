@@ -23,6 +23,11 @@
         } catch (e) {
           document.documentElement.dataset.theme = 'dark';
         }
+        // 入场动画只在首屏放一次：从子页面回来不该再把标题、卡片重放一遍
+        document.documentElement.classList.add('enter');
+        setTimeout(function () {
+          document.documentElement.classList.remove('enter');
+        }, 2400);
       })();
     </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
