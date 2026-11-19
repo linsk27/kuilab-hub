@@ -39,7 +39,7 @@ const PAGE_ROUTE = {
   '#/rss': { Page: InfoPage, name: 'RSS' },
 };
 const pages = {
-  About: ['A little about this place', 'Personal Hub is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
+  About: ['A little about this place', '行间 is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
   Uses: ['The everyday toolkit', 'Built with React and Tailwind CSS. Icons by Phosphor, with an original illustrated portrait.', 'A quiet space for projects, notes, sketches, and whatever comes next.'],
   Archive: ['Everything, in order', '写过的文章和这座站的改动，按月份排成一条线。', '完整年表在 #/archive。'],
   Stats: ['Some numbers', '访问、内容量，以及你在这台设备上留下的痕迹。', '一些数字在 #/stats。'],
@@ -423,12 +423,12 @@ function App({ managing }) {
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
       <div className="decoration top-arrow" aria-hidden="true"><ArrowBendUpRight size={65} weight="thin" /></div>
       {managing && <div className="management-banner"><strong>链接管理 · 浏览器草稿</strong><a href="#/">退出管理，返回公开页 <ArrowUpRight size={16} aria-hidden="true" /></a></div>}
-      <main className="paper-shell grid" aria-label={managing ? 'Personal Hub 链接管理' : 'Personal Hub'}>
+      <main className="paper-shell grid" aria-label={managing ? '行间 链接管理' : '行间'}>
         {/* 边缘光（移植自 react-bits BorderGlow）：只在指针靠近卡片边缘时亮起那一段边 */}
         <span className="shell-edge" aria-hidden="true" />
         <aside className="profile flex flex-col items-center text-center">
-          <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.webp`} alt="Original anime portrait of a silver-haired young woman" decoding="async" fetchPriority="high" width="160" height="160" draggable={false} onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
-          <h1><SplitWords text="Personal Hub" base={240} step={80} /></h1>
+          <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.webp`} alt="An anime-style portrait of a young man holding a telephone" decoding="async" fetchPriority="high" width="160" height="160" draggable={false} onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
+          <h1 className="site-title"><SplitWords text="行间" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
           {!now && !nowLoaded && <dl className="now now-skeleton" aria-hidden="true">
             <div className="now-head"><dt>Now</dt><dd><span className="ghost-bar" style={{ width: 42 }} /></dd></div>

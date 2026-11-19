@@ -784,3 +784,19 @@ body{ --glass-line: rgba(255, 255, 255, .145) }
 .page .note-front > .marker{margin-top:auto}
 /* 卡片之间多留 2px，玻璃之间的空气要够才分得开 */
 .page .link-wall{gap:22px 20px}
+
+/* 旧头像偏灰（saturate .73 是为了压住银发那版），换的这张本来就是暖红调，
+   再压就发土了 —— 只留一点点降饱和 */
+.page .portrait{ filter: saturate(.94) contrast(1.02) }
+
+/* 头像在暗色底上是一块亮斑，压一点亮度才落得回去；
+   浅色底则需要一点对比把它从纸上托起来。用变量分主题给，避免写两遍 filter */
+body{ --portrait-filter: saturate(.9) brightness(.9) contrast(1.03) }
+[data-theme="light"] body{ --portrait-filter: saturate(.96) contrast(1.02) }
+.page .portrait{ filter: var(--portrait-filter) }
+
+/* 浅色下头像那圈 1px 白边像给照片镶了个框，图本身有暗底，边界已经够；
+   去掉它，只留一层柔影。暗色保留极细的一圈，深色里需要这条线 */
+[data-theme="light"] .page .portrait{
+  box-shadow: 0 22px 42px -26px rgba(120, 94, 66, .5);
+}

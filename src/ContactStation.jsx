@@ -284,7 +284,7 @@ export default function ContactStation() {
     });
   }
   return <div className="station-page min-h-dvh">
-    <header className="station-header"><a href="./">← Personal Hub</a><span>联络站 · 随手传</span></header>
+    <header className="station-header"><a href="./">← 行间</a><span>联络站 · 随手传</span></header>
     {localOrigin && <p className="station-environment" role="note">当前为本地预览。已确认本地能请求数据库；微信授权回调需要应用正式域名，登录与跨设备收发尚待真实账号验证。</p>}
     <main className="station-workspace">
       <aside className="station-sidebar"><ChatCircle size={30} weight="light" /><h1>联络站</h1><p>留一句话，传一份文件。</p>

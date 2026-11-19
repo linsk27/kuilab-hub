@@ -1,7 +1,7 @@
 {
-  "name": "个人中转站 · kuilab",
-  "short_name": "中转站",
-  "description": "一个安静的个人网站入口：链接、近况、联络站与随身听。",
+  "name": "行间 · kuilab",
+  "short_name": "行间",
+  "description": "行间：一个安静的个人网站入口，链接、近况、联络站与随身听。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

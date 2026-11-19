@@ -2519,3 +2519,33 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
   .rail-r{position:static; transform:none}
   .rail{gap:10px}
 }
+
+/* ============================================================
+   首页站名：行间
+   ------------------------------------------------------------
+   原来是 "Personal Hub" 两词英文，40px 刚好占满 275 的左栏。
+   换成两个汉字之后同样的字号显得头轻，单独抬到 60px；
+   字距 .04em 让两个字之间有一点呼吸，再用 text-indent 抵掉
+   letter-spacing 在末字后多出来的那点，居中才是真的居中。
+   ============================================================ */
+.page .profile h1.site-title{
+  font-size: 60px;
+  line-height: 1.1;
+  letter-spacing: .04em;
+  text-indent: .04em;
+}
+@media(max-width:767px){
+  .page .profile h1.site-title{font-size: 46px}
+}
+
+/* 中文两个字不需要字距（那是西文小字才用的呼吸），
+   去掉之后「行间」才是一整块，而不是「行 间」。字号再抬一档补分量。 */
+.page .profile h1.site-title{
+  font-size: 66px;
+  letter-spacing: 0;
+  text-indent: 0;
+  line-height: 1.08;
+}
+@media(max-width:767px){
+  .page .profile h1.site-title{font-size: 48px}
+}
