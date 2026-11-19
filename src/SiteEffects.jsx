@@ -17,6 +17,16 @@ export default function SiteEffects() {
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // 页面上任何角落都想说一句话时，发这个事件就够（折角、复制、盖章…）
+  useEffect(() => {
+    const onToast = event => {
+      const text = String(event.detail || '');
+      if (text) flash(text);
+    };
+    window.addEventListener('hub:toast', onToast);
+    return () => window.removeEventListener('hub:toast', onToast);
+  }, []);
+
   function flash(text) {
     setToast(text);
     window.clearTimeout(timer.current);

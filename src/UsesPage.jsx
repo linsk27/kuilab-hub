@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 import SiteNav from './SiteNav';
+import FoldMark from './Folds';
 
 // #/uses 装备页：把这座站的家底摊开写一遍。
 // 不是"工具推荐"，是"这东西是怎么长出来的" —— 每一条都对得上仓库里的真实实现。
@@ -147,6 +148,7 @@ export default function UsesPage() {
             <section className="uses-block" key={section.kicker}
               data-kicker={section.kicker}
               ref={node => { blocks.current[section.kicker] = node; }}>
+              <FoldMark foldKey={`uses:${section.kicker}`} label={section.title} />
               <div className="uses-block-head">
                 <span className="uses-num">{section.kicker}</span>
                 <h2>{section.title}</h2>

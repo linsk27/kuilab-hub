@@ -1,8 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Stamp, Copy, PaintBrush, MusicNotes, ChatCircle, ArrowUpRight } from '@phosphor-icons/react';
+import { Stamp, PawPrint, Heart, SealCheck, Copy, PaintBrush, MusicNotes, ChatCircle, ArrowUpRight } from '@phosphor-icons/react';
 
 // 右键手账菜单：空白处右击弹一张小纸条，把平时藏在 ⌘K 里的动作摆到手边。
 // 链接、按钮、输入框上不接管 —— 那里浏览器原生的「在新标签页打开」「粘贴」更有用。
+// 第一格是一盒印章：日期、猫爪、爱心、已阅，选哪枚就盖哪枚。
+
+const STAMPS = [
+  { kind: 'date', label: '今天的日期', icon: Stamp },
+  { kind: 'paw', label: '猫爪', icon: PawPrint },
+  { kind: 'heart', label: '爱心', icon: Heart },
+  { kind: 'read', label: '已阅', icon: SealCheck },
+];
+
 export default function ContextMenu({ onStamp, onCopy, onTheme, onStation }) {
   const [at, setAt] = useState(null);
   const box = useRef(null);
@@ -13,7 +22,7 @@ export default function ContextMenu({ onStamp, onCopy, onTheme, onStation }) {
       if (target?.closest?.('a,button,input,textarea,select,img,dialog,.palette-scrim,.ctx-menu,[contenteditable="true"]')) return;
       event.preventDefault();
       const w = 188;
-      const h = 196;
+      const h = 222;
       setAt({
         x: Math.max(8, Math.min(event.clientX, window.innerWidth - w - 8)),
         y: Math.max(8, Math.min(event.clientY, window.innerHeight - h - 8)),
@@ -59,10 +68,27 @@ export default function ContextMenu({ onStamp, onCopy, onTheme, onStation }) {
       onContextMenu={event => event.preventDefault()}
     >
       <span className="ctx-tape" aria-hidden="true" />
-      <button type="button" role="menuitem" onClick={run(onStamp)}>
-        <Stamp size={14} weight="light" aria-hidden="true" />
-        <span>盖今天的日期章</span>
-      </button>
+      <div className="ctx-stamp-box">
+        <span className="ctx-stamp-title">按一枚章</span>
+        <div className="ctx-stamp-row" role="group" aria-label="选一枚章">
+          {STAMPS.map(item => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.kind}
+                type="button"
+                role="menuitem"
+                className={`ctx-stamp is-${item.kind}`}
+                title={`盖${item.label}章`}
+                aria-label={`盖${item.label}章`}
+                onClick={run(point => onStamp({ ...point, kind: item.kind }))}
+              >
+                <Icon size={17} weight="light" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <button type="button" role="menuitem" onClick={run(onCopy)}>
         <Copy size={14} weight="light" aria-hidden="true" />
         <span>复制本页链接</span>

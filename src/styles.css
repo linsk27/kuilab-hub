@@ -1288,17 +1288,17 @@ input, textarea, [contenteditable="true"]{cursor:text}
   padding:6px 10px 5px; border:1.5px solid currentColor; border-radius:3px;
   color:#C06448; opacity:.86;
   font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  transform:translate(-50%,-50%) rotate(-9deg);
+  transform:translate(-50%,-50%) rotate(var(--seal-rot,-9deg));
   animation:stamp-drop 2.3s cubic-bezier(.22,.9,.3,1) both;
 }
 .date-stamp::after{content:""; position:absolute; inset:2px; border:1px solid currentColor; border-radius:2px; opacity:.45}
 .date-stamp-date{font-size:12px; line-height:1; letter-spacing:.12em; font-variant-numeric:tabular-nums}
 .date-stamp-mark{font-size:7.5px; line-height:1; letter-spacing:.26em; opacity:.7; text-transform:uppercase}
 @keyframes stamp-drop{
-  0%{opacity:0; transform:translate(-50%,-50%) rotate(-9deg) scale(1.75)}
-  18%{opacity:.92; transform:translate(-50%,-50%) rotate(-9deg) scale(.96)}
-  24%,78%{opacity:.88; transform:translate(-50%,-50%) rotate(-9deg) scale(1)}
-  100%{opacity:0; transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
+  0%{opacity:0; transform:translate(-50%,-50%) rotate(var(--seal-rot,-9deg)) scale(1.75)}
+  18%{opacity:.92; transform:translate(-50%,-50%) rotate(var(--seal-rot,-9deg)) scale(.96)}
+  24%,78%{opacity:.88; transform:translate(-50%,-50%) rotate(var(--seal-rot,-9deg)) scale(1)}
+  100%{opacity:0; transform:translate(-50%,-50%) rotate(var(--seal-rot,-9deg)) scale(1)}
 }
 /* 第一次来的人不会知道能双击：飘一条小提示，只出现一次 */
 .stamp-hint{
@@ -2362,3 +2362,116 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 @media(max-width:767px){
   .back-top{right:8px; bottom:14px; width:44px; height:44px}
 }
+
+/* ============================================================
+   折角
+   ------------------------------------------------------------
+   年表每个月、装备页每一节的右上角：hover 出一圈虚线折痕，点一下折下纸角。
+   折下后是一块纸背（比纸面略深），带一点投影 —— 折角本来就该有厚度。
+   手机上没法 hover，所以触摸设备上低透明度常显（.32），不抢注意力。
+   ============================================================ */
+.arc-month{position:relative}
+.fold-mark{
+  position:absolute; top:-1px; right:-11px; z-index:4;
+  width:30px; height:30px; padding:0; border:0; background:none;
+  color:var(--warm-line);
+  opacity:0; pointer-events:none;
+  transition:opacity .18s var(--ease), transform .18s var(--ease), filter .18s var(--ease);
+}
+.fold-mark svg{display:block; width:100%; height:100%; overflow:visible}
+.fold-face{fill:transparent; stroke:currentColor; stroke-width:1.1; stroke-dasharray:2.4 2.6; opacity:.55; transition:opacity .18s var(--ease), fill .18s var(--ease)}
+.fold-crease{fill:none; stroke:currentColor; stroke-width:1; stroke-dasharray:2.4 2.6; opacity:.4; transition:opacity .18s var(--ease), stroke-dasharray .18s var(--ease)}
+.arc-month:hover .fold-mark,
+.uses-block:hover .fold-mark,
+.fold-mark:focus-visible,
+.fold-mark.is-on{opacity:1; pointer-events:auto}
+.fold-mark:hover{transform:translate(1px,-1px)}
+.fold-mark:hover .fold-face{opacity:.92}
+.fold-mark:hover .fold-crease{opacity:.62}
+.fold-mark.is-on .fold-face{
+  fill:color-mix(in srgb, var(--panel-b) 86%, var(--warm) 14%);
+  stroke:var(--warm-line); stroke-dasharray:none; opacity:1;
+}
+.fold-mark.is-on .fold-crease{stroke:var(--warm-line); stroke-dasharray:none; opacity:.55}
+.fold-mark.is-on{filter:drop-shadow(-1.5px 2px 2px rgba(92,81,69,.18))}
+@media(hover:none){
+  .fold-mark{opacity:.32; pointer-events:auto}
+  .fold-mark.is-on{opacity:1}
+}
+
+/* ============================================================
+   印章铺：日期 / 猫爪 / 爱心 / 已阅
+   ------------------------------------------------------------
+   形状都是描边的橡皮章，墨色固定不跟纸走，只在明暗主题里微调深浅；
+   每枚章落下的角度错开，连盖三下才不会像印刷机。
+   ============================================================ */
+.stamp-paw{--seal-rot:7deg; color:#78878D; padding:8px 9px 5px}
+.stamp-heart{--seal-rot:-6deg; color:#C08094; padding:8px 11px 5px}
+.stamp-read{--seal-rot:2.5deg; color:#7A8B75; padding:6px 10px 5px}
+[data-theme="light"] .stamp-paw{color:#4A5A63}
+[data-theme="light"] .stamp-heart{color:#A4506B}
+[data-theme="light"] .stamp-read{color:#4C604A}
+.seal-paw,.seal-heart{width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linejoin:round; overflow:visible}
+.seal-heart{width:22px; height:22px; stroke-width:1.4}
+.seal-read{font-family:Georgia,"Songti SC","Songti TC",serif; font-size:14px; line-height:1; letter-spacing:.16em; text-indent:.16em}
+
+/* 右键菜单里的那一盒 */
+.ctx-stamp-box{margin:-2px -1px 6px; padding:9px 10px 10px; border-bottom:1px solid var(--line-faint)}
+.ctx-stamp-title{display:block; font-size:9px; letter-spacing:.16em; color:var(--ink-3); margin-bottom:9px}
+.ctx-stamp-row{display:flex; gap:9px}
+.ctx-menu .ctx-stamp{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:36px; padding:0; border:1px solid var(--line); border-radius:50%;
+  background:var(--btn-bg); color:var(--ink-2);
+  transition:transform .16s var(--ease), border-color .16s var(--ease), background-color .16s var(--ease);
+}
+.ctx-menu .ctx-stamp svg{color:currentColor; opacity:.9; transition:none}
+.ctx-menu .ctx-stamp.is-date{color:#C06448}
+.ctx-menu .ctx-stamp.is-paw{color:#78878D}
+.ctx-menu .ctx-stamp.is-heart{color:#C08094}
+.ctx-menu .ctx-stamp.is-read{color:#7A8B75}
+[data-theme="light"] .ctx-menu .ctx-stamp.is-date{color:#A8472E}
+[data-theme="light"] .ctx-menu .ctx-stamp.is-paw{color:#4A5A63}
+[data-theme="light"] .ctx-menu .ctx-stamp.is-heart{color:#A4506B}
+[data-theme="light"] .ctx-menu .ctx-stamp.is-read{color:#4C604A}
+.ctx-menu .ctx-stamp:hover{
+  transform:translateY(-3px) rotate(-5deg);
+  border-color:var(--warm-line);
+  background:var(--panel-a);
+}
+@media(prefers-reduced-motion:reduce){
+  .fold-mark,.ctx-menu .ctx-stamp{transition:none}
+}
+
+/* 折角 30px 太大，且正好压住月头那一行的「03」。缩到 26，
+   再给月头留出 28px 的右内边距 —— 角落在空白里，字一个都不遮。 */
+.fold-mark{width:26px; height:26px; top:-4px; right:-9px}
+.arc-month-head{padding-right:28px}
+
+/* 折下去的角几乎和纸同色，看不出「折了」。纸背再压深一点、投影拉长一点，
+   折痕也提亮一档 —— 这三样凑齐才有厚度。 */
+.fold-mark.is-on .fold-face{
+  fill:color-mix(in srgb, var(--panel-b) 76%, var(--warm) 24%);
+}
+.fold-mark.is-on .fold-crease{opacity:.72}
+.fold-mark.is-on{filter:drop-shadow(-2px 2.5px 3px rgba(92,81,69,.26))}
+
+/* 四枚章挤在 156 的内容宽度里，36 圆的间距被压到 9 以下；
+   收窄一点，排开才匀 */
+.ctx-stamp-row{gap:7px}
+.ctx-menu .ctx-stamp{width:34px; height:34px}
+
+/* 爪印和心在框里显小，四周空了一圈。放大图形、收紧内边距；
+   「已阅」两字原来摊得太开，字距收到 .1em */
+.stamp-paw{padding:7px 8px 5px}
+.stamp-paw .seal-paw{width:30px; height:30px}
+.stamp-heart{padding:7px 9px 5px}
+.stamp-heart .seal-heart{width:26px; height:26px}
+.seal-read{font-size:15px; letter-spacing:.1em; text-indent:.1em}
+
+/* 26px 的角在手机上不好点；用伪元素把命中区撑到 42，视觉不变 */
+.fold-mark::after{content:""; position:absolute; inset:-8px; border-radius:50%}
+
+/* 折角原来挂在块的「盒子顶」，装备页 padding-top 26，角就落到上一节最后一行去了。
+   往下挪到标题行的高度（18），年表月头也吃同一条；月头已经让出 28 的右内边距，不遮字。 */
+.fold-mark{top:18px}

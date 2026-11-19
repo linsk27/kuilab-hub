@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 import SiteNav from './SiteNav';
+import FoldMark from './Folds';
 
 // #/archive 年表：把「博客文章」和「站点更新」并成一条时间线。
 // 数据全是现成的：文章来自 /api/blog（服务端抓 RSS），更新来自 public/now.json。
@@ -179,6 +180,10 @@ export default function ArchivePage() {
 
                 {bucket.months.map(group => (
                   <div className="arc-month" key={group.month}>
+                    <FoldMark
+                      foldKey={`archive:${bucket.year}-${group.month}`}
+                      label={`${bucket.year} 年 ${MONTH[Number(group.month) - 1]}`}
+                    />
                     <div className="arc-month-head">
                       <span className="arc-month-name">{MONTH[Number(group.month) - 1]}</span>
                       <span className="arc-month-count">{String(group.items.length).padStart(2, '0')}</span>
