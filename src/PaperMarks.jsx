@@ -46,13 +46,11 @@ export function StampLayer() {
       markSeen();
     }
 
+    // 章层是 position:fixed 的，所以坐标直接用视口值 ——
+    // 这样不管页面滚到哪儿、在哪一页上盖章，落点都在手指下面
     function place(clientX, clientY) {
-      const page = document.querySelector('.page');
-      if (!page) return;
-      const box = page.getBoundingClientRect();
-      // 夹在页面里：别让章被裁掉一半，也别盖到顶上那条状态条
-      const x = Math.min(Math.max(clientX - box.left, 54), Math.max(box.width - 54, 54));
-      const y = Math.min(Math.max(clientY - box.top, 88), Math.max(box.height - 34, 88));
+      const x = Math.min(Math.max(clientX, 54), Math.max(window.innerWidth - 54, 54));
+      const y = Math.min(Math.max(clientY, 88), Math.max(window.innerHeight - 34, 88));
       stampAt(x, y);
     }
 

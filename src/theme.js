@@ -5,6 +5,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'hub-theme';
+// 同一页里可能有两个 useTheme（页面自己的开关 + 全站特效层的右键菜单），
+// 靠这条事件同步，否则点了右键菜单里的"换明暗"，页面上的开关图标不会跟着变。
+const THEME_EVENT = 'hub:theme';
 const META_COLOR = { dark: '#1A1715', light: '#F3EFE8' };
 
 // 首帧由 index.html 的内联脚本写好 data-theme，这里只读回来，避免刷新闪一下
@@ -16,6 +19,16 @@ function readTheme() {
 export function useTheme() {
   const [theme, setTheme] = useState(readTheme);
 
+  // 别人改了主题，这边跟着改
+  useEffect(() => {
+    const onSet = event => {
+      const next = event.detail;
+      if (next === 'light' || next === 'dark') setTheme(next);
+    };
+    window.addEventListener(THEME_EVENT, onSet);
+    return () => window.removeEventListener(THEME_EVENT, onSet);
+  }, []);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     document.querySelector('meta[name="theme-color"]')
@@ -25,8 +38,13 @@ export function useTheme() {
 
   const toggle = useCallback(event => {
     const next = theme === 'dark' ? 'light' : 'dark';
+    // 本地先落状态，再把同一件事广播给页面里其它 useTheme
+    const apply = value => {
+      setTheme(value);
+      window.dispatchEvent(new CustomEvent(THEME_EVENT, { detail: value }));
+    };
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || !document.startViewTransition) { setTheme(next); return; }
+    if (reduce || !document.startViewTransition) { apply(next); return; }
 
     const x = event?.clientX ?? window.innerWidth - 48;
     const y = event?.clientY ?? 36;
@@ -40,7 +58,7 @@ export function useTheme() {
     root.classList.add('theming');
     const done = () => root.classList.remove('theming');
     try {
-      const vt = document.startViewTransition(() => setTheme(next));
+      const vt = document.startViewTransition(() => apply(next));
       vt.ready
         .then(() => root.animate(
           { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
@@ -50,7 +68,7 @@ export function useTheme() {
       vt.finished.then(done, done);
     } catch {
       done();
-      setTheme(next);
+      apply(next);
     }
   }, [theme]);
 

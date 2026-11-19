@@ -6,9 +6,8 @@ import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 s
 import { useTheme } from './theme';
 import ThemeToggle from './ThemeToggle';
 import SplitWords from './SplitWords';
-import { HandUnderline, StampLayer } from './PaperMarks';
-import PawTrail from './PawTrail';
-import ContextMenu from './ContextMenu';
+import { HandUnderline } from './PaperMarks';
+import SiteEffects from './SiteEffects';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -259,16 +258,7 @@ function App({ managing }) {
   // 键盘流：j/k 或 ↑↓ 选卡片，Enter 打开；一次只翻一张便签的背面
   const [keyIndex, setKeyIndex] = useState(-1);
   const [flipped, setFlipped] = useState(null);
-  // 右键菜单里点「复制」「盖个章」之后给一句反馈，1.8 秒自己消失
-  const [toast, setToast] = useState('');
-  const toastTimer = useRef(0);
   const handleSearch = React.useCallback(query => setSearch(query.trim().toLowerCase()), []);
-  const flash = React.useCallback(text => {
-    setToast(text);
-    window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(''), 1800);
-  }, []);
-  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
   const links = showSamples ? sampleLinks : savedLinks;
   const pageCount = Math.max(1, Math.ceil(links.length / PAGE_SIZE));
@@ -390,8 +380,6 @@ function App({ managing }) {
   }
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
     <Spotlight />
-    <StampLayer />
-    <PawTrail />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
     <StatusRail theme={theme} onToggleTheme={toggleTheme} />
     <div className="composition relative w-full">
@@ -541,15 +529,6 @@ function App({ managing }) {
       <PetCat />
       <Suspense fallback={null}><MusicPlayer /></Suspense>
       <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} onSearch={handleSearch} /></Suspense>
-      <ContextMenu
-        onStamp={point => window.dispatchEvent(new CustomEvent('hub:stamp', { detail: point }))}
-        onCopy={() => {
-          navigator.clipboard?.writeText(window.location.href).then(() => flash('链接已复制')).catch(() => flash('浏览器不让复制，手动选中吧'));
-        }}
-        onTheme={point => toggleTheme(point)}
-        onStation={() => { window.location.href = '/hub'; }}
-      />
-      {toast && <span className="stamp-hint" role="status">{toast}</span>}
       <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => { if (name === 'Uses') { window.location.hash = '#/uses'; } else open(name); }}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
@@ -593,7 +572,9 @@ function Router() {
   const path = location.pathname.replace(/\/+$/, '') || '/';
   // /hub/chat 这类深链也要能直接打开（历史书签、分享出去的地址），不让它掉到 404
   const isStationPath = /^\/(chat|hub)(\/.+)?$/.test(path);
-  if (!['/', '/index.html'].includes(path) && !isStationPath && !callback) return <NotFound />;
+  if (!['/', '/index.html'].includes(path) && !isStationPath && !callback) {
+    return <><NotFound /><SiteEffects /></>;
+  }
   const station = isStationPath || route === '#/chat' || authorEntry || callback;
   if (station) {
     return <Suspense fallback={<div className="route-loading" role="status">正在打开联络站…</div>}>
@@ -602,11 +583,17 @@ function Router() {
   }
   // #/uses 装备页：一张能滚的清单页，不挂猫和随身听
   if (route === '#/uses') {
-    return <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
-      <UsesPage />
-    </Suspense>;
+    return <>
+      <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
+        <UsesPage />
+      </Suspense>
+      <SiteEffects />
+    </>;
   }
-  return <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />;
+  return <>
+    <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />
+    <SiteEffects />
+  </>;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
 

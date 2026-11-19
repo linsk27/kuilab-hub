@@ -1284,7 +1284,8 @@ input, textarea, [contenteditable="true"]{cursor:text}
 }
 
 /* ---- 4) 日期章：双击页面盖一个，2.3 秒后自己淡掉 ---- */
-.stamp-layer{position:absolute; inset:0; z-index:5; pointer-events:none}
+/* fixed：这一层现在挂在路由外层，任何页面、任何滚动位置都能盖章 */
+.stamp-layer{position:fixed; inset:0; z-index:5; pointer-events:none}
 .date-stamp{
   position:absolute; display:flex; flex-direction:column; align-items:center; gap:3px;
   padding:6px 10px 5px; border:1.5px solid currentColor; border-radius:3px;
