@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, ArrowBendUpRight, X, Copy, Check, House } from '@phosphor-icons/react';
+import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, ArrowBendUpRight, X, Copy, Check, House, ArrowsClockwise } from '@phosphor-icons/react';
 import './styles.css';
 import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 styles.css 之后
 import { useTheme } from './theme';
@@ -255,6 +255,9 @@ function App({ managing }) {
   const [notice, setNotice] = useState('');
   // 搜索即预览：⌘K 里敲字时，命中的卡片亮起来、其余淡下去
   const [search, setSearch] = useState('');
+  // 键盘流：j/k 或 ↑↓ 选卡片，Enter 打开；一次只翻一张便签的背面
+  const [keyIndex, setKeyIndex] = useState(-1);
+  const [flipped, setFlipped] = useState(null);
   // 右键菜单里点「复制」「盖个章」之后给一句反馈，1.8 秒自己消失
   const [toast, setToast] = useState('');
   const toastTimer = useRef(0);
@@ -265,10 +268,49 @@ function App({ managing }) {
     toastTimer.current = window.setTimeout(() => setToast(''), 1800);
   }, []);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+
   const links = showSamples ? sampleLinks : savedLinks;
   const pageCount = Math.max(1, Math.ceil(links.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleLinks = links.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // 键盘流：j / k（或 ↑↓）选卡片，Enter 或 o 打开，Esc 收起。
+  // 输入框里打字、⌘K 面板或弹窗打开时完全不接管 —— 否则在搜索框里打 j 就会跳卡片。
+  const rowsRef = useRef(visibleLinks);
+  rowsRef.current = visibleLinks;
+  const keyIndexRef = useRef(-1);
+  keyIndexRef.current = keyIndex;
+  useEffect(() => {
+    function onKey(event) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName || '') || target?.isContentEditable) return;
+      if (document.querySelector('dialog[open], .palette-scrim')) return;
+      const rows = rowsRef.current;
+      if (!rows.length) return;
+      const key = event.key;
+      if (key === 'j' || key === 'ArrowDown') {
+        event.preventDefault();
+        setKeyIndex(current => (current >= rows.length - 1 ? 0 : current + 1));
+      } else if (key === 'k' || key === 'ArrowUp') {
+        event.preventDefault();
+        setKeyIndex(current => (current <= 0 ? rows.length - 1 : current - 1));
+      } else if (key === 'Escape') {
+        if (keyIndexRef.current >= 0) { setKeyIndex(-1); setFlipped(null); }
+      } else if ((key === 'Enter' || key === 'o') && keyIndexRef.current >= 0) {
+        const link = rows[keyIndexRef.current];
+        if (!link) return;
+        event.preventDefault();
+        if (link.url) window.open(link.url, '_blank', 'noreferrer');
+        else open(link.name);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // 换页或一敲搜索词，键盘游标就归零，免得停在一个已经看不见的卡片上
+  useEffect(() => { setKeyIndex(-1); }, [currentPage, search]);
   function persist(next) {
     try { localStorage.setItem(STORAGE_KEY, serializeLinks(next)); setDraft(next); setFormError(''); return true; }
     catch { setFormError('浏览器无法保存。请检查存储权限或可用空间。'); return false; }
@@ -384,7 +426,7 @@ function App({ managing }) {
               if (feed && url) {
                 const posts = blog ? blog.posts.slice(0, 3) : [];
                 const hot = search && `${name} ${detail || ''} ${url}`.toLowerCase().includes(search);
-                return <div className={`note-wrap is-feature ${hot ? 'is-hit' : ''}`} key={id || name}>
+                return <div className={`note-wrap is-feature ${hot ? 'is-hit' : ''} ${keyIndex === index ? 'is-key' : ''}`} key={id || name}>
                   <article className="link-note feature-note" data-feed={feedState}>
                     <a className="feature-side" href={url} target="_blank" rel="noreferrer">
                       <span className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={22} weight="light" /><ArrowUpRight className="visit-arrow" size={16} weight="light" /></span>
@@ -419,7 +461,27 @@ function App({ managing }) {
                 </div>;
               }
               const hot = search && `${name} ${detail || ''} ${url}`.toLowerCase().includes(search);
-              return <div className={`note-wrap ${hot ? 'is-hit' : ''}`} key={id || name}>{url ? <a className={`link-note note-${index + 1}`} href={url} target="_blank" rel="noreferrer">{children}</a> : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}{managing && !showSamples && <>
+              // 背面：域名 + 一句更长的说明。没有 url 的卡片（示例/占位）不翻面。
+              const host = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
+              const isFlipped = flipped === id;
+              const painted = <div className="note-inner">
+                <div className="note-front">{children}</div>
+                {url && <div className="note-back" aria-hidden="true">
+                  <span className="nb-host">{host}</span>
+                  <span className="nb-text">{detail || '这张便签没留下说明。'}</span>
+                  <span className="nb-open">打开 <ArrowUpRight size={13} weight="light" /></span>
+                </div>}
+              </div>;
+              return <div className={`note-wrap ${hot ? 'is-hit' : ''} ${keyIndex === index ? 'is-key' : ''}`} key={id || name}>{url
+                ? <a className={`link-note note-${index + 1} ${isFlipped ? 'is-flipped' : ''}`} href={url} target="_blank" rel="noreferrer">{painted}</a>
+                : <button className={`link-note note-${index + 1}`} onClick={() => open(name)}>{children}</button>}
+                {url && !managing && <button type="button" className="note-fold" aria-pressed={isFlipped}
+                  aria-label={isFlipped ? `把「${name}」翻回正面` : `翻到「${name}」背面`}
+                  title="翻面"
+                  onClick={() => setFlipped(current => (current === id ? null : id))}>
+                  <ArrowsClockwise size={12} weight="light" aria-hidden="true" />
+                </button>}
+                {managing && !showSamples && <>
                 <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>
                 {savedLinks.length > 1 && <div className="move-links">
                   <button className="move-link" aria-label={`上移 ${name}`} disabled={at <= 0} onClick={() => moveLink(id, -1)}>↑</button>

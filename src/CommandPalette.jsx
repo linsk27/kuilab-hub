@@ -181,6 +181,7 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
           <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
           <span><kbd>↵</kbd> 执行</span>
           <span><kbd>esc</kbd> 关闭</span>
+          <span><kbd>j</kbd><kbd>k</kbd> 选卡片</span>
           <span className="palette-brand">⌘K · 随时唤出</span>
         </div>
       </div>

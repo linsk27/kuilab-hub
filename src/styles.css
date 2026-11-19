@@ -1432,3 +1432,50 @@ input, textarea, [contenteditable="true"]{cursor:text}
   -webkit-user-drag: none;
   -webkit-touch-callout: none;
 }
+
+/* ============================================================
+   便签翻面 · 键盘游标
+   ============================================================ */
+/* 卡片本身带着 .note-N 的轻微倾斜和 hover 抬升，所以翻转放在内层做：
+   外层管"贴在纸上的角度"，内层管"翻过来"，两者互不打架。 */
+.page .link-wall .link-note .note-inner{
+  position:relative; display:flex; flex-direction:column; flex:1 1 auto; min-height:0;
+  transform-style:preserve-3d;
+  transition:transform .52s cubic-bezier(.2,.75,.25,1);
+}
+.page .link-note.is-flipped .note-inner{transform:perspective(880px) rotateY(180deg)}
+.page .note-front{
+  display:flex; flex-direction:column; flex:1 1 auto; min-height:0;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+.page .note-back{
+  position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-between; gap:8px;
+  padding:1px 0; transform:rotateY(180deg);
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+.page .nb-host{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--ink-3); opacity:.7;
+}
+.page .nb-text{font-family:Georgia,"Times New Roman",serif; font-size:12.5px; line-height:1.75; color:var(--ink-2)}
+.page .nb-open{display:inline-flex; align-items:center; gap:4px; font-size:10px; letter-spacing:.06em; color:var(--warm)}
+
+/* 翻面按钮：右下角一枚小圆点，跟左下角的标记条分开站 */
+.page .note-fold{
+  position:absolute; right:6px; bottom:6px; z-index:3;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:24px; height:24px; padding:0; border:0; border-radius:50%;
+  background:transparent; color:var(--ink-3); opacity:0;
+  transition:opacity .18s var(--ease), color .18s var(--ease), background-color .18s var(--ease);
+}
+.page .note-wrap:hover .note-fold, .page .note-wrap:focus-within .note-fold{opacity:.7}
+.page .note-fold:hover{opacity:1; color:var(--warm); background:var(--btn-bg-h)}
+.page .note-fold[aria-pressed="true"]{opacity:1; color:var(--warm)}
+@media(hover:none){.page .note-fold{opacity:.85}}
+
+/* 键盘游标：虚线框，和搜索命中那圈实线区分开 */
+.page .link-wall .note-wrap.is-key .link-note{outline:1.5px dashed var(--warm); outline-offset:4px}
+
+@media(prefers-reduced-motion:reduce){
+  .page .link-wall .link-note .note-inner{transition:none}
+}
