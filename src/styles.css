@@ -1504,14 +1504,26 @@ input, textarea, [contenteditable="true"]{cursor:text}
   transition:color .2s var(--ease), transform .2s var(--ease);
 }
 .uses-back:hover{color:var(--ink-strong); transform:translateX(-2px)}
+/* 顶部状态条要和纸卡片同宽：宽屏下卡片是 1140，状态条原来还是 1080，两边各差 30px */
+@media(min-width:1400px){
+  .page .rail{width:min(100%, 1140px)}
+}
 .uses-kicker{
   margin:0 0 12px; font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:8.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+  font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3);
 }
+/* 标题与导语左右分列：原来导语只占左半边，右上角空出一大块，看着像没居中 */
+.uses-head-grid{
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px 44px;
+  align-items:end; padding-bottom:26px; border-bottom:1px solid var(--line-faint);
+}
+.uses-title{min-width:0}
 .uses-head h1{font-size:36px; letter-spacing:-.025em; color:var(--ink-strong); margin:0}
-.uses-lede{margin:14px 0 0; max-width:46em; font-size:13px; line-height:2; color:var(--ink-2)}
-.uses-body{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:30px 44px; margin-top:38px}
-.uses-block{min-width:0}
+.uses-lede{margin:0 0 2px; font-size:12.5px; line-height:1.95; color:var(--ink-2); text-wrap:pretty}
+/* 双列改用 columns 而不是 grid：grid 会按最高的一列对齐，短的那列底下留大洞 */
+.uses-body{columns:2; column-gap:44px; margin-top:26px}
+.uses-block{min-width:0; break-inside:avoid; margin:0 0 28px}
+.uses-block:last-child{margin-bottom:0}
 .uses-block-head{display:flex; align-items:baseline; gap:9px; padding-bottom:9px; border-bottom:1px solid var(--line-faint)}
 .uses-num{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; letter-spacing:.14em; color:var(--warm); opacity:.85}
 .uses-block-head h2{font-size:15px; font-weight:400; color:var(--ink-strong); margin:0; letter-spacing:-.01em}
@@ -1530,7 +1542,8 @@ input, textarea, [contenteditable="true"]{cursor:text}
 .uses-foot a{display:inline-flex; align-items:center; gap:4px; color:var(--ink-3); text-decoration:none; transition:color .2s var(--ease)}
 .uses-foot a:hover{color:var(--warm)}
 @media(max-width:900px){
-  .uses-body{grid-template-columns:minmax(0,1fr); gap:26px}
+  .uses-body{columns:1}
+  .uses-head-grid{grid-template-columns:minmax(0,1fr); align-items:start; gap:12px; padding-bottom:20px}
   .uses-sheet{padding:32px 26px 24px}
   .uses-head h1{font-size:29px}
 }
