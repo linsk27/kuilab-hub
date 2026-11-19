@@ -1479,3 +1479,64 @@ input, textarea, [contenteditable="true"]{cursor:text}
 @media(prefers-reduced-motion:reduce){
   .page .link-wall .link-note .note-inner{transition:none}
 }
+
+/* ============================================================
+   装备页 #/uses：一张能滚的清单，沿用同一套纸感
+   ============================================================ */
+.uses-page{
+  display:block; padding-top:64px; padding-bottom:72px; min-height:100dvh;
+}
+.uses-sheet{
+  position:relative; width:min(100% - 48px, 1000px); margin:0 auto;
+  padding:44px 48px 30px; border-radius:18px;
+  border:1px solid var(--line);
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='u'><feTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23u)' opacity='.30'/></svg>"),
+    radial-gradient(760px 300px at 26% -6%, var(--panel-hi), transparent 70%),
+    linear-gradient(180deg, var(--panel-a), var(--panel-c) 58%, var(--panel-b));
+  background-blend-mode: overlay, normal, normal;
+  box-shadow: inset 0 1px 0 var(--panel-hi), inset 0 0 0 1px var(--line-faint), var(--shadow-a), var(--shadow-b);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+.uses-back{
+  display:inline-flex; align-items:center; gap:6px; margin-bottom:26px;
+  font-size:11px; letter-spacing:.04em; color:var(--ink-3); text-decoration:none;
+  transition:color .2s var(--ease), transform .2s var(--ease);
+}
+.uses-back:hover{color:var(--ink-strong); transform:translateX(-2px)}
+.uses-kicker{
+  margin:0 0 12px; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:8.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+}
+.uses-head h1{font-size:36px; letter-spacing:-.025em; color:var(--ink-strong); margin:0}
+.uses-lede{margin:14px 0 0; max-width:46em; font-size:13px; line-height:2; color:var(--ink-2)}
+.uses-body{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:30px 44px; margin-top:38px}
+.uses-block{min-width:0}
+.uses-block-head{display:flex; align-items:baseline; gap:9px; padding-bottom:9px; border-bottom:1px solid var(--line-faint)}
+.uses-num{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; letter-spacing:.14em; color:var(--warm); opacity:.85}
+.uses-block-head h2{font-size:15px; font-weight:400; color:var(--ink-strong); margin:0; letter-spacing:-.01em}
+.uses-list{margin:0; padding:0}
+.uses-row{display:grid; grid-template-columns:74px minmax(0,1fr); gap:14px; padding:9px 0; border-bottom:1px solid var(--line-faint)}
+.uses-row:last-child{border-bottom:0}
+.uses-row dt{font-size:10.5px; letter-spacing:.02em; color:var(--ink-3); padding-top:1px}
+.uses-row dd{margin:0; font-size:12px; line-height:1.75; color:var(--ink-2); overflow-wrap:anywhere}
+.uses-foot{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  margin-top:36px; padding-top:16px; border-top:1px solid var(--line-faint);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+}
+.uses-foot-right{display:inline-flex; align-items:center; gap:14px}
+.uses-foot a{display:inline-flex; align-items:center; gap:4px; color:var(--ink-3); text-decoration:none; transition:color .2s var(--ease)}
+.uses-foot a:hover{color:var(--warm)}
+@media(max-width:900px){
+  .uses-body{grid-template-columns:minmax(0,1fr); gap:26px}
+  .uses-sheet{padding:32px 26px 24px}
+  .uses-head h1{font-size:29px}
+}
+@media(max-width:767px){
+  .uses-page{padding-top:40px; padding-bottom:48px}
+  .uses-sheet{width:calc(100% - 28px); padding:26px 18px 20px; border-radius:14px}
+  .uses-row{grid-template-columns:64px minmax(0,1fr); gap:10px}
+  .uses-foot{flex-direction:column; align-items:flex-start; gap:10px}
+}

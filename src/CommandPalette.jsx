@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, Stack } from '@phosphor-icons/react';
 
 // ⌘K 面板：全站的一个入口。
 // 只做三件事 —— 跳（页面/链接）、做（切主题、控制音乐、复制链接）、找（模糊匹配）。
@@ -76,9 +76,10 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
       id: `page:${name}`,
       group: '页面',
       label: name,
-      hint: '打开这张介绍卡',
-      icon: FileText,
-      run: () => onOpenPage(name),
+      hint: name === 'Uses' ? '这站怎么搭的' : '打开这张介绍卡',
+      icon: name === 'Uses' ? Stack : FileText,
+      // Uses 已经是一整页了，不再弹介绍框
+      run: () => (name === 'Uses' ? (window.location.hash = '#/uses') : onOpenPage(name)),
     }));
     links.forEach(link => {
       let host = '';
