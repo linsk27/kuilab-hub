@@ -1187,15 +1187,6 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   border:1px solid var(--line-strong);font:9.5px/1.4 ui-monospace,Menlo,monospace;text-align:center;color:var(--ink-2)}
 .palette-brand{margin-left:auto;opacity:.7}
 
-/* 右上角那个 ⌘K 提示：不用很大，看到的人自然会按 */
-.rail-hint{
-  display:inline-flex;align-items:center;gap:4px;padding:4px 8px;margin-right:12px;
-  border:1px solid var(--line-strong);border-radius:6px;background:var(--btn-bg);
-  font:10.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;color:var(--ink-2);
-  transition:color .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease);
-}
-.rail-hint:hover{color:var(--ink-strong);border-color:var(--warm);background:var(--btn-bg-h)}
-
 @media(max-width:767px){
   .palette-scrim{padding-top:10vh}
   .palette{max-height:76vh}
@@ -2093,7 +2084,7 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 
 /* 状态条改成三栏：左状态 / 中导航 / 右控件，导航真正居中 */
 .rail{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:16px}
-.rail-r{justify-self:end}
+.rail-r{justify-self:end; display:inline-flex; align-items:center; gap:12px}
 
 /* 子页面：回到首页 + 导航同处一行，下面才是编号与标题 */
 .uses-bar{display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:26px}
@@ -2108,7 +2099,7 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 @media(max-width:767px){
   /* 手机上让位：⌘K 是键盘提示，时钟和状态先收起来 */
   .rail{gap:8px}
-  .rail-l,.rail-time,.rail-hint{display:none}
+  .rail-l,.rail-time{display:none}
   .rail-nav{font-size:9px; letter-spacing:.08em; gap:12px}
   .uses-bar{flex-wrap:wrap; gap:10px; margin-bottom:20px}
   /* 纸张内边距补回来之后一行放得下了；真放不下时 flex-wrap 会把它折到第二行 */
@@ -2513,4 +2504,18 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
   .uses-bar{gap:12px}
   .uses-bar .site-nav{font-size:8.5px; gap:9px}
   .site-nav .nav-cmd{width:22px; height:22px; margin-left:0}
+}
+
+/* 手机上左右两栏都收掉了，三列 grid 会把导航推得偏左 25px（320 屏最明显）。
+   换成 flex + 绝对定位的开关，导航才是真的居中。 */
+@media(max-width:767px){
+  .rail{display:flex; justify-content:center; align-items:center; position:relative}
+  .rail-r{position:absolute; right:0; top:50%; transform:translateY(-50%)}
+}
+
+/* 320 屏上「绝对定位的开关」会压住导航右端 16px —— 这个宽度放不下居中的导航。
+   340 以下改为顺排：导航和开关一起居中，绝不叠。 */
+@media(max-width:339px){
+  .rail-r{position:static; transform:none}
+  .rail{gap:10px}
 }

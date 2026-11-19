@@ -180,7 +180,6 @@ function StatusRail({ theme, onToggleTheme }) {
       <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
       <SiteNav className="rail-nav" />
       <span className="rail-r">
-        <button type="button" className="rail-hint" onClick={() => window.dispatchEvent(new Event('hub:palette'))} aria-label="打开快速跳转" title="快速跳转：Ctrl / ⌘ + K">⌘K</button>
         <span className="rail-time">UTC+8 <b>{t}</b></span>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </span>
