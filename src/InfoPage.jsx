@@ -13,6 +13,7 @@ const PAGES = {
     kicker: '08 — About',
     title: '这里是什么',
     lede: '一个手账式的入口：把散在外面的东西收在一处，顺便放几件自己喜欢的小玩意。',
+    margin: '别急着走：首页那几张便签可以翻面，右下角的小圆点就是机关。',
     body: (
       <>
         <p>
@@ -40,6 +41,7 @@ const PAGES = {
     kicker: '09 — RSS',
     title: '订阅',
     lede: '新写的文章先发在 gblog，这里只是一条入口。',
+    margin: '不用注册、不用邮箱、不用算法。它只是把一个列表放在你能拿走的地方。',
     body: (
       <>
         <p className="info-link-row">
@@ -88,7 +90,10 @@ export default function InfoPage({ name = 'About' }) {
           <p className="uses-lede">{page.lede}</p>
         </header>
 
-        <div className="info-body">{page.body}</div>
+        <div className="info-body">
+          <div className="info-copy">{page.body}</div>
+          <aside className="info-margin" aria-hidden="true">{page.margin}</aside>
+        </div>
 
         <footer className="uses-foot">
           <span>© 2026 · kuilab.cn</span>
