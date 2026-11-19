@@ -9,6 +9,7 @@ import SplitWords from './SplitWords';
 import { HandUnderline } from './PaperMarks';
 import SiteEffects from './SiteEffects';
 import { bump } from './counters';
+import SiteNav from './SiteNav';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -28,8 +29,6 @@ const sampleLinks = [
   { name: 'Social', detail: 'Small moments, shared.', icon: Heart, color: 'pink', url: null },
   { name: 'Contact', detail: 'A good conversation starts here.', icon: ChatCircle, color: 'sand', url: null },
 ];
-// 这几项不是弹窗，是独立页面
-const PAGE_ROUTES = { Uses: '#/uses', Archive: '#/archive', Stats: '#/stats' };
 const pages = {
   About: ['A little about this place', 'Personal Hub is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
   Uses: ['The everyday toolkit', 'Built with React and Tailwind CSS. Icons by Phosphor, with an original illustrated portrait.', 'A quiet space for projects, notes, sketches, and whatever comes next.'],
@@ -161,7 +160,7 @@ function PetCat() {
   </div>;
 }
 // 顶部状态条：本地时间 + 主题开关，给页面一点“产品”的呼吸
-function StatusRail({ theme, onToggleTheme }) {
+function StatusRail({ theme, onToggleTheme, onOpenInfo }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 20000);
@@ -171,6 +170,7 @@ function StatusRail({ theme, onToggleTheme }) {
   return (
     <div className="rail">
       <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
+      <SiteNav onOpenInfo={onOpenInfo} className="rail-nav" />
       <span className="rail-r">
         <button type="button" className="rail-hint" onClick={() => window.dispatchEvent(new Event('hub:palette'))} aria-label="打开快速跳转" title="快速跳转：Ctrl / ⌘ + K">⌘K</button>
         <span className="rail-time">UTC+8 <b>{t}</b></span>
@@ -237,7 +237,7 @@ function Spotlight() {
   return <div className="spot" ref={ref} aria-hidden="true" />;
 }
 
-function App({ managing }) {
+function App({ managing, initialInfo = '' }) {
   const { theme, toggle: toggleTheme } = useTheme();
   const dialog = useRef(null);
   const editor = useRef(null);
@@ -354,6 +354,12 @@ function App({ managing }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice('已导出 links.json。替换项目 public/links.json 并重新部署后，所有访客才会看到更新。');
   }
+  // 从 #about / #colophon / #rss 进来：等 DOM 就绪再开弹窗
+  useEffect(() => {
+    if (!initialInfo || !pages[initialInfo] || !dialog.current) return;
+    setContent({ title: initialInfo, paragraphs: pages[initialInfo] });
+    dialog.current.showModal();
+  }, [initialInfo]);
   const [portraitReady, setPortraitReady] = useState(false);
   // 左栏「现在」与右栏「最近」来自 public/now.json：改内容不用重新构建
   const [now, setNow] = useState(() => nowCache);
@@ -404,7 +410,7 @@ function App({ managing }) {
   return <div className="page min-h-dvh flex flex-col items-center justify-center px-6 sm:px-10">
     <Spotlight />
     <a href="#links" className="skip-link" onClick={event => { event.preventDefault(); document.getElementById('links').focus(); }}>Skip to links</a>
-    <StatusRail theme={theme} onToggleTheme={toggleTheme} />
+    <StatusRail theme={theme} onToggleTheme={toggleTheme} onOpenInfo={open} />
     <div className="composition relative w-full">
       <div className="decoration cloud" aria-hidden="true"><Cloud size={43} weight="thin" /></div>
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
@@ -575,11 +581,11 @@ function App({ managing }) {
           <p className="link-notice" role="status">{notice}</p>
           {/* 底部这一条用 margin-top:auto 沉到底：右栏比左栏矮 51px 的缺口就是这么补上的 */}
           <div className="panel-foot">
+            <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
             <div className="meta-grid" aria-hidden="true">
               <div className="meta-cell"><span>Links</span><b>{links.length ? String(links.length).padStart(2, '0') : '—'}</b></div>
               <div className="meta-cell"><span>Status</span><b>Open</b></div>
             </div>
-            <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
           </div>
         </section>
       </main>
@@ -587,7 +593,7 @@ function App({ managing }) {
       <PetCat />
       <Suspense fallback={null}><MusicPlayer /></Suspense>
       <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} onSearch={handleSearch} /></Suspense>
-      <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => { const hash = PAGE_ROUTES[name]; if (hash) { window.location.hash = hash; } else open(name); }}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
+      <footer className="footer flex flex-col items-center"><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
     <dialog ref={dialog} className="detail-dialog" onClick={e => { if (e.target === e.currentTarget) dialog.current.close(); }}><div className="dialog-inner"><div className="flex justify-between items-start gap-6"><h2>{content?.title}</h2><button className="close-button" onClick={() => dialog.current.close()} aria-label="Close dialog"><X size={20} /></button></div><h3>{content?.paragraphs[0]}</h3>{content?.paragraphs.slice(1).map(p => <p key={p}>{p}</p>)}<button className="copy-button inline-flex items-center gap-2" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Link copied' : 'Copy this page link'}</button><span className="sr-only" role="status">{copied ? 'Page link copied to clipboard' : ''}</span></div></dialog>
@@ -649,8 +655,11 @@ function Router() {
       <SiteEffects />
     </>;
   }
+  // #about / #colophon / #rss：子页面上的导航点过来的，回首页并把那张介绍卡打开
+  const info = route.startsWith('#') && !route.startsWith('#/') ? route.slice(1) : '';
+  const initialInfo = info && pages[info[0].toUpperCase() + info.slice(1)] ? info[0].toUpperCase() + info.slice(1) : '';
   return <>
-    <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} />
+    <App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} initialInfo={initialInfo} />
     <SiteEffects />
   </>;
 }

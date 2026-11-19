@@ -2070,3 +2070,72 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 .st-figure-value.is-waiting{animation:st-wait 1.7s ease-in-out infinite}
 @keyframes st-wait{0%,100%{opacity:.3}50%{opacity:.62}}
 @media(prefers-reduced-motion:reduce){.st-figure-value.is-waiting{animation:none; opacity:.45}}
+
+/* ============================================================
+   顶部导航（SiteNav）
+   ------------------------------------------------------------
+   独立页有真实地址，导航就该在顶上。首页塞进原有的状态条中间，
+   三个子页面放在「回到首页」那一行的右端 —— 两种场合共用一个组件。
+   ============================================================ */
+.site-nav{
+  display:flex; align-items:center; gap:18px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+}
+.site-nav a{
+  position:relative; padding:4px 0; color:var(--ink-3); text-decoration:none;
+  transition:color .18s var(--ease);
+}
+.site-nav a:hover{color:var(--ink-strong)}
+/* 当前页：暖色 + 一道 1px 下划线，扫一眼就知道自己在哪儿 */
+.site-nav a.is-current{color:var(--warm)}
+.site-nav a.is-current::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
+  background:var(--warm); opacity:.55;
+}
+
+/* 状态条改成三栏：左状态 / 中导航 / 右控件，导航真正居中 */
+.rail{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:16px}
+.rail-r{justify-self:end}
+
+/* 子页面：回到首页 + 导航同处一行，下面才是编号与标题 */
+.uses-bar{display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:26px}
+.uses-bar .uses-back{margin-bottom:0}
+.uses-bar .site-nav{font-size:9.5px; gap:22px}
+
+/* 导航上移之后，页脚只剩那句话，居中就好 */
+.page .footer{justify-content:center}
+.page .footer>p{margin:0; padding:0; opacity:.85}
+.page .footer>p::after{display:none}
+
+@media(max-width:767px){
+  /* 手机上让位：⌘K 是键盘提示，时钟和状态先收起来 */
+  .rail{gap:8px}
+  .rail-l,.rail-time,.rail-hint{display:none}
+  .rail-nav{font-size:9px; letter-spacing:.08em; gap:12px}
+  .uses-bar{flex-wrap:wrap; gap:10px; margin-bottom:20px}
+  .uses-bar .site-nav{width:100%; justify-content:flex-start; gap:16px; font-size:9px}
+}
+
+/* 落款挪到左边：右下角是那只猫的地盘，字放在那儿会被盖掉半句 */
+.page .panel-foot{justify-content:space-between; padding-right:0}
+.page .panel-foot .meta-grid{flex:0 1 auto}
+.page .panel-signoff{margin:0; text-align:left; white-space:nowrap}
+@media(max-width:767px){
+  .page .panel-foot{flex-direction:column; align-items:flex-start}
+  .page .panel-signoff{order:2; margin-top:10px}
+  .page .panel-foot .meta-grid{order:1; flex:1 1 auto; width:100%}
+}
+
+/* 手机上没有左侧状态时，导航会掉进第一栏被压扁 —— 三块都显式指定列 */
+.rail-l{grid-column:1}
+.rail-nav{grid-column:2; justify-self:center}
+.rail-r{grid-column:3}
+
+/* 手机上导航和主题开关贴得太紧，收一点字距与间距，给右边留出呼吸 */
+@media(max-width:767px){
+  .rail-nav{gap:10px; letter-spacing:.02em}
+}
+
+/* 第三栏要保证放得下主题开关（54px），否则 justify-self:end 会把它顶到导航上 */
+.rail{grid-template-columns:minmax(0,1fr) auto minmax(max-content,1fr)}

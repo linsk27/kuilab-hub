@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
+import SiteNav from './SiteNav';
 
 // #/uses 装备页：把这座站的家底摊开写一遍。
 // 不是"工具推荐"，是"这东西是怎么长出来的" —— 每一条都对得上仓库里的真实实现。
@@ -111,10 +112,13 @@ export default function UsesPage() {
     <div className="page uses-page">
       <main className="uses-sheet">
         <header className="uses-head">
-          <a className="uses-back" href="#/">
-            <ArrowLeft size={14} weight="light" aria-hidden="true" />
-            回到首页
-          </a>
+          <div className="uses-bar">
+            <a className="uses-back" href="#/">
+              <ArrowLeft size={14} weight="light" aria-hidden="true" />
+              回到首页
+            </a>
+            <SiteNav current="Uses" />
+          </div>
           <div className="uses-top">
             <span className="uses-kicker">05 — Colophon</span>
             <span className="uses-meta">六节 · 二十八条</span>

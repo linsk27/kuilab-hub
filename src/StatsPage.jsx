@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
+import SiteNav from './SiteNav';
 import { readCounters } from './counters';
 
 // #/stats 一些数字
@@ -86,10 +87,13 @@ export default function StatsPage() {
     <div className="page uses-page">
       <main className="uses-sheet st-sheet">
         <header className="uses-head">
-          <a className="uses-back" href="#/">
-            <ArrowLeft size={14} weight="light" aria-hidden="true" />
-            回到首页
-          </a>
+          <div className="uses-bar">
+            <a className="uses-back" href="#/">
+              <ArrowLeft size={14} weight="light" aria-hidden="true" />
+              回到首页
+            </a>
+            <SiteNav current="Stats" />
+          </div>
           <div className="uses-top">
             <span className="uses-kicker">07 — Numbers</span>
             <span className="uses-meta">

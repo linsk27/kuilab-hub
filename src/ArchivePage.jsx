@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
+import SiteNav from './SiteNav';
 
 // #/archive 年表：把「博客文章」和「站点更新」并成一条时间线。
 // 数据全是现成的：文章来自 /api/blog（服务端抓 RSS），更新来自 public/now.json。
@@ -97,10 +98,13 @@ export default function ArchivePage() {
     <div className="page uses-page">
       <main className="uses-sheet arc-sheet">
         <header className="uses-head">
-          <a className="uses-back" href="#/">
-            <ArrowLeft size={14} weight="light" aria-hidden="true" />
-            回到首页
-          </a>
+          <div className="uses-bar">
+            <a className="uses-back" href="#/">
+              <ArrowLeft size={14} weight="light" aria-hidden="true" />
+              回到首页
+            </a>
+            <SiteNav current="Archive" />
+          </div>
           <div className="uses-top">
             <span className="uses-kicker">06 — Archive</span>
             <span className="uses-meta">
