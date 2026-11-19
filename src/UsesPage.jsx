@@ -84,16 +84,12 @@ export default function UsesPage() {
             <ArrowLeft size={14} weight="light" aria-hidden="true" />
             回到首页
           </a>
-          <div className="uses-head-grid">
-            <div className="uses-title">
-              <p className="uses-kicker">05 — Colophon</p>
-              <h1>这站是怎么搭的</h1>
-            </div>
-            <p className="uses-lede">
-              一份给自己留的清单：用了什么、为什么这么选、哪些地方是踩过坑才改成现在这样的。
-              每一条都对得上仓库里的真实实现，不是"技术栈罗列"。
-            </p>
-          </div>
+          <p className="uses-kicker">05 — Colophon</p>
+          <h1>这站是怎么搭的</h1>
+          <p className="uses-lede">
+            一份给自己留的清单：用了什么、为什么这么选、哪些地方是踩过坑才改成现在这样的。
+            每一条都对得上仓库里的真实实现，不是"技术栈罗列"。
+          </p>
         </header>
 
         <div className="uses-body">
