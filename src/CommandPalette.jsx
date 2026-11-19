@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, Stack, ClockCounterClockwise, ChartLineUp, Rss } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, PawPrint, Heart, SealCheck, Stack, ClockCounterClockwise, ChartLineUp, Rss } from '@phosphor-icons/react';
 
 // ⌘K 面板：全站的一个入口。
 // 只做三件事 —— 跳（页面/链接）、做（切主题、控制音乐、复制链接）、找（模糊匹配）。
@@ -8,6 +8,14 @@ import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBru
 //   hub:player → 播放器自己处理；主题直接用传进来的回调。
 
 const OPEN_EVENT = 'hub:palette';
+
+// 四枚章的动作清单：面板里能搜到，右键菜单里也摆着同一套
+const SEALS = [
+  { kind: 'date', label: '盖今天的日期章', hint: 'KUI · LAB', icon: Stamp, keywords: 'stamp date 印章 日期 盖章' },
+  { kind: 'paw', label: '盖一枚猫爪章', hint: '「来过」', icon: PawPrint, keywords: 'stamp paw 猫爪 爪印 盖章' },
+  { kind: 'heart', label: '盖一枚爱心章', hint: '「喜欢」', icon: Heart, keywords: 'stamp heart 爱心 喜欢 盖章' },
+  { kind: 'read', label: '盖一枚「已阅」章', hint: '带今天的日期', icon: SealCheck, keywords: 'stamp read 已阅 公文 盖章' },
+];
 
 export function openPalette() {
   window.dispatchEvent(new Event(OPEN_EVENT));
@@ -110,13 +118,22 @@ export default function CommandPalette({ pageNames, onOpenPage = () => {}, links
         keywords: `${link.detail || ''} ${host}`,
       });
     });
+    // 四枚章排在最前：手机上默认列表只露十条，章被挤到后面就等于搜不到。
+    // 它们也是这个站最「手账」的动作，比切主题更该先出现。
+    list.push(...SEALS.map(seal => ({
+      id: `act:stamp-${seal.kind}`,
+      group: '动作',
+      label: seal.label,
+      hint: seal.hint,
+      icon: seal.icon,
+      run: () => window.dispatchEvent(new CustomEvent('hub:stamp', { detail: { kind: seal.kind } })),
+      keywords: seal.keywords,
+    })));
     list.push(
       { id: 'act:theme', group: '动作', label: '切换明暗主题', hint: '墨色 / 纸色', icon: PaintBrush, run: onToggleTheme, keywords: 'theme dark light 主题 明暗' },
       { id: 'act:play', group: '动作', label: '播放 / 暂停音乐', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'toggle' })), keywords: 'music play pause 音乐 播放' },
       { id: 'act:next', group: '动作', label: '下一首', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'next' })), keywords: 'next 下一首 切歌' },
       { id: 'act:hub', group: '动作', label: '去联络站', hint: '留言 / 邀请', icon: ChatCircle, external: '/hub', keywords: 'hub station 联络 留言' },
-      // 日期章平时藏在双击里，这里给一条能搜到的入口，免得没人发现
-      { id: 'act:stamp', group: '动作', label: '盖今天的日期章', hint: '纸感彩蛋', icon: Stamp, run: () => window.dispatchEvent(new Event('hub:stamp')), keywords: 'stamp date 印章 日期 盖章' },
       { id: 'act:copy', group: '动作', label: '复制本站链接', hint: window.location.host, icon: Copy, run: () => navigator.clipboard?.writeText(window.location.href), keywords: 'copy url 复制 链接' },
     );
     return list;

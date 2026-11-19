@@ -2475,3 +2475,42 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 /* 折角原来挂在块的「盒子顶」，装备页 padding-top 26，角就落到上一节最后一行去了。
    往下挪到标题行的高度（18），年表月头也吃同一条；月头已经让出 28 的右内边距，不遮字。 */
 .fold-mark{top:18px}
+
+/* ============================================================
+   导航末尾的放大镜：⌘K 面板的手动入口
+   ------------------------------------------------------------
+   桌面有键盘，手机上什么都没有 —— 面板里那四条「盖一枚章」
+   在移动端只能从这里进。26px 的圆，伪元素把命中区撑到 40。
+   ============================================================ */
+.site-nav .nav-cmd{
+  position:relative;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px; margin-left:2px; padding:0;
+  border:1px solid transparent; border-radius:50%;
+  background:transparent; color:var(--ink-3);
+  transition:color .18s var(--ease), background-color .18s var(--ease), border-color .18s var(--ease);
+}
+.site-nav .nav-cmd::after{content:""; position:absolute; inset:-7px; border-radius:50%}
+.site-nav .nav-cmd:active{transform:scale(.94); color:var(--warm)}
+@media(hover:hover) and (pointer:fine){
+  .site-nav .nav-cmd:hover{color:var(--ink-strong); background:var(--btn-bg-h); border-color:var(--line)}
+}
+@media(max-width:767px){
+  /* 360 屏上五项 + 图标会挤到换行，间距收一档 */
+  .uses-bar .site-nav{font-size:9px; gap:13px}
+  .site-nav .nav-cmd{width:24px; height:24px}
+}
+
+/* 面板底那行键位提示在手机上挤成三行，而且触屏根本没有 ↑↓ / esc。
+   移动端直接收掉，右上角那颗 × 已经够用。 */
+@media(max-width:767px){
+  .palette-foot{display:none}
+}
+
+/* 320 屏（body 的最小宽度）上，五项 + 图标比纸面宽了 10px。
+   字号和间距各收一档，「回到首页」与导航之间也松一点。 */
+@media(max-width:340px){
+  .uses-bar{gap:12px}
+  .uses-bar .site-nav{font-size:8.5px; gap:9px}
+  .site-nav .nav-cmd{width:22px; height:22px; margin-left:0}
+}

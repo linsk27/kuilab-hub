@@ -87,8 +87,9 @@ export function StampLayer() {
     function onAsk(event) {
       // 带坐标就盖在那儿（右键菜单），没有就盖在视口中间偏上（⌘K）；都走同一套夹取逻辑
       const point = event?.detail;
-      if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) place(point.x, point.y, point.kind);
-      else place(window.innerWidth / 2, window.innerHeight * 0.46);
+      const kind = (point && typeof point === 'object' && point.kind) || 'date';
+      if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) place(point.x, point.y, kind);
+      else place(window.innerWidth / 2, window.innerHeight * 0.46, kind);
     }
 
     window.addEventListener('dblclick', onDouble);
