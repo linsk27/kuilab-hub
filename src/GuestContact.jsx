@@ -739,7 +739,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
   const totalUnread = Object.values(unread).reduce((sum, n) => sum + n, 0);
   // 作者在别的标签页时，用标题上的数字提醒有新留言。
   useEffect(() => {
-    const base = '行间';
+    const base = 'Margin';
     document.title = view === 'author' && totalUnread > 0 ? `(${totalUnread}) 联络站` : base;
     return () => { document.title = base; };
   }, [view, totalUnread]);
@@ -753,7 +753,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
 
   return <div className="station-page min-h-dvh" data-view={view}>
     <header className="station-header">
-      <a href="./">← 行间</a>
+      <a href="./">← Margin</a>
       {/* 身份 + 在线状态合成一枚徽章：同一个字号、同一行高、同一个高度。
           原先这里是 11px / 12px / 13px 三段文字并排，怎么对齐都不齐，索性只留一枚。 */}
       <span className="gc-header-right">

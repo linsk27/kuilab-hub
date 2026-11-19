@@ -2549,3 +2549,17 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 @media(max-width:767px){
   .page .profile h1.site-title{font-size: 48px}
 }
+
+/* 站名换成英文 Margin 之后，66px 会把左栏撑满（单字比两个汉字宽）。
+   回到 52px，西文大标题用负字距收一收，才和 Georgia 的字形贴合 */
+.page .profile h1.site-title{
+  font-size: 52px;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+}
+@media(max-width:767px){
+  .page .profile h1.site-title{font-size: 40px}
+}
+
+/* 52 还差一口气：站名应该是左栏最重的一块，抬到 56 才压得住「All Links.」 */
+.page .profile h1.site-title{font-size: 56px}
