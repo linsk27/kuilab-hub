@@ -15,7 +15,7 @@ const ACTIONS = new Set([
   'author_inbox', 'author_read', 'author_reply', 'author_space_create', 'author_stats',
   'guest_open', 'guest_post', 'guest_read',
   'guest_rename', 'guest_invite_create', 'guest_invite_redeem',
-  'author_delete', 'site_stats',
+  'author_delete',
 ]);
 
 // 有的动作不挂在 station_rpc 上：这里单独映射到各自的函数，参数名也换一套。
@@ -26,8 +26,6 @@ const CUSTOM = {
     needsSpace: true,
     body: payload => ({ p_token: String(payload.token || ''), p_space: String(payload.space || '') }),
   },
-  // 公开的站点总量：只有聚合数字，没有任何访客信息
-  site_stats: { fn: 'station_site_stats', body: () => ({}) },
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

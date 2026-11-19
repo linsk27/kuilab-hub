@@ -2065,3 +2065,8 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 @media(max-width:600px){
   .st-figure-label i{display:none}
 }
+
+/* 数字没到之前先轻轻呼吸，别让人以为页面坏了 */
+.st-figure-value.is-waiting{animation:st-wait 1.7s ease-in-out infinite}
+@keyframes st-wait{0%,100%{opacity:.3}50%{opacity:.62}}
+@media(prefers-reduced-motion:reduce){.st-figure-value.is-waiting{animation:none; opacity:.45}}

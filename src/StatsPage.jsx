@@ -38,13 +38,7 @@ export default function StatsPage() {
     const abort = new AbortController();
     const load = async () => {
       const [stats, blog, linkList] = await Promise.allSettled([
-        fetch('/api/station', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'site_stats', payload: {} }),
-          signal: abort.signal,
-          cache: 'no-store',
-        }).then(response => (response.ok ? response.json() : null)),
+        fetch('/api/stats', { signal: abort.signal }).then(response => (response.ok ? response.json() : null)),
         fetch('/api/blog', { signal: abort.signal }).then(response => (response.ok ? response.json() : null)),
         fetch(`${import.meta.env.BASE_URL}links.json`, { signal: abort.signal }).then(response => (response.ok ? response.json() : null)),
       ]);
@@ -113,7 +107,7 @@ export default function StatsPage() {
           {figures.map(item => (
             <div className="st-figure" key={item.label}>
               <span className="st-figure-label"><i>{item.label} · </i>{item.cn}</span>
-              <b className="st-figure-value">{item.value}{item.unit && <i>{item.unit}</i>}</b>
+              <b className={`st-figure-value ${state === 'ready' ? '' : 'is-waiting'}`}>{item.value}{item.unit && <i>{item.unit}</i>}</b>
             </div>
           ))}
         </section>

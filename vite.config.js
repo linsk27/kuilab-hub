@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
 import blog from './api/blog.js';
 import station from './api/station.js';
+import stats from './api/stats.js';
 
 // 本地 dev 直接复用 api/*.js 的 handler，
 // 这样不用装 vercel 也能在本地看到首页的「最新几篇」和 #/stats 的统计。
@@ -26,6 +27,15 @@ function apiDev() {
         } catch {
           res.statusCode = 200;
           res.end('{"ok":false,"posts":[]}');
+        }
+      });
+
+      server.middlewares.use('/api/stats', async (req, res) => {
+        try {
+          await stats(req, shim(res));
+        } catch {
+          res.statusCode = 200;
+          res.end('{"ok":false}');
         }
       });
 
