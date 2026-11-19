@@ -1567,3 +1567,24 @@ input, textarea, [contenteditable="true"]{cursor:text}
 @media(prefers-reduced-motion:reduce){
   .uses-back{transition:none}
 }
+
+/* 取链接时的占位卡：高度要和真实卡片那一行一样（162），否则撑开时整页会跳 */
+.page .ghost-note{
+  min-height:162px; display:flex; flex-direction:column; justify-content:center; gap:11px;
+  border-style:dashed; background:transparent; box-shadow:none;
+  animation:ghost-pulse 1.7s ease-in-out infinite;
+}
+.page .ghost-bar{display:block; height:8px; border-radius:4px; background:var(--line-faint)}
+.page .ghost-bar:first-child{height:18px; border-radius:5px; background:var(--line-soft)}
+@keyframes ghost-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.page .ghost-note{animation:none}}
+
+/* Now / 最近 的占位：高度直接对齐真实块（实测 142 / 136），
+   数据一到只换内容、不改高度，纸面就不会往上顶 */
+.page .now-skeleton{min-height:142px}
+.page .recent-skeleton{min-height:136px}
+.page .now-skeleton .now-row dt,
+.page .now-skeleton .now-row dd{display:flex; align-items:center}
+.page .now-skeleton .ghost-bar,
+.page .recent-skeleton .ghost-bar{height:7px; display:block; border-radius:3px; background:var(--line-faint); opacity:.7}
+.page .recent-skeleton .recent-item{align-items:center}

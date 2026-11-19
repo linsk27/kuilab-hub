@@ -31,6 +31,12 @@ const pages = {
   Colophon: ['Made with a little care', 'A paper-inspired interface, soft pastel marks, and just enough room to breathe.', 'The portrait is an original AI-assisted illustration. All decoration stays in the margins so the links can do their job.'],
   RSS: ['Keep in touch, quietly', '新写的文章先发在 gblog，首页「All Links」那张卡里的目录就是从它的 RSS 取的。', '订阅地址：https://gblog.kuilab.cn/index.xml 。只想翻文章，直接开 https://gblog.kuilab.cn/ 就好。'],
 };
+// 模块级缓存：同一次会话里离开首页再回来，直接用上一次的响应渲染，
+// 不再经历「空列表 → 卡片铺开」那一下 —— 那正是页面高度抽搐的来源。
+// 首次访问仍然会拉，这里只负责「回来时不闪」。
+let linksCache = null;
+let nowCache = null;
+const blogCache = new Map();
 const STORAGE_KEY = 'personal-hub-links-v1';
 const PAGE_SIZE = 6;
 // links.json 里可以用 "icon": "note" 之类的短名挑图标，写不认识的就退回书签
@@ -227,10 +233,11 @@ function App({ managing }) {
   const { theme, toggle: toggleTheme } = useTheme();
   const dialog = useRef(null);
   const editor = useRef(null);
-  const [publishedLinks, setPublishedLinks] = useState([]);
+  const [publishedLinks, setPublishedLinks] = useState(() => linksCache ?? []);
   const [draft, setDraft] = useState(null);
-  const [loadState, setLoadState] = useState('loading');
+  const [loadState, setLoadState] = useState(() => (linksCache ? 'ready' : 'loading'));
   useEffect(() => {
+    setDraft(managing ? readDraft() : null);
     const controller = new AbortController();
     async function load() {
       try {
@@ -238,11 +245,13 @@ function App({ managing }) {
         if (!response.ok) throw Error('无法读取公开链接');
         const published = parseLinks(await response.json());
         if (controller.signal.aborted) return;
+        linksCache = published;
         setPublishedLinks(published);
-        setDraft(managing ? readDraft() : null);
         setLoadState('ready');
       } catch {
-        if (!controller.signal.aborted) setLoadState('error');
+        if (controller.signal.aborted) return;
+        // 手里有旧数据就继续用，别把已经铺好的页面打回错误态
+        setLoadState(linksCache ? 'ready' : 'error');
       }
     }
     load();
@@ -339,13 +348,16 @@ function App({ managing }) {
   }
   const [portraitReady, setPortraitReady] = useState(false);
   // 左栏「现在」与右栏「最近」来自 public/now.json：改内容不用重新构建
-  const [now, setNow] = useState(null);
+  const [now, setNow] = useState(() => nowCache);
+  // 第一次取回之前先用等高占位顶住：Now 和「最近」一出现，纸会突然长高 57px
+  const [nowLoaded, setNowLoaded] = useState(() => Boolean(nowCache));
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${import.meta.env.BASE_URL}now.json`, { signal: controller.signal })
       .then(response => (response.ok ? response.json() : null))
-      .then(data => { if (data) setNow(data); })
-      .catch(() => { /* 读不到就不显示这两块，不影响其它内容 */ });
+      .then(data => { if (data) { nowCache = data; setNow(data); } })
+      .catch(() => { /* 读不到就沿用缓存，没有缓存就不显示这两块 */ })
+      .finally(() => { if (!controller.signal.aborted) setNowLoaded(true); });
     return () => controller.abort();
   }, []);
   const [content, setContent] = useState(null);
@@ -353,20 +365,23 @@ function App({ managing }) {
   // 带 feed 标记的那条链接（现在是 gblog）会把博客最近几篇直接排进卡片。
   // 数据走 /api/blog：服务端抓 RSS + CDN 缓存，浏览器不用扛 1.3MB 的 XML，也不跨域。
   const feedUrl = publishedLinks.find(link => link.feed)?.url;
-  const [blog, setBlog] = useState(null);
-  const [feedState, setFeedState] = useState('idle');
+  // 目录也缓存：返回首页时直接是「最新 03 篇」，不会先闪三行骨架再变实
+  const [blog, setBlog] = useState(() => (feedUrl ? blogCache.get(feedUrl) || null : null));
+  const [feedState, setFeedState] = useState(() => (feedUrl && blogCache.has(feedUrl) ? 'ready' : 'idle'));
   useEffect(() => {
     if (!feedUrl) return undefined;
+    const cached = blogCache.get(feedUrl);
+    if (cached) { setBlog(cached); setFeedState('ready'); }
     const controller = new AbortController();
-    setFeedState('loading');
+    if (!cached) setFeedState('loading');
     fetch('/api/blog', { signal: controller.signal })
       .then(response => (response.ok ? response.json() : null))
       .then(data => {
         if (controller.signal.aborted) return;
-        if (data?.posts?.length) { setBlog(data); setFeedState('ready'); }
-        else setFeedState('failed');
+        if (data?.posts?.length) { blogCache.set(feedUrl, data); setBlog(data); setFeedState('ready'); }
+        else if (!cached) setFeedState('failed');
       })
-      .catch(() => { if (!controller.signal.aborted) setFeedState('failed'); });
+      .catch(() => { if (!controller.signal.aborted && !cached) setFeedState('failed'); });
     return () => controller.abort();
   }, [feedUrl]);
   function open(name) {
@@ -394,6 +409,13 @@ function App({ managing }) {
           <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait.webp`} alt="Original anime portrait of a silver-haired young woman" decoding="async" fetchPriority="high" width="160" height="160" draggable={false} onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
           <h1><SplitWords text="Personal Hub" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
+          {!now && !nowLoaded && <dl className="now now-skeleton" aria-hidden="true">
+            <div className="now-head"><dt>Now</dt><dd><span className="ghost-bar" style={{ width: 42 }} /></dd></div>
+            {[0, 1, 2].map(i => <div className="now-row" key={i}>
+              <dt><span className="ghost-bar" style={{ width: 18 }} /></dt>
+              <dd><span className="ghost-bar" style={{ width: `${64 - i * 12}%` }} /></dd>
+            </div>)}
+          </dl>}
           {now && <dl className="now">
             <div className="now-head"><dt>Now</dt><dd>{now.updated}</dd></div>
             {now.status && <div className="now-row"><dt>状态</dt><dd>{now.status}</dd></div>}
@@ -407,6 +429,17 @@ function App({ managing }) {
           {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
           <div className={`link-wall grid ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
+            {/* 还在取链接时先占住一行卡片的高度：不占的话，数据一到卡片撑开，
+                整张纸会往上顶 57px（页面是垂直居中的），看着就是"抽一下" */}
+            {loadState === 'loading' && !links.length && [0, 1, 2].map(i => (
+              <div className="note-wrap is-ghost" key={`ghost-${i}`} aria-hidden="true">
+                <div className="link-note ghost-note">
+                  <span className="ghost-bar" style={{ width: '26%' }} />
+                  <span className="ghost-bar" style={{ width: '72%' }} />
+                  <span className="ghost-bar" style={{ width: '54%' }} />
+                </div>
+              </div>
+            ))}
             {visibleLinks.map(({ id, name, detail, icon: Icon, color, url, feed }, index) => {
               const children = <><div className="card-top flex items-center justify-between"><Icon className={`card-icon ${color}`} size={25} weight="light" /><ArrowUpRight className="visit-arrow" size={17} weight="light" /></div><h3><span className="ink-name">{name}</span></h3><p>{detail}</p><span className={`marker ${color}`} aria-hidden="true" /></>;
               const at = savedLinks.findIndex(x => x.id === id);
@@ -481,7 +514,7 @@ function App({ managing }) {
           </div>
           {/* 右栏只有三种"没有卡片"的状态：读取中 / 读取失败 / 确实还没有。
               三种都走同一张索引页，避免首屏几秒里只剩一行小字。 */}
-          {(loadState !== 'ready' || !links.length) && <div
+          {(loadState === 'error' || (loadState === 'ready' && !links.length)) && <div
             className={`empty-links ${managing ? 'is-managing' : ''} ${now?.updates?.length ? 'is-compact' : ''}`}
             data-state={loadState === 'ready' ? 'empty' : loadState}
             role={loadState === 'ready' ? undefined : 'status'}
@@ -507,6 +540,13 @@ function App({ managing }) {
             </div>
           </div>}
 
+          {!nowLoaded && <ol className="recent recent-skeleton" aria-hidden="true">
+            <li className="recent-head"><span>最近</span><span><span className="ghost-bar" style={{ width: 26 }} /></span></li>
+            {[0, 1, 2].map(i => <li className="recent-item" key={i}>
+              <span className="recent-date"><span className="ghost-bar" style={{ width: 26 }} /></span>
+              <span className="recent-text"><span className="ghost-bar" style={{ width: `${72 - i * 14}%` }} /></span>
+            </li>)}
+          </ol>}
           {now?.updates?.length ? <ol className="recent">
             <li className="recent-head"><span>最近</span><span>{String(now.updates.length).padStart(2, '0')} 条</span></li>
             {now.updates.slice(0, 3).map(item => <li className="recent-item" key={`${item.date}-${item.text}`}>
