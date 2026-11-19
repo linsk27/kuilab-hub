@@ -2285,3 +2285,80 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
    看着像断开的两张纸。正文放宽到 74ch（约 640），批注贴右，
    中缝降到 ~170，仍是一段可以呼吸的留白。 */
 .info-copy{max-width:74ch}
+
+/* ============================================================
+   长纸回顶：一枚盖在右下角的圆章
+   ------------------------------------------------------------
+   archive 手机 4300px、uses 2600px，滑到底没有回去的路。
+   滚过一屏才出现，平时不占纸面；双圈是印章的做法（实线外圈 + 一圈内线）。
+   ============================================================ */
+.back-top{
+  position:fixed; right:26px; bottom:26px; z-index:70;
+  display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  width:54px; height:54px; padding:0; border-radius:50%;
+  border:1px solid var(--warm-line);
+  background:var(--panel-b); color:var(--warm);
+  box-shadow:
+    0 8px 20px -12px #5c514547,
+    inset 0 0 0 3px var(--panel-b), inset 0 0 0 4px var(--warm-line);
+  opacity:0; transform:translateY(10px) rotate(-6deg); pointer-events:none;
+  transition:opacity .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.back-top.is-shown{opacity:1; transform:translateY(0) rotate(-6deg); pointer-events:auto}
+.back-top span{font-family:Georgia,"Songti SC",serif; font-size:10px; line-height:1; letter-spacing:.12em; margin-top:1px}
+/* 全局 button:active 会把旋转冲掉，这里补回来 */
+.back-top:active{transform:scale(.94) rotate(-6deg)}
+@media(hover:hover) and (pointer:fine){
+  .back-top.is-shown:hover{
+    transform:translateY(-2px) rotate(0);
+    color:var(--ink-strong);
+    box-shadow:0 12px 26px -14px #5c514557, inset 0 0 0 3px var(--panel-b), inset 0 0 0 4px var(--warm);
+  }
+  .back-top:hover{transform:translateY(-2px) rotate(0)}
+}
+@media(max-width:767px){
+  .back-top{right:15px; bottom:16px; width:46px; height:46px}
+  .back-top span{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.back-top{transition:none}}
+
+/* ============================================================
+   年表：手机上的年份条
+   ------------------------------------------------------------
+   900 以下左栏年份索引收掉了，4300px 的纸没有落脚点。
+   改成一条吸顶的年份胶囊，滚到哪都能跳回去。
+   ============================================================ */
+.arc-years{display:none}
+@media(max-width:900px){
+  .arc-years{
+    display:flex; align-items:center; gap:6px;
+    margin:16px 0 0; padding:8px 0 10px;
+    position:sticky; top:0; z-index:6;
+    overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:none;
+    /* 纸是半透明的，直接压一层会脏；底色 + 模糊，让它像贴在纸上的标签条 */
+    background:color-mix(in srgb, var(--panel-a) 84%, transparent);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+  .arc-years::-webkit-scrollbar{display:none}
+  .arc-year-chip{
+    display:inline-flex; align-items:baseline; gap:6px; flex:none;
+    padding:6px 11px; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel-b);
+    font-family:ui-monospace,"SF Mono",Menlo,monospace;
+    font-size:11px; letter-spacing:.06em; color:var(--ink-3);
+    white-space:nowrap;
+    transition:color .18s var(--ease), border-color .18s var(--ease);
+  }
+  .arc-year-chip i{font-style:normal; font-size:8.5px; letter-spacing:0; opacity:.6}
+  .arc-year-chip.is-active{color:var(--warm); border-color:var(--warm-line)}
+  .arc-year-chip.is-active i{opacity:.85}
+}
+
+/* 圆章里那两个字原来 10px，太小，远看只剩一个箭头。抬到 11 并挨紧箭头 */
+.back-top span{font-size:11px; letter-spacing:.04em; margin-top:2px}
+
+/* 手机纸面左右只有 24，46 的圆压住了行尾；缩到 44 并贴到屏幕边 */
+@media(max-width:767px){
+  .back-top{right:8px; bottom:14px; width:44px; height:44px}
+}

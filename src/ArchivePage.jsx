@@ -70,11 +70,15 @@ export default function ArchivePage() {
   const { rows, years } = useMemo(() => build(notes, posts), [notes, posts]);
   const [activeYear, setActiveYear] = useState(null);
   const blocks = useRef({});
+  // 点了年份之后，滚动动画还在路上，observer 会一路把高亮改回上一块。
+  // 这段时间锁住它，等落定再交还给滚动位置。
+  const jumpLock = useRef(0);
 
   useEffect(() => {
     if (!years.length) return undefined;
     if (!activeYear) setActiveYear(years[0].year);
     const observer = new IntersectionObserver(entries => {
+      if (Date.now() < jumpLock.current) return;
       const visible = entries
         .filter(entry => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
@@ -87,7 +91,10 @@ export default function ArchivePage() {
   function jump(year) {
     const node = blocks.current[year];
     if (!node) return;
-    window.scrollTo({ top: node.getBoundingClientRect().top + window.scrollY - 28, behavior: 'smooth' });
+    // 手机上顶部多了一条吸顶年份条，落点要再往下让 40px，否则标题被压住
+    const offset = window.innerWidth <= 900 ? 72 : 28;
+    window.scrollTo({ top: node.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+    jumpLock.current = Date.now() + 1000;
     setActiveYear(year);
   }
 
@@ -117,6 +124,22 @@ export default function ArchivePage() {
             夹在中间那几条是这座站自己的改动 —— 同样的日子，两种痕迹。
           </p>
         </header>
+
+        {/* 手机上左栏年份索引是隐藏的，4300px 的长纸只能一路滑。
+            这里补一条吸顶的年份条，和桌面左栏走同一个 jump。 */}
+        {years.length > 1 && (
+          <div className="arc-years" role="group" aria-label="年份快速跳转">
+            {years.map(item => (
+              <button type="button" key={item.year}
+                className={`arc-year-chip ${activeYear === item.year ? 'is-active' : ''}`}
+                aria-current={activeYear === item.year ? 'true' : undefined}
+                onClick={() => jump(item.year)}>
+                {item.year}
+                <i aria-hidden="true">{item.count}</i>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="uses-main arc-main">
           {years.length > 1 && (

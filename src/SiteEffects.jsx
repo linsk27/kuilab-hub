@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import PawTrail from './PawTrail';
 import { StampLayer } from './PaperMarks';
 import ContextMenu from './ContextMenu';
+import BackToTop from './BackToTop';
 import { useTheme } from './theme';
 
 // 全站的「纸面层」：猫爪拖尾、双击日期章、右键手账菜单。
@@ -37,6 +38,7 @@ export default function SiteEffects() {
         onStation={() => { window.location.href = '/hub'; }}
       />
       {toast && <span className="stamp-hint" role="status">{toast}</span>}
+      <BackToTop />
     </>
   );
 }

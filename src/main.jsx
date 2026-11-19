@@ -283,7 +283,13 @@ function App({ managing }) {
   // 键盘流：j/k 或 ↑↓ 选卡片，Enter 打开；一次只翻一张便签的背面
   const [keyIndex, setKeyIndex] = useState(-1);
   const [flipped, setFlipped] = useState(null);
-  const handleSearch = React.useCallback(query => setSearch(query.trim().toLowerCase()), []);
+  // 面板挪到 Router 外层之后，它不再直接拿到 setSearch；
+  // 改为监听 hub:search —— 面板一个实例，首页/子页都能用。
+  useEffect(() => {
+    const onPaletteSearch = event => setSearch(String(event.detail || '').trim().toLowerCase());
+    window.addEventListener('hub:search', onPaletteSearch);
+    return () => window.removeEventListener('hub:search', onPaletteSearch);
+  }, []);
 
   const links = showSamples ? sampleLinks : savedLinks;
   const pageCount = Math.max(1, Math.ceil(links.length / PAGE_SIZE));
@@ -594,7 +600,6 @@ function App({ managing }) {
       <div className="decoration bottom-hearts" aria-hidden="true"><Heart size={28} weight="duotone" /><Heart size={21} weight="duotone" /></div>
       <PetCat />
       <Suspense fallback={null}><MusicPlayer /></Suspense>
-      <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} onSearch={handleSearch} /></Suspense>
       <footer className="footer flex flex-col items-center"><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
@@ -611,6 +616,31 @@ function NotFound() {
     </div>
   </div>;
 }
+// ⌘K 面板挂在 Router 外层，五张子页面也能唤出。
+// 它自己取一份链接（有缓存就用缓存），不再依赖首页的 state。
+function GlobalPalette() {
+  const { toggle } = useTheme();
+  const [links, setLinks] = useState(() => linksCache ?? []);
+  useEffect(() => {
+    if (linksCache) { setLinks(linksCache); return undefined; }
+    const controller = new AbortController();
+    fetch(`${import.meta.env.BASE_URL}links.json`, { signal: controller.signal })
+      .then(response => (response.ok ? response.json() : null))
+      .then(data => {
+        if (!data || controller.signal.aborted) return;
+        linksCache = parseLinks(data);
+        setLinks(linksCache);
+      })
+      .catch(() => { /* 拿不到链接就只搜页面和动作 */ });
+    return () => controller.abort();
+  }, []);
+  return (
+    <Suspense fallback={null}>
+      <CommandPalette pageNames={Object.keys(pages)} links={links} onToggleTheme={toggle} />
+    </Suspense>
+  );
+}
+
 function Router() {
   const [route, setRoute] = useState(() => location.hash);
   useEffect(() => {
@@ -668,9 +698,12 @@ function Router() {
   }
 
   return (
-    <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
-      {view}
-    </Suspense>
+    <>
+      <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
+        {view}
+      </Suspense>
+      <GlobalPalette />
+    </>
   );
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);

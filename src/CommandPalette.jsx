@@ -29,7 +29,7 @@ function score(text, query) {
   return -1;
 }
 
-export default function CommandPalette({ pageNames, onOpenPage, links, onToggleTheme, onSearch }) {
+export default function CommandPalette({ pageNames, onOpenPage = () => {}, links = [], onToggleTheme, onSearch }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -66,8 +66,12 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
 
   // 搜索即预览：把当前输入交给首页，命中的卡片会亮起来、其余淡下去。
   // 面板一关就发空串，页面立刻复原。
+  // 走 window 事件而不是 props —— 面板现在挂在 Router 外层，首页只是它的一个邻居，
+  // 拿不到 setSearch。首页自己监听 hub:search。
   useEffect(() => {
-    onSearchRef.current?.(open ? query : '');
+    const query_ = open ? query : '';
+    onSearchRef.current?.(query_);
+    window.dispatchEvent(new CustomEvent('hub:search', { detail: query_ }));
   }, [open, query]);
 
   const items = useMemo(() => {
