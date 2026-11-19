@@ -2570,3 +2570,56 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 @media(max-width:767px){
   .page .profile h1.site-title{font-size: 42px}
 }
+
+/* ============================================================
+   手机上的导航：点不中
+   ------------------------------------------------------------
+   量出来的：每项只有 22px 高、RSS 只有 18px 宽（320 屏更小）。
+   手指大约 40px，落在字与字的缝里就是"点了没反应"。
+   竖向 padding 加到 11（≈37px 高），横向 2px 只补一点；
+   同时 touch-action:manipulation 去掉双击缩放带来的 300ms 判定期。
+   ============================================================ */
+.site-nav a{touch-action:manipulation}
+@media(max-width:767px){
+  .site-nav a{padding:11px 2px}
+  .rail-nav{gap:8px}
+  .uses-bar .site-nav{gap:11px}
+  /* 按下就变色，手上有反馈才知道点到了 */
+  .site-nav a:active{color:var(--warm)}
+}
+@media(max-width:340px){
+  .uses-bar .site-nav{gap:7px}
+  .site-nav a{padding:10px 1px}
+}
+
+/* ============================================================
+   手机页头改成真正的 tab 行
+   ------------------------------------------------------------
+   加了 padding 之后「回到首页 + 五项」挤不下一行，flex-wrap 就把它
+   折到下面了 —— 折下来反而更好读：导航独占一行，每项 flex:1 等宽，
+   项与项之间没有空隙，点哪儿都算点中，不再是"点在缝里没反应"。
+   ============================================================ */
+@media(max-width:767px){
+  .uses-bar{flex-wrap:wrap; gap:6px 12px; margin-bottom:18px}
+  .uses-bar .site-nav{
+    width:100%; gap:0; justify-content:space-between;
+    padding-top:4px; border-top:1px solid var(--line-faint);
+  }
+  .uses-bar .site-nav a{flex:1 1 0; text-align:center; padding:11px 0}
+  .uses-bar .site-nav .nav-cmd{flex:0 0 34px; width:34px; margin:0}
+}
+
+/* 放大镜单独吃 34px，跟 RSS 之间空出一大块，像多出来的东西。
+   让它也平分一格，六个位置等宽，间距才匀 */
+@media(max-width:767px){
+  .uses-bar .site-nav .nav-cmd{flex:1 1 0; width:auto; margin:0}
+  .uses-bar .site-nav .nav-cmd::after{inset:-11px 0}
+}
+
+/* 首页状态条同样处理：项与项之间不留缝，靠 padding 撑开，
+   点在哪儿都算点中（右边那颗主题开关是绝对定位，不受影响） */
+@media(max-width:767px){
+  .rail-nav{gap:0}
+  .rail-nav a{padding:11px 6px}
+  .rail-nav .nav-cmd{margin-left:2px}
+}
