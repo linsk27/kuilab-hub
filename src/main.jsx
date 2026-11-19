@@ -15,6 +15,7 @@ const MusicPlayer = lazy(() => import('./MusicPlayer'));
 const CommandPalette = lazy(() => import('./CommandPalette'));
 const StationEntry = lazy(() => import('./StationEntry'));
 const UsesPage = lazy(() => import('./UsesPage'));
+const ArchivePage = lazy(() => import('./ArchivePage'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -25,9 +26,12 @@ const sampleLinks = [
   { name: 'Social', detail: 'Small moments, shared.', icon: Heart, color: 'pink', url: null },
   { name: 'Contact', detail: 'A good conversation starts here.', icon: ChatCircle, color: 'sand', url: null },
 ];
+// 这几项不是弹窗，是独立页面
+const PAGE_ROUTES = { Uses: '#/uses', Archive: '#/archive' };
 const pages = {
   About: ['A little about this place', 'Personal Hub is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
   Uses: ['The everyday toolkit', 'Built with React and Tailwind CSS. Icons by Phosphor, with an original illustrated portrait.', 'A quiet space for projects, notes, sketches, and whatever comes next.'],
+  Archive: ['Everything, in order', '写过的文章和这座站的改动，按月份排成一条线。', '完整年表在 #/archive。'],
   Colophon: ['Made with a little care', 'A paper-inspired interface, soft pastel marks, and just enough room to breathe.', 'The portrait is an original AI-assisted illustration. All decoration stays in the margins so the links can do their job.'],
   RSS: ['Keep in touch, quietly', '新写的文章先发在 gblog，首页「All Links」那张卡里的目录就是从它的 RSS 取的。', '订阅地址：https://gblog.kuilab.cn/index.xml 。只想翻文章，直接开 https://gblog.kuilab.cn/ 就好。'],
 };
@@ -579,7 +583,7 @@ function App({ managing }) {
       <PetCat />
       <Suspense fallback={null}><MusicPlayer /></Suspense>
       <Suspense fallback={null}><CommandPalette pageNames={Object.keys(pages)} onOpenPage={open} links={savedLinks} onToggleTheme={toggleTheme} onSearch={handleSearch} /></Suspense>
-      <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => { if (name === 'Uses') { window.location.hash = '#/uses'; } else open(name); }}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
+      <footer className="footer flex flex-col items-center"><nav className="flex items-center justify-center" aria-label="Footer navigation">{Object.keys(pages).map(name => <button key={name} onClick={() => { const hash = PAGE_ROUTES[name]; if (hash) { window.location.hash = hash; } else open(name); }}>{name}</button>)}</nav><p>A small home on the internet.</p></footer>
     </div>
     {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
     <dialog ref={dialog} className="detail-dialog" onClick={e => { if (e.target === e.currentTarget) dialog.current.close(); }}><div className="dialog-inner"><div className="flex justify-between items-start gap-6"><h2>{content?.title}</h2><button className="close-button" onClick={() => dialog.current.close()} aria-label="Close dialog"><X size={20} /></button></div><h3>{content?.paragraphs[0]}</h3>{content?.paragraphs.slice(1).map(p => <p key={p}>{p}</p>)}<button className="copy-button inline-flex items-center gap-2" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Link copied' : 'Copy this page link'}</button><span className="sr-only" role="status">{copied ? 'Page link copied to clipboard' : ''}</span></div></dialog>
@@ -632,10 +636,10 @@ function Router() {
     </Suspense>;
   }
   // #/uses 装备页：一张能滚的清单页，不挂猫和随身听
-  if (route === '#/uses') {
+  if (route === '#/uses' || route === '#/archive') {
     return <>
       <Suspense fallback={<div className="route-loading" role="status">正在打开…</div>}>
-        <UsesPage />
+        {route === '#/archive' ? <ArchivePage /> : <UsesPage />}
       </Suspense>
       <SiteEffects />
     </>;

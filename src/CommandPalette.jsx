@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, Stack } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, Stack, ClockCounterClockwise } from '@phosphor-icons/react';
 
 // ⌘K 面板：全站的一个入口。
 // 只做三件事 —— 跳（页面/链接）、做（切主题、控制音乐、复制链接）、找（模糊匹配）。
@@ -72,15 +72,23 @@ export default function CommandPalette({ pageNames, onOpenPage, links, onToggleT
 
   const items = useMemo(() => {
     const list = [];
-    pageNames.forEach(name => list.push({
-      id: `page:${name}`,
-      group: '页面',
-      label: name,
-      hint: name === 'Uses' ? '这站怎么搭的' : '打开这张介绍卡',
-      icon: name === 'Uses' ? Stack : FileText,
-      // Uses 已经是一整页了，不再弹介绍框
-      run: () => (name === 'Uses' ? (window.location.hash = '#/uses') : onOpenPage(name)),
-    }));
+    // 已经做成独立页面的两项：直接跳，不再弹介绍框
+    const full = {
+      Uses: { hash: '#/uses', hint: '这站怎么搭的', icon: Stack, keywords: 'colophon 装备 技术栈' },
+      Archive: { hash: '#/archive', hint: '这一年写过的和改过的', icon: ClockCounterClockwise, keywords: 'timeline 年表 归档 文章' },
+    };
+    pageNames.forEach(name => {
+      const page = full[name];
+      list.push({
+        id: `page:${name}`,
+        group: '页面',
+        label: name,
+        hint: page ? page.hint : '打开这张介绍卡',
+        icon: page ? page.icon : FileText,
+        keywords: page ? page.keywords : '',
+        run: () => (page ? (window.location.hash = page.hash) : onOpenPage(name)),
+      });
+    });
     links.forEach(link => {
       let host = '';
       try { host = new URL(link.url).hostname.replace(/^www\./, ''); } catch { host = ''; }

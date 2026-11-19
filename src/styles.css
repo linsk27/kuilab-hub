@@ -1864,3 +1864,97 @@ input, textarea, [contenteditable="true"]{cursor:text}
 
 /* 墨线改成相对 h2 定位之后，-11px 落得太低，收回来贴住字形 */
 .page .panel-head .hand-rule{bottom:-5px; left:-2px; width:min(58%,188px)}
+
+/* ============================================================
+   年表 #/archive
+   外壳沿用装备页（同一张纸、同一套页头），这里只写时间线本身。
+   日期用等宽数字、站点更新用暖色，文章用次级灰 —— 一眼分得开两类痕迹。
+   ============================================================ */
+.arc-toc .uses-toc-title{font-size:11px; letter-spacing:.04em}
+
+.arc-year + .arc-year{margin-top:44px}
+.arc-year-head{display:flex; align-items:baseline; gap:12px; margin-bottom:4px}
+.arc-year-head h2{
+  font-family:Georgia,"Times New Roman",serif; font-weight:400;
+  font-size:30px; line-height:1.1; letter-spacing:-.02em; color:var(--ink-strong); margin:0;
+}
+.arc-year-count{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3);
+}
+.arc-year-rule{
+  flex:1; height:1px; align-self:center;
+  background:linear-gradient(90deg, var(--line), transparent 86%);
+}
+
+.arc-month{padding-top:20px}
+.arc-month-head{
+  display:flex; align-items:baseline; justify-content:space-between;
+  padding-bottom:7px; border-bottom:1px solid var(--line-soft);
+}
+.arc-month-name{font-size:11.5px; letter-spacing:.08em; color:var(--ink-2)}
+.arc-month-count{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px;
+  letter-spacing:.1em; color:var(--ink-3); font-variant-numeric:tabular-nums;
+}
+
+.arc-list{list-style:none; margin:0; padding:0}
+.arc-row{
+  display:grid; grid-template-columns:26px minmax(0,1fr) 56px;
+  align-items:baseline; gap:14px; padding:9px 0;
+  border-bottom:1px solid var(--line-faint);
+}
+.arc-row:last-child{border-bottom:0}
+.arc-day{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10px;
+  letter-spacing:.04em; color:var(--ink-3); font-variant-numeric:tabular-nums;
+}
+.arc-text{
+  display:inline-flex; align-items:baseline; gap:5px; min-width:0;
+  font-size:12.5px; line-height:1.65; color:var(--ink-2);
+  text-decoration:none; transition:color .18s var(--ease);
+}
+a.arc-text:hover{color:var(--ink-strong)}
+.arc-arrow{color:var(--warm); opacity:0; transform:translate(-2px,2px); transition:opacity .2s var(--ease), transform .2s var(--ease); flex:none}
+a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
+.arc-tag{
+  justify-self:end; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); opacity:.75; white-space:nowrap;
+}
+/* 站点自己的改动：日期和标签用暖色，正文比文章亮一档 */
+.arc-row.is-note .arc-day{color:var(--warm); opacity:.95}
+.arc-row.is-note .arc-text{color:var(--ink)}
+.arc-row.is-note .arc-tag{color:var(--warm); opacity:.9}
+
+.arc-empty{display:flex; flex-direction:column; gap:9px; padding:6px 0 0}
+.arc-empty-label{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3);
+}
+.arc-empty p{font-size:12.5px; color:var(--ink-3)}
+.arc-skeleton{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:15px}
+.arc-skeleton .ghost-bar{height:7px; display:block; border-radius:3px; background:var(--line-faint); opacity:.7}
+
+@media(max-width:900px){
+  .arc-year-head h2{font-size:26px}
+  .arc-row{grid-template-columns:22px minmax(0,1fr) 48px; gap:10px}
+}
+
+/* 索引高亮那条 2px 竖线原本跟着 8px 圆角拐弯，看着像半个括号 —— 左边两角改成直角 */
+.uses-toc-item.is-active{border-radius:0 8px 8px 0}
+
+/* 年表：月份的分隔线要比行线清楚一档，否则十五个月糊成一片 */
+.arc-month-head{border-bottom-color:var(--line)}
+
+/* 年表的索引项里，年份才是主体、条数是注脚 —— 和装备页的「01 骨架」正好相反 */
+.arc-toc .uses-toc-num{font-size:11.5px; letter-spacing:.02em; opacity:.85}
+.arc-toc .uses-toc-item.is-active .uses-toc-num{opacity:1}
+.arc-toc .uses-toc-title{font-size:9px; letter-spacing:.1em; opacity:.6}
+.arc-toc .uses-toc-item.is-active .uses-toc-title{opacity:.8}
+
+/* 手机上 48px 的标签栏会把标题挤成四行：标签挪到标题下一行，标题吃满整宽 */
+@media(max-width:600px){
+  .arc-row{grid-template-columns:22px minmax(0,1fr); row-gap:3px; padding:10px 0}
+  .arc-tag{grid-column:2; justify-self:start; margin-top:1px}
+}
