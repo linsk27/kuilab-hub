@@ -2623,3 +2623,29 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
   .rail-nav a{padding:11px 6px}
   .rail-nav .nav-cmd{margin-left:2px}
 }
+
+/* ============================================================
+   主题开关压住导航（手机）
+   ------------------------------------------------------------
+   之前把开关绝对定位到右端，指望导航居中后左右都够宽。
+   模拟器里够，真机上 iOS 的系统字体更宽 —— 导航撑到开关底下，
+   连末端的放大镜都被盖住了。
+   改成流内排列：导航和开关一起居中，中间留 10px，永远不会叠。
+   ============================================================ */
+@media(max-width:767px){
+  .rail{gap:10px; justify-content:center}
+  .rail-r{position:static; transform:none; flex:0 0 auto}
+}
+
+/* 保险：真机字体再宽一点也只会换行，不会叠上去 */
+@media(max-width:767px){
+  .rail{flex-wrap:wrap; row-gap:6px}
+}
+
+/* 320 屏：导航 + 开关比状态条宽出 2px，被 flex-wrap 折成两行。
+   （上面 .rail-nav a 那条写在 340 断点之后，把 340 的窄内边距盖掉了，
+   所以这里要按同样的选择器再收一次） */
+@media(max-width:340px){
+  .rail-nav a{padding:10px 3px}
+  .rail{gap:8px}
+}
