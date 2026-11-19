@@ -1,7 +1,7 @@
 {
-  "name": "Margin · kuilab",
-  "short_name": "Margin",
-  "description": "Margin：一个安静的个人网站入口，链接、近况、联络站与随身听。",
+  "name": "Linda · kuilab",
+  "short_name": "Linda",
+  "description": "Linda：一个安静的个人网站入口，链接、近况、联络站与随身听。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

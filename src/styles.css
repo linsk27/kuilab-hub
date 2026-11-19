@@ -2550,7 +2550,7 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
   .page .profile h1.site-title{font-size: 48px}
 }
 
-/* 站名换成英文 Margin 之后，66px 会把左栏撑满（单字比两个汉字宽）。
+/* 站名换成英文 Linda 之后，66px 会把左栏撑满（单字比两个汉字宽）。
    回到 52px，西文大标题用负字距收一收，才和 Georgia 的字形贴合 */
 .page .profile h1.site-title{
   font-size: 52px;
@@ -2563,3 +2563,10 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 
 /* 52 还差一口气：站名应该是左栏最重的一块，抬到 56 才压得住「All Links.」 */
 .page .profile h1.site-title{font-size: 56px}
+
+/* 前面那条 56px 写在媒体查询之后，把手机的 40px 压掉了 —— 这里补回来。
+   Linda 比 Margin 短一截，桌面再抬到 62 才和右栏「All Links.」等重。 */
+.page .profile h1.site-title{font-size: 62px}
+@media(max-width:767px){
+  .page .profile h1.site-title{font-size: 42px}
+}
