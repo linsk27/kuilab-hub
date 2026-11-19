@@ -2114,7 +2114,8 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
   .rail-l,.rail-time,.rail-hint{display:none}
   .rail-nav{font-size:9px; letter-spacing:.08em; gap:12px}
   .uses-bar{flex-wrap:wrap; gap:10px; margin-bottom:20px}
-  .uses-bar .site-nav{width:100%; justify-content:flex-start; gap:16px; font-size:9px}
+  /* 纸张内边距补回来之后一行放得下了；真放不下时 flex-wrap 会把它折到第二行 */
+  .uses-bar .site-nav{justify-content:flex-start; gap:16px; font-size:9px}
 }
 
 /* 落款挪到左边：右下角是那只猫的地盘，字放在那儿会被盖掉半句 */
@@ -2139,3 +2140,10 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 
 /* 第三栏要保证放得下主题开关（54px），否则 justify-self:end 会把它顶到导航上 */
 .rail{grid-template-columns:minmax(0,1fr) auto minmax(max-content,1fr)}
+
+/* 手机上的纸张内边距：v3 重写时把旧的 18px 覆盖丢了，390 屏两边各缩进 52px，
+   正文只剩 236 宽。补回来 —— 这一条必须写在 .uses-sheet 的宽/内边距之后。 */
+@media(max-width:767px){
+  .uses-sheet{width:calc(100% - 24px); padding:30px 20px 22px; border-radius:16px}
+  .uses-head{padding-bottom:18px}
+}
