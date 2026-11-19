@@ -797,7 +797,7 @@ export default function GuestContact({ openAuthorLogin = false }) {
         <main className="station-workspace gc-guest-workspace">
           <aside className="station-sidebar gc-guest-sidebar">
             <div className="gc-host">
-              <img className="gc-host-avatar" src={`${import.meta.env.BASE_URL}images/portrait.webp`} alt="" decoding="async" width="80" height="80" />
+              <img className="gc-host-avatar" src={`${import.meta.env.BASE_URL}images/portrait-linda.webp`} alt="" decoding="async" width="80" height="80" />
               <div className="gc-host-id">
                 <strong>作者</strong>
                 <span className={`gc-host-state ${online === true ? 'is-on' : ''}`}>
