@@ -800,3 +800,43 @@ body{ --portrait-filter: saturate(.9) brightness(.9) contrast(1.03) }
 [data-theme="light"] .page .portrait{
   box-shadow: 0 22px 42px -26px rgba(120, 94, 66, .5);
 }
+
+/* ============================================================
+   联络站的提示条
+   ------------------------------------------------------------
+   原来是一条满宽的浅底横条，横在页头下面，像浏览器弹出的调试提示，
+   而且它和右上角那枚「正在确认作者状态…」说的是同一件事。
+   改成标题下方居中的一枚小胶囊：只在「正在恢复作者会话」时带一个
+   呼吸的小暖点，其余提示（会话失效、已删除…）是同样形状的静默胶囊。
+   ============================================================ */
+.station-page .gc-notice{
+  align-self:center;
+  display:inline-flex; align-items:center; gap:9px;
+  max-width:min(100% - 32px, 720px);
+  margin:2px auto 14px; padding:7px 15px;
+  border:1px solid var(--line-soft); border-radius:999px;
+  background:color-mix(in srgb, var(--panel-b) 70%, transparent);
+  color:var(--ink-3);
+  font-size:11.5px; line-height:1.7; letter-spacing:.005em;
+  text-align:left; text-wrap:pretty;
+}
+.station-page .gc-notice.is-busy{padding-left:13px}
+.station-page .gc-notice.is-busy::before{
+  content:""; flex:none; width:5px; height:5px; border-radius:50%;
+  background:var(--warm);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--warm) 15%, transparent);
+  animation:notice-breathe 1.7s var(--ease) infinite;
+}
+@keyframes notice-breathe{
+  0%, 100%{opacity:.4; transform:scale(.8)}
+  50%{opacity:1; transform:scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .station-page .gc-notice.is-busy::before{animation:none; opacity:.85}
+}
+@media(max-width:767px){
+  .station-page .gc-notice{
+    margin:6px auto 12px; padding:6px 12px; font-size:11px;
+    max-width:calc(100% - 28px);
+  }
+}

@@ -772,7 +772,11 @@ export default function GuestContact({ openAuthorLogin = false }) {
       </span>
     </header>
 
-    {(notice || checking) && <p className="gc-notice" role="status">{checking ? '正在恢复作者会话…' : notice}</p>}
+    {(notice || checking) && (
+      <p className={`gc-notice${checking ? ' is-busy' : ''}`} role="status" aria-live="polite">
+        {checking ? '正在恢复作者会话' : notice}
+      </p>
+    )}
     {previewAsGuest && <p className="gc-preview-bar" role="status">
       <span>访客预览中，刷新可回到作者工作台</span>
       <button type="button" onClick={exitPreview}>返回作者工作台 →</button>

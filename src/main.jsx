@@ -10,7 +10,7 @@ import { HandUnderline } from './PaperMarks';
 import SiteEffects from './SiteEffects';
 import { bump } from './counters';
 import SiteNav from './SiteNav';
-import WorkEntry from './WorkEntry';
+import SideDock from './SideDock';
 import RoleAsk from './RoleAsk';
 import { useRole, setRole } from './role';
 
@@ -18,7 +18,6 @@ import { useRole, setRole } from './role';
 const GuestContact = lazy(() => import('./GuestContact'));
 const MusicPlayer = lazy(() => import('./MusicPlayer'));
 const CommandPalette = lazy(() => import('./CommandPalette'));
-const StationEntry = lazy(() => import('./StationEntry'));
 const UsesPage = lazy(() => import('./UsesPage'));
 const ArchivePage = lazy(() => import('./ArchivePage'));
 const StatsPage = lazy(() => import('./StatsPage'));
@@ -455,10 +454,9 @@ function App({ managing }) {
             {now.doing && <div className="now-row"><dt>在做</dt><dd>{now.doing}</dd></div>}
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
-          <div className="side-dock">
-            <Suspense fallback={<a className="dock-btn" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="regular" aria-hidden="true" /></a>}><StationEntry /></Suspense>
-            {role !== 'guest' && <WorkEntry />}
-          </div>
+          {/* 两枚入口由 SideDock 用 portal 挂出去；这里只留一个窄屏的落点 */}
+          <div className="dock-slot" id="dock-inline" />
+          <SideDock />
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           {/* 页头两行：上面一排「编号 + 说明」各占一端，下面才是标题。

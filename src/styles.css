@@ -3001,7 +3001,9 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
    改成半透明的纸色 + 一条极淡的描边，让它像墨线勾出来的，
    而不是一块实心卡片。768 以下纸边放不下，退回纸内并排一行。
    ============================================================ */
-.side-dock{display:flex; align-items:center; gap:8px; margin-top:22px}
+.dock-slot{display:flex; justify-content:center}
+.dock-slot:empty{display:none}
+.side-dock{display:flex; align-items:center; gap:10px}
 
 .dock-btn{
   position:relative;
@@ -3045,21 +3047,19 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 [data-theme="light"] .dock-badge{color:#FFFDF7}
 .dock-badge.is-clear{background:#7FBF8E}
 
-/* ≥1000：脱开文档流，钉在视口最左侧、页面靠上四分之一处。
-   左边距按纸边算，纸宽不够时贴到屏幕边（clamp 兜住负数）。
-   1000 以下纸边只剩二十来像素，外挂会压在纸沿上，不如留在纸内成一行。 */
-@media(min-width:1000px){
-  .side-dock{
-    position:fixed; z-index:40; margin:0;
-    top:27vh;
-    left:clamp(10px, calc(50vw - var(--sheet-w) / 2 - 50px), 240px);
-    flex-direction:column; gap:10px;
-  }
+/* 桌面：由 SideDock portal 到 body，所以这里永远是相对视口定位，
+   不会再被纸面的入场 transform 拽走（那会让它先落在纸里、加载完才跳回来）。
+   左边距按纸边算，纸宽不够时贴到屏幕边（clamp 兜住负数）。 */
+.side-dock.is-rail{
+  position:fixed; z-index:40; margin:0;
+  top:27vh;
+  left:clamp(10px, calc(50vw - var(--sheet-w) / 2 - 50px), 240px);
+  flex-direction:column;
 }
 
-/* 窄屏 / 手机：纸边放不下外挂，留在纸内、Now 表格下面一行 */
+/* 窄屏 / 手机：纸边放不下外挂，portal 回纸内那个 .dock-slot，随流排一行 */
+.side-dock.is-inline{margin-top:20px}
 @media(max-width:999px){
-  .side-dock{margin-top:20px; gap:10px; justify-content:center}
   .dock-btn{width:40px; height:40px; border-radius:12px}
 }
 
@@ -3073,7 +3073,7 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 @media(min-width:1000px) and (max-width:1199px){
   /* 纸边只剩十几像素时，按钮再收一圈，别压在纸沿上 */
   .dock-btn{width:34px; height:34px; border-radius:9px}
-  .side-dock{left:5px; gap:8px}
+  .side-dock.is-rail{left:5px; gap:8px}
 }
 /* 悬停时底色变暖，小圆点的“镂空环”也要跟着换，否则留一圈白 */
 @media(hover:hover) and (pointer:fine){
