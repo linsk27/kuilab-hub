@@ -174,14 +174,6 @@
         if (r) r.innerHTML = '';
       }
     </script>
-    <script>
-      // /hub、/chat 这些地址由 rewrite 指向同一份 index.html，
-      // 里面预渲染的是首页内容 —— 不是首页就立刻清掉，别让访客先看到别人的首页。
-      if (document.documentElement.classList.contains('not-home')) {
-        var r = document.getElementById('root');
-        if (r) r.innerHTML = '';
-      }
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
