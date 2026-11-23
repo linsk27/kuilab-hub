@@ -455,8 +455,10 @@ function App({ managing }) {
             {now.doing && <div className="now-row"><dt>在做</dt><dd>{now.doing}</dd></div>}
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
-          <Suspense fallback={<a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span className="station-entry-text"><span className="station-entry-line">联络站</span></span><ArrowUpRight size={15} aria-hidden="true" /></a>}><StationEntry /></Suspense>
-          {role !== 'guest' && <WorkEntry />}
+          <div className="side-dock">
+            <Suspense fallback={<a className="dock-btn" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={17} weight="light" aria-hidden="true" /></a>}><StationEntry /></Suspense>
+            {role !== 'guest' && <WorkEntry />}
+          </div>
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           {/* 页头两行：上面一排「编号 + 说明」各占一端，下面才是标题。

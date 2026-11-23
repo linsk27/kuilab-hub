@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUpRight, ChatCircle } from '@phosphor-icons/react';
+import { ChatCircle } from '@phosphor-icons/react';
 
 // 左栏那个「联络站」按钮（首页唯一的入口）。
 // 它同时承担“状态”这件事：
@@ -117,14 +117,11 @@ export default function StationEntry() {
     : state === 'on' ? '此刻在线，留言当天回'
       : settled ? '不在线，留言也会看到' : '留言一般当天回';
 
+  // 移到纸左侧之后只留一个图标：状态压成一个角上的小点，文字进 title / aria-label。
   return (
-    <a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站" title={sub}>
-      <ChatCircle size={18} weight="light" aria-hidden="true" />
-      <span className="station-entry-text">
-        <span className="station-entry-line">联络站</span>
-        <span className="station-entry-sub"><i className={`station-dot is-${state}`} aria-hidden="true" />{sub}</span>
-      </span>
-      <ArrowUpRight size={15} aria-hidden="true" />
+    <a className="dock-btn" href="/hub#/chat" aria-label={`联络站：${sub}`} title={`联络站 · ${sub}`}>
+      <ChatCircle size={18} weight="regular" aria-hidden="true" />
+      <i className={`dock-dot is-${state}`} aria-hidden="true" />
     </a>
   );
 }

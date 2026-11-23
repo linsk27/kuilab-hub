@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ListChecks, ArrowUpRight } from '@phosphor-icons/react';
+import { ListChecks } from '@phosphor-icons/react';
 
 // 首页左栏的「工作台」入口。
 // 只读 localStorage 里的条数，就为了那一句「还剩几件」——
@@ -39,14 +39,11 @@ export default function WorkEntry() {
   const count = Math.abs(open);
   const note = cleared ? `今天清完 ${count} 件` : count ? `${count} 件待办` : '空着';
 
+  // 和联络站一样收成一个图标，未完成数做成角标
   return (
-    <a className="work-entry" href="#/work" aria-label={`工作台，${note}`}>
-      <ListChecks size={18} weight="light" aria-hidden="true" />
-      <span className="work-entry-text">
-        <span className="work-entry-line">工作台</span>
-        <span className="work-entry-note">{note}</span>
-      </span>
-      <ArrowUpRight size={15} weight="light" aria-hidden="true" />
+    <a className="dock-btn" href="#/work" aria-label={`工作台：${note}`} title={`工作台 · ${note}`}>
+      <ListChecks size={18} weight="regular" aria-hidden="true" />
+      {count > 0 && <span className={`dock-badge${cleared ? ' is-clear' : ''}`}>{cleared ? '✓' : count}</span>}
     </a>
   );
 }

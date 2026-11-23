@@ -2989,3 +2989,70 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 @media(max-width:767px){
   .role-ask{right:10px; bottom:calc(100% + 14px)}
 }
+
+/* ============================================================
+   纸左侧的工具 dock
+   ------------------------------------------------------------
+   联络站和工作台原来是纸内的两行入口，占掉大半屏还不整齐。
+   现在收成两枚 40px 的图标，挂到纸左边的空白带上（≥1240 才 fixed；
+   窄屏纸边距不够，退回 profile 底部并排一行）。
+   ============================================================ */
+.side-dock{display:flex; gap:8px; margin-top:22px}
+.dock-btn{
+  position:relative;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:40px; padding:0; border-radius:12px;
+  border:1px solid var(--line); background:var(--panel-b); color:var(--ink-2);
+  text-decoration:none;
+  transition:color .18s var(--ease), border-color .18s var(--ease),
+              background-color .18s var(--ease), transform .18s var(--ease), box-shadow .18s var(--ease);
+}
+.dock-btn svg{transition:transform .18s var(--ease)}
+@media(hover:hover) and (pointer:fine){
+  .dock-btn:hover{
+    color:var(--warm); border-color:var(--warm-line); background:var(--panel-a);
+    transform:translateY(-2px);
+    box-shadow:0 10px 22px -14px rgba(120,94,66,.55);
+  }
+  .dock-btn:hover svg{transform:scale(1.06)}
+}
+.dock-btn:active{transform:scale(.96)}
+
+/* 联络站：角上一点，绿=在线，灰=不在线 */
+.dock-dot{
+  position:absolute; right:7px; bottom:7px; width:6px; height:6px; border-radius:50%;
+  background:var(--line-strong); box-shadow:0 0 0 2px var(--panel-b);
+  transition:background-color .3s var(--ease);
+}
+.dock-dot.is-on{background:#7FBF8E; box-shadow:0 0 0 2px var(--panel-b), 0 0 8px rgba(127,191,142,.55)}
+/* 工作台：未完成数。今天清完了显示一个对勾 */
+.dock-badge{
+  position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px;
+  border-radius:999px; background:var(--warm); color:#1A1715;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; line-height:16px;
+  text-align:center; letter-spacing:0;
+  box-shadow:0 0 0 2px var(--panel-b);
+}
+[data-theme="light"] .dock-badge{color:#FFFDF7}
+.dock-badge.is-clear{background:#7FBF8E}
+
+@media(min-width:1240px){
+  .side-dock{
+    position:fixed; z-index:40;
+    left:max(12px, calc(50vw - var(--sheet-w) / 2 - 62px));
+    top:50%; transform:translateY(-50%);
+    flex-direction:column; gap:10px; margin:0;
+  }
+}
+
+/* 之前是透明底 + 细边，在米色背景上几乎看不见两枚小方块。
+   换成实底白（panel-a）+ 一丝投影，才有"工具栏"的分量 */
+.dock-btn{
+  width:42px; height:42px; border-radius:13px;
+  background:var(--panel-a);
+  border-color:var(--line);
+  box-shadow:0 6px 14px -12px rgba(92,81,69,.5), inset 0 1px 0 var(--panel-hi);
+}
+@media(min-width:1240px){
+  .side-dock{gap:12px}
+}
