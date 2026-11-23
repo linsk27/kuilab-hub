@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, DownloadSimple, UploadSimple, Trash, Check, Ma
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 import SiteNav from './SiteNav';
+import { useRole, setRole } from './role';
 
 // #/work —— 上班时用的待办页。
 //
@@ -93,6 +94,7 @@ async function callWork(action, pass, payload = {}) {
 
 export default function WorkPage() {
   const { theme, toggle } = useTheme();
+  const role = useRole();
   const [items, setItems] = useState(loadAll);
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
@@ -320,19 +322,39 @@ export default function WorkPage() {
           <div className="uses-top">
             <span className="uses-kicker">10 — Work</span>
             <span className="uses-meta">
-              {locked ? '还没开锁' : open.length ? `${open.length} 件没做完` : '手上没有待办'}
-              {!locked && doneToday.length ? ` · 今天完成 ${doneToday.length}` : ''}
+              {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `${open.length} 件没做完` : '手上没有待办'}
+              {role !== 'guest' && !locked && doneToday.length ? ` · 今天完成 ${doneToday.length}` : ''}
             </span>
           </div>
-          <h1>今天做点什么</h1>
+          <h1>{role === 'guest' ? '这一页是私人的' : '今天做点什么'}</h1>
           <p className="uses-lede">
-            {locked
-              ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
-              : '写一条、回车就好。勾掉的东西会落到下面的历史里，随时能翻回去找。'}
+            {role === 'guest'
+              ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
+              : locked
+                ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
+                : '写一条、回车就好。勾掉的东西会落到下面的历史里，随时能翻回去找。'}
           </p>
         </header>
 
-        {locked ? (
+        {role === 'guest' ? (
+          <div className="wk-guest">
+            <p className="wk-guest-title">这是 Linda 的私人待办</p>
+            <p className="wk-guest-text">
+              访客进来只会看到这一页空房间。如果你想记自己的事，回去重新认一下身份，
+              用一句只有你知道的话给自己开一页。
+            </p>
+            <div className="wk-guest-actions">
+              <a className="wk-add-btn" href="#/">回首页</a>
+              <button
+                type="button"
+                className="wk-lock-skip"
+                onClick={() => { setRole(''); window.location.hash = '#/'; }}
+              >
+                我是 Linda
+              </button>
+            </div>
+          </div>
+        ) : locked ? (
           <form className="wk-lock" onSubmit={unlock}>
             <label className="wk-lock-label" htmlFor="wk-pass">一句只有你知道的话</label>
             <div className="wk-lock-row">

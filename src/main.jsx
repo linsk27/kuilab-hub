@@ -11,6 +11,8 @@ import SiteEffects from './SiteEffects';
 import { bump } from './counters';
 import SiteNav from './SiteNav';
 import WorkEntry from './WorkEntry';
+import RoleAsk from './RoleAsk';
+import { useRole, setRole } from './role';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -162,6 +164,7 @@ function PetCat() {
   }, []);
 
   return <div className="cat-companion is-2d">
+    <RoleAsk />
     <span
       className={`cat-speech ${speech ? 'visible' : ''}`}
       role={speech && !speech.silent ? 'status' : undefined}
@@ -178,9 +181,14 @@ function StatusRail({ theme, onToggleTheme }) {
     return () => window.clearInterval(id);
   }, []);
   const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const role = useRole();
+  const roleLabel = role === 'host' ? 'LINDA · 主人' : role === 'guest' ? 'GUEST' : 'OPEN TO COLLABORATION';
   return (
     <div className="rail">
-      <span className="rail-l"><i className="rail-dot" />OPEN TO COLLABORATION</span>
+      <button type="button" className="rail-l rail-role" onClick={() => setRole('')}
+        title="点一下重新认身份" aria-label={`当前身份：${roleLabel}，点一下重新认`}>
+        <i className="rail-dot" />{roleLabel}
+      </button>
       <SiteNav className="rail-nav" />
       <span className="rail-r">
         <span className="rail-time">UTC+8 <b>{t}</b></span>
@@ -249,6 +257,7 @@ function Spotlight() {
 
 function App({ managing }) {
   const { theme, toggle: toggleTheme } = useTheme();
+  const role = useRole();
   const dialog = useRef(null);
   const editor = useRef(null);
   const [publishedLinks, setPublishedLinks] = useState(() => linksCache ?? []);
@@ -447,7 +456,7 @@ function App({ managing }) {
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
           <Suspense fallback={<a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span className="station-entry-text"><span className="station-entry-line">联络站</span></span><ArrowUpRight size={15} aria-hidden="true" /></a>}><StationEntry /></Suspense>
-          <WorkEntry />
+          {role !== 'guest' && <WorkEntry />}
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           {/* 页头两行：上面一排「编号 + 说明」各占一端，下面才是标题。

@@ -2882,3 +2882,110 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 @media(max-width:767px){
   .wk-sync{font-size:8.5px}
 }
+
+/* ============================================================
+   猫头顶的身份卡
+   ------------------------------------------------------------
+   一张贴在猫右上方的小云朵，问一句「你是 Linda 吗」。
+   它只问一次：选过之后写进 hub-role，之后不再出现；
+   想换身份就点状态条左边那行字（会清掉身份重新问）。
+   ============================================================ */
+.role-ask{
+  position:absolute; bottom:calc(100% + 10px); right:0; z-index:12;
+  width:236px; padding:14px 15px 13px;
+  border:1px solid var(--line-strong); border-radius:14px;
+  background:var(--panel-b); color:var(--ink);
+  box-shadow:var(--shadow-b), inset 0 1px 0 var(--panel-hi);
+  text-align:left;
+  animation:role-in .28s var(--ease) both;
+}
+@keyframes role-in{from{opacity:0; transform:translateY(6px) scale(.97)}to{opacity:1; transform:none}}
+/* 小尾巴指向猫 */
+.role-ask-tail{
+  position:absolute; right:26px; bottom:-6px; width:12px; height:12px;
+  background:var(--panel-b);
+  border-right:1px solid var(--line-strong); border-bottom:1px solid var(--line-strong);
+  transform:rotate(45deg);
+}
+.role-ask-text{font-size:12.5px; line-height:1.75; color:var(--ink-strong)}
+.role-ask-actions{display:flex; gap:8px; margin-top:11px}
+.role-yes,.role-no{
+  flex:1; min-height:32px; padding:0 10px; border-radius:8px;
+  border:1px solid var(--line); background:var(--btn-bg); color:var(--ink-2);
+  font-size:12px; transition:color .16s var(--ease), border-color .16s var(--ease), background-color .16s var(--ease);
+}
+.role-yes{border-color:var(--warm-line); color:var(--ink-strong)}
+.role-yes:hover{background:var(--btn-bg-h); border-color:var(--warm)}
+.role-no:hover{background:var(--btn-bg-h); color:var(--ink-2)}
+
+.role-ask-form{display:flex; flex-direction:column}
+.role-ask-row{display:flex; gap:6px; margin-top:10px}
+.role-ask-row input{
+  flex:1; min-width:0; min-height:32px; padding:0 10px;
+  border:1px solid var(--line); border-radius:8px;
+  background:var(--panel-a); color:var(--ink); font:inherit; font-size:12px;
+}
+.role-ask-row input::placeholder{color:var(--ink-3)}
+.role-ask-row input:focus{outline:none; border-color:var(--warm-line)}
+.role-go{
+  flex:none; min-height:32px; padding:0 12px; border-radius:8px;
+  border:1px solid var(--warm-line); background:var(--btn-bg); color:var(--ink-strong); font-size:12px;
+}
+.role-go:disabled{opacity:.55}
+.role-ask-error{margin-top:8px; font-size:11px; color:#C06448}
+.role-ask-note{margin-top:9px; font-size:10px; line-height:1.75; color:var(--ink-3)}
+.role-ask-back{
+  align-self:flex-start; margin-top:8px; padding:2px 0;
+  border:0; background:none; color:var(--ink-3); font-size:10.5px; text-decoration:underline; text-underline-offset:3px;
+}
+@media(max-width:767px){
+  .role-ask{width:212px; right:-6px; padding:12px 13px 11px}
+  .role-ask-text{font-size:12px}
+}
+
+/* 身份卡出现时，猫自己的闲聊台词先让位 */
+.cat-companion:has(.role-ask) .cat-speech{display:none}
+
+/* 状态条左侧那行字变成可点的身份按钮 */
+.rail-role{
+  padding:0; border:0; background:none; font:inherit;
+  color:inherit; letter-spacing:inherit; text-transform:inherit;
+  cursor:pointer; transition:color .18s var(--ease);
+}
+.rail-role:hover{color:var(--ink-strong)}
+
+/* 工作页的访客态 */
+.wk-guest{
+  max-width:560px; margin:34px auto 0; padding:26px 26px 22px;
+  border:1px dashed var(--line-strong); border-radius:16px; background:var(--panel-b);
+  text-align:left;
+}
+.wk-guest-title{font-family:Georgia,"Songti SC",serif; font-size:17px; color:var(--ink-strong)}
+.wk-guest-text{margin-top:10px; font-size:12px; line-height:2; color:var(--ink-3)}
+.wk-guest-actions{display:flex; align-items:center; gap:14px; margin-top:18px; flex-wrap:wrap}
+.wk-guest-actions .wk-add-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:38px; padding:0 18px; text-decoration:none; font-size:12px;
+}
+@media(max-width:767px){
+  .wk-guest{padding:20px 18px 18px; margin-top:24px}
+}
+
+/* 卡片原来和页面底色几乎一样，边框淡到看不见，像一个飘着的矩形。
+   掺一点暖色、边框换成暖色细线、阴影压近 —— 才像猫在跟你说话 */
+.role-ask{
+  background: color-mix(in srgb, var(--panel-b) 93%, var(--warm) 7%);
+  border-color: var(--warm-line);
+  box-shadow: 0 20px 46px -26px rgba(120, 94, 66, .45), inset 0 1px 0 var(--panel-hi);
+  border-radius: 16px;
+}
+.role-ask-tail{
+  background: color-mix(in srgb, var(--panel-b) 93%, var(--warm) 7%);
+  border-color: var(--warm-line);
+}
+
+/* 手机上卡片右边缘原来顶到屏幕（388/390），往回收一点贴着纸边；
+   底边也别压着「联络站」，往上让 14 */
+@media(max-width:767px){
+  .role-ask{right:10px; bottom:calc(100% + 14px)}
+}
