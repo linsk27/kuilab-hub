@@ -139,6 +139,14 @@
          JS 挂载完成也撤（双保险，main.jsx 打 data-boot） */
       html[data-css="1"] #boot,
       html[data-boot="done"] #boot{display:none}
+      /* /hub、/chat 也是这份 HTML：在解析到 body 末尾的清空脚本之前，
+         先把预渲染的首页内容藏起来，避免闪一下别人的首页 */
+      html.not-home #root{display:none}
+      html.not-home[data-boot="done"] #root{display:block}
+      /* /hub、/chat 也是这份 HTML：在解析到 body 末尾的清空脚本之前，
+         先把预渲染的首页内容藏起来，避免闪一下别人的首页 */
+      html.not-home #root{display:none}
+      html.not-home[data-boot="done"] #root{display:block}
     </style>
   </head>
   <body>

@@ -746,7 +746,9 @@ root.render(<React.StrictMode><Router /></React.StrictMode>);
 // 撤掉 index.html 里的首屏骨架。等首页那张纸真的进了 DOM 再撤 ——
 // 万一首帧只是 fallback，撤早了会出现「骨架没了、内容还没上」的空档。
 (function dropBoot(attempt = 0) {
-  const ready = document.querySelector('.paper-shell') || attempt > 90;
+  // /hub 这类页面本来就没有首页那张纸，不必等它
+  const notHome = document.documentElement.classList.contains('not-home');
+  const ready = notHome || document.querySelector('.paper-shell') || attempt > 90;
   if (!ready) { requestAnimationFrame(() => dropBoot(attempt + 1)); return; }
   requestAnimationFrame(() => {
     // boot 类留着不摘：摘掉会让入场动画重新生效，从 opacity 0 再跑一遍
