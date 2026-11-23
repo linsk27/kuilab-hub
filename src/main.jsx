@@ -456,7 +456,7 @@ function App({ managing }) {
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
           <div className="side-dock">
-            <Suspense fallback={<a className="dock-btn" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={17} weight="light" aria-hidden="true" /></a>}><StationEntry /></Suspense>
+            <Suspense fallback={<a className="dock-btn" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="regular" aria-hidden="true" /></a>}><StationEntry /></Suspense>
             {role !== 'guest' && <WorkEntry />}
           </div>
         </aside>

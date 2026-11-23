@@ -2994,65 +2994,92 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
    纸左侧的工具 dock
    ------------------------------------------------------------
    联络站和工作台原来是纸内的两行入口，占掉大半屏还不整齐。
-   现在收成两枚 40px 的图标，挂到纸左边的空白带上（≥1240 才 fixed；
-   窄屏纸边距不够，退回 profile 底部并排一行）。
+   现在收成两枚小图标，固定贴在视口最左侧、靠上三分之一处（24vh），
+   滚动时一直在，也不再往纸里挤。
+
+   底色上一版是 panel-a（#FFFEFC），在暖纸边上白得像贴了两块瓷砖；
+   改成半透明的纸色 + 一条极淡的描边，让它像墨线勾出来的，
+   而不是一块实心卡片。768 以下纸边放不下，退回纸内并排一行。
    ============================================================ */
-.side-dock{display:flex; gap:8px; margin-top:22px}
+.side-dock{display:flex; align-items:center; gap:8px; margin-top:22px}
+
 .dock-btn{
   position:relative;
   display:inline-flex; align-items:center; justify-content:center;
-  width:40px; height:40px; padding:0; border-radius:12px;
-  border:1px solid var(--line); background:var(--panel-b); color:var(--ink-2);
+  width:38px; height:38px; padding:0; border-radius:11px;
+  border:1px solid var(--line-faint);
+  background:color-mix(in srgb, var(--panel-b) 30%, transparent);
+  color:var(--ink-3);
   text-decoration:none;
   transition:color .18s var(--ease), border-color .18s var(--ease),
-              background-color .18s var(--ease), transform .18s var(--ease), box-shadow .18s var(--ease);
+              background-color .18s var(--ease), transform .18s var(--ease);
 }
 .dock-btn svg{transition:transform .18s var(--ease)}
 @media(hover:hover) and (pointer:fine){
   .dock-btn:hover{
-    color:var(--warm); border-color:var(--warm-line); background:var(--panel-a);
-    transform:translateY(-2px);
-    box-shadow:0 10px 22px -14px rgba(120,94,66,.55);
+    color:var(--warm);
+    border-color:var(--warm-line);
+    background:color-mix(in srgb, var(--warm) 9%, transparent);
+    transform:translateX(2px);
   }
-  .dock-btn:hover svg{transform:scale(1.06)}
+  .dock-btn:hover svg{transform:scale(1.05)}
 }
-.dock-btn:active{transform:scale(.96)}
+.dock-btn:active{transform:scale(.95)}
 
 /* 联络站：角上一点，绿=在线，灰=不在线 */
 .dock-dot{
-  position:absolute; right:7px; bottom:7px; width:6px; height:6px; border-radius:50%;
-  background:var(--line-strong); box-shadow:0 0 0 2px var(--panel-b);
+  position:absolute; right:6px; bottom:6px; width:5px; height:5px; border-radius:50%;
+  background:var(--line-strong);
+  box-shadow:0 0 0 2px var(--scene);
   transition:background-color .3s var(--ease);
 }
-.dock-dot.is-on{background:#7FBF8E; box-shadow:0 0 0 2px var(--panel-b), 0 0 8px rgba(127,191,142,.55)}
+.dock-dot.is-on{background:#7FBF8E; box-shadow:0 0 0 2px var(--scene), 0 0 7px rgba(127,191,142,.5)}
 /* 工作台：未完成数。今天清完了显示一个对勾 */
 .dock-badge{
-  position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px;
+  position:absolute; top:-6px; right:-7px; min-width:15px; height:15px; padding:0 4px;
   border-radius:999px; background:var(--warm); color:#1A1715;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; line-height:16px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px; line-height:15px;
   text-align:center; letter-spacing:0;
-  box-shadow:0 0 0 2px var(--panel-b);
+  box-shadow:0 0 0 2px var(--scene);
 }
 [data-theme="light"] .dock-badge{color:#FFFDF7}
 .dock-badge.is-clear{background:#7FBF8E}
 
-@media(min-width:1240px){
+/* ≥1000：脱开文档流，钉在视口最左侧、页面靠上四分之一处。
+   左边距按纸边算，纸宽不够时贴到屏幕边（clamp 兜住负数）。
+   1000 以下纸边只剩二十来像素，外挂会压在纸沿上，不如留在纸内成一行。 */
+@media(min-width:1000px){
   .side-dock{
-    position:fixed; z-index:40;
-    left:max(12px, calc(50vw - var(--sheet-w) / 2 - 62px));
-    top:50%; transform:translateY(-50%);
-    flex-direction:column; gap:10px; margin:0;
+    position:fixed; z-index:40; margin:0;
+    top:27vh;
+    left:clamp(10px, calc(50vw - var(--sheet-w) / 2 - 50px), 240px);
+    flex-direction:column; gap:10px;
   }
 }
 
-/* 之前是透明底 + 细边，在米色背景上几乎看不见两枚小方块。
-   换成实底白（panel-a）+ 一丝投影，才有"工具栏"的分量 */
-.dock-btn{
-  width:42px; height:42px; border-radius:13px;
-  background:var(--panel-a);
-  border-color:var(--line);
-  box-shadow:0 6px 14px -12px rgba(92,81,69,.5), inset 0 1px 0 var(--panel-hi);
+/* 窄屏 / 手机：纸边放不下外挂，留在纸内、Now 表格下面一行 */
+@media(max-width:999px){
+  .side-dock{margin-top:20px; gap:10px; justify-content:center}
+  .dock-btn{width:40px; height:40px; border-radius:12px}
 }
-@media(min-width:1240px){
-  .side-dock{gap:12px}
+
+/* 图标和描边都提一档：0.05 的边在米色底上基本看不见，
+   ink-3 的细线图标也太轻，像两团灰雾。 */
+.dock-btn{
+  border-color: color-mix(in srgb, var(--ink) 11%, transparent);
+  background: color-mix(in srgb, var(--panel-b) 42%, transparent);
+  color: var(--ink-2);
+}
+@media(min-width:1000px) and (max-width:1199px){
+  /* 纸边只剩十几像素时，按钮再收一圈，别压在纸沿上 */
+  .dock-btn{width:34px; height:34px; border-radius:9px}
+  .side-dock{left:5px; gap:8px}
+}
+/* 悬停时底色变暖，小圆点的“镂空环”也要跟着换，否则留一圈白 */
+@media(hover:hover) and (pointer:fine){
+  .dock-btn:hover .dock-dot{box-shadow:0 0 0 2px var(--scene), 0 0 0 3px color-mix(in srgb, var(--warm) 9%, transparent)}
+}
+[data-theme="dark"] .dock-btn{
+  border-color: color-mix(in srgb, #fff 13%, transparent);
+  background: color-mix(in srgb, #fff 5%, transparent);
 }
