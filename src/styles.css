@@ -2835,3 +2835,50 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 .work-entry-text{flex:0 1 auto; margin-right:auto}
 .work-entry svg{color:var(--ink-3)}
 .work-entry:hover svg{color:var(--warm)}
+
+/* ============================================================
+   工作页：开锁表单
+   ------------------------------------------------------------
+   没设口令 / 没选"只用本机"时，页面只显示这一块。
+   它不解释太多，只把「第一次是设置、之后是输入」这件事说清楚。
+   ============================================================ */
+.wk-lock{max-width:560px; margin:34px auto 0; padding:26px 26px 22px;
+  border:1px solid var(--line); border-radius:16px; background:var(--panel-b)}
+.wk-lock-label{
+  display:block; margin-bottom:10px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+.wk-lock-row{display:flex; gap:10px}
+.wk-lock-row input{
+  flex:1; min-width:0; min-height:46px; padding:0 15px;
+  border:1px solid var(--line); border-radius:12px;
+  background:var(--panel-a); color:var(--ink); font:inherit; font-size:13.5px;
+}
+.wk-lock-row input::placeholder{color:var(--ink-3)}
+.wk-lock-row input:focus{outline:none; border-color:var(--warm-line)}
+.wk-error{margin-top:10px; font-size:11.5px; color:#C06448}
+[data-theme="light"] .wk-error{color:#A8472E}
+.wk-lock-note{margin-top:16px; font-size:11.5px; line-height:1.95; color:var(--ink-3)}
+.wk-lock-note b{color:var(--ink-2); font-weight:600}
+.wk-lock-skip{
+  margin-top:16px; padding:6px 0; border:0; background:none;
+  color:var(--ink-3); font-size:11px; text-decoration:underline; text-underline-offset:3px;
+}
+.wk-lock-skip:hover{color:var(--ink-strong)}
+@media(max-width:767px){
+  .wk-lock{padding:20px 18px 18px; margin-top:24px}
+  .wk-lock-row{flex-direction:column}
+  .wk-lock-row .wk-add-btn{width:100%}
+}
+
+/* 页脚的同步状态：一点颜色就够，不用做成徽章 */
+.wk-sync{display:inline-flex; align-items:center; gap:5px; font-size:9px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.wk-sync svg{opacity:.7}
+.wk-sync.is-pulling,.wk-sync.is-pushing{color:var(--warm)}
+.wk-sync.is-offline,.wk-sync.is-error{color:#C06448}
+.wk-sync.is-local{color:var(--ink-3); opacity:.8}
+@media(max-width:767px){
+  .wk-sync{font-size:8.5px}
+}
