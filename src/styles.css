@@ -2664,3 +2664,174 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
     margin:0; gap:0;
   }
 }
+
+/* ============================================================
+   工作页 #/work 与首页入口
+   ------------------------------------------------------------
+   纸宽跟全站一致（--sheet-w），但内容列收在 720 —— 输入框拉满 1036
+   既不好读也不好点。列表只有一条竖线和圆圈，不额外套卡片。
+   ============================================================ */
+.work-entry{
+  display:flex; align-items:center; gap:10px;
+  width:156px; max-width:100%; min-height:44px; margin-top:8px; padding:6px 10px;
+  border-radius:6px; text-decoration:none; color:var(--ink-2);
+  font-size:13px; transition:background-color 180ms var(--ease), color 180ms var(--ease);
+}
+.work-entry svg{flex-shrink:0}
+.work-entry-text{flex:1; display:flex; flex-direction:column; gap:1px; min-width:0}
+.work-entry-line{font-size:13px; line-height:1.25; white-space:nowrap}
+.work-entry-note{font-size:9.5px; letter-spacing:.04em; color:var(--ink-3); white-space:nowrap}
+@media(hover:hover) and (pointer:fine){
+  .work-entry:hover{background:var(--btn-bg-h); color:var(--ink-strong)}
+}
+.work-entry:active{transform:scale(.99)}
+
+/* 输入行 */
+.wk-add{display:flex; gap:10px; margin-top:28px; max-width:720px}
+.wk-add input{
+  flex:1; min-width:0; min-height:46px; padding:0 15px;
+  border:1px solid var(--line); border-radius:12px;
+  background:var(--panel-b); color:var(--ink); font:inherit; font-size:13.5px;
+  transition:border-color .2s var(--ease), background-color .2s var(--ease);
+}
+.wk-add input::placeholder{color:var(--ink-3)}
+.wk-add input:focus{outline:none; border-color:var(--warm-line); background:var(--panel-a)}
+.wk-add-btn{
+  flex:none; min-height:46px; padding:0 20px; border-radius:12px;
+  border:1px solid var(--warm-line); background:var(--btn-bg); color:var(--ink-2);
+  font-size:12.5px; letter-spacing:.02em;
+  transition:background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+}
+@media(hover:hover) and (pointer:fine){
+  .wk-add-btn:hover{background:var(--btn-bg-h); color:var(--ink-strong); border-color:var(--warm)}
+}
+
+/* 列表：一行一条，圆圈在左，时间在右，删除藏在行尾 */
+.wk-list{list-style:none; margin:0; padding:0; max-width:720px}
+.wk-item{
+  display:grid; grid-template-columns:20px minmax(0,1fr) 44px 26px;
+  align-items:center; gap:12px; padding:12px 0;
+  border-bottom:1px solid var(--line-faint);
+}
+.wk-item:last-child{border-bottom:0}
+.wk-check{
+  width:19px; height:19px; padding:0; border-radius:50%;
+  border:1px solid var(--line-strong); background:transparent; color:transparent;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:background-color .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease);
+}
+.wk-item.is-done .wk-check{
+  border-color:var(--warm); background:var(--warm); color:#1A1715;
+}
+[data-theme="light"] .wk-item.is-done .wk-check{color:#FFFDF7}
+@media(hover:hover) and (pointer:fine){
+  .wk-check:hover{border-color:var(--warm); color:var(--warm-line)}
+}
+.wk-text{font-size:13.5px; line-height:1.7; color:var(--ink); overflow-wrap:anywhere}
+.wk-item.is-done .wk-text{
+  color:var(--ink-3);
+  text-decoration:line-through;
+  text-decoration-color:var(--line-strong);
+  text-decoration-thickness:1px;
+}
+.wk-time{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
+  letter-spacing:.04em; color:var(--ink-3); text-align:right; font-variant-numeric:tabular-nums;
+}
+.wk-del{
+  width:26px; height:26px; padding:0; border:0; border-radius:50%;
+  background:none; color:var(--ink-3); opacity:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:opacity .18s var(--ease), color .18s var(--ease), background-color .18s var(--ease);
+}
+.wk-item:hover .wk-del, .wk-del:focus-visible{opacity:.75}
+.wk-del:hover{opacity:1; color:#C06448; background:var(--btn-bg-h)}
+@media(hover:none){.wk-del{opacity:.5}}
+
+/* 分组小标题 */
+.wk-block{margin-top:30px}
+.wk-sub{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  max-width:720px; padding-bottom:8px; border-bottom:1px solid var(--line-soft);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+}
+.wk-day{margin-top:24px}
+.wk-empty{max-width:720px; margin-top:18px; font-size:12.5px; line-height:1.9; color:var(--ink-3)}
+
+/* 历史 */
+.wk-history{max-width:720px; margin-top:46px; padding-top:20px; border-top:1px solid var(--line)}
+.wk-history-toggle{
+  display:flex; align-items:baseline; gap:10px; width:100%; padding:6px 0;
+  border:0; background:none; color:var(--ink-2); text-align:left;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10px;
+  letter-spacing:.16em; text-transform:uppercase;
+}
+.wk-history-count{margin-left:auto; color:var(--ink-3); opacity:.85}
+.wk-caret{display:inline-block; font-size:11px; color:var(--ink-3); transition:transform .2s var(--ease)}
+.wk-caret.is-open{transform:rotate(180deg)}
+.wk-search{
+  display:flex; align-items:center; gap:9px; margin:12px 0 4px;
+  padding:0 12px; min-height:40px; border:1px solid var(--line); border-radius:10px;
+  background:var(--panel-b); color:var(--ink-3);
+}
+.wk-search input{
+  flex:1; min-width:0; border:0; background:none; outline:none;
+  color:var(--ink); font:inherit; font-size:12.5px;
+}
+.wk-search input::placeholder{color:var(--ink-3)}
+.wk-search button{border:0; background:none; color:var(--ink-3); font-size:15px; line-height:1; padding:4px}
+
+/* 页脚：导出/导入放在左边，和「这站怎么搭的」同一行 */
+.wk-foot-left{display:inline-flex; align-items:center; gap:14px}
+.wk-foot-btn{
+  display:inline-flex; align-items:center; gap:4px; padding:4px 0;
+  border:0; background:none; color:var(--ink-3);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9px;
+  letter-spacing:.12em; text-transform:uppercase;
+  transition:color .18s var(--ease);
+}
+.wk-foot-btn:hover{color:var(--warm)}
+.wk-foot-link{
+  display:inline-flex; align-items:center; gap:4px;
+  color:var(--ink-3); text-decoration:none; font-size:9px; letter-spacing:.12em; text-transform:uppercase;
+}
+.wk-foot-link:hover{color:var(--warm)}
+
+@media(max-width:767px){
+  .wk-add{margin-top:22px}
+  .wk-add-btn{padding:0 15px}
+  .wk-item{grid-template-columns:20px minmax(0,1fr) 24px; gap:10px}
+  .wk-time{display:none}
+  .wk-history{margin-top:34px}
+  .uses-foot .wk-foot-left{gap:10px}
+}
+
+/* 内容列居中：纸宽 1140 是全站统一，但待办这一列 720 靠左会甩出一大片空白。
+   header 里的文字也一起收进来，标题与列表同一条左边缘；
+   只有顶部的「回到首页 + 导航」保持两端对齐（那是页头，不是内容）。 */
+.work-sheet .uses-top,
+.work-sheet .uses-head h1,
+.work-sheet .uses-head > .uses-lede,
+.work-sheet .wk-add,
+.work-sheet .wk-list,
+.work-sheet .wk-block,
+.work-sheet .wk-sub,
+.work-sheet .wk-history,
+.work-sheet .wk-empty,
+.work-sheet .uses-foot{max-width:720px; margin-left:auto; margin-right:auto}
+.work-sheet .wk-add{margin-top:28px}
+.work-sheet .uses-foot{margin-top:34px}
+@media(max-width:767px){
+  .work-sheet .wk-add{margin-top:22px}
+}
+
+/* 页头第一行（回到首页 + 导航）也要在同一条左边缘上，
+   不然「10 — WORK」比「← 回到首页」缩进 120px，看着像错位 */
+.work-sheet .uses-bar{max-width:720px; margin-left:auto; margin-right:auto}
+
+/* 图标和文字之间被 flex:1 拉开了 40px，看着散。文字紧跟图标，
+   箭头用 margin-left:auto 推到底，和「联络站」那个胶囊的节奏一致 */
+.work-entry-text{flex:0 1 auto; margin-right:auto}
+.work-entry svg{color:var(--ink-3)}
+.work-entry:hover svg{color:var(--warm)}

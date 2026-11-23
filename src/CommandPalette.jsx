@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, PawPrint, Heart, SealCheck, Stack, ClockCounterClockwise, ChartLineUp, Rss } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight, LinkSimple, FileText, MusicNotes, PaintBrush, ChatCircle, Copy, X, Stamp, PawPrint, Heart, SealCheck, Stack, ClockCounterClockwise, ChartLineUp, Rss, ListChecks } from '@phosphor-icons/react';
 
 // ⌘K 面板：全站的一个入口。
 // 只做三件事 —— 跳（页面/链接）、做（切主题、控制音乐、复制链接）、找（模糊匹配）。
@@ -129,6 +129,16 @@ export default function CommandPalette({ pageNames, onOpenPage = () => {}, links
       run: () => window.dispatchEvent(new CustomEvent('hub:stamp', { detail: { kind: seal.kind } })),
       keywords: seal.keywords,
     })));
+    // 工作页不在导航里（手机放不下第六项），入口在这里和首页左栏
+    list.push({
+      id: 'page:Work',
+      group: '页面',
+      label: 'Work',
+      hint: '上班时的待办',
+      icon: ListChecks,
+      keywords: 'work todo 待办 工作 任务 清单 打工',
+      run: () => { window.location.hash = '#/work'; },
+    });
     list.push(
       { id: 'act:theme', group: '动作', label: '切换明暗主题', hint: '墨色 / 纸色', icon: PaintBrush, run: onToggleTheme, keywords: 'theme dark light 主题 明暗' },
       { id: 'act:play', group: '动作', label: '播放 / 暂停音乐', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'toggle' })), keywords: 'music play pause 音乐 播放' },

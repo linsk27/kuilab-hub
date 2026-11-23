@@ -10,6 +10,7 @@ import { HandUnderline } from './PaperMarks';
 import SiteEffects from './SiteEffects';
 import { bump } from './counters';
 import SiteNav from './SiteNav';
+import WorkEntry from './WorkEntry';
 
 // 联络站按需加载：主页首屏不必下载云 SDK、二维码等代码。
 const GuestContact = lazy(() => import('./GuestContact'));
@@ -20,6 +21,7 @@ const UsesPage = lazy(() => import('./UsesPage'));
 const ArchivePage = lazy(() => import('./ArchivePage'));
 const StatsPage = lazy(() => import('./StatsPage'));
 const InfoPage = lazy(() => import('./InfoPage'));
+const WorkPage = lazy(() => import('./WorkPage'));
 
 // 示例只用于管理页预览；公开链接来自 public/links.json。
 const sampleLinks = [
@@ -37,6 +39,7 @@ const PAGE_ROUTE = {
   '#/archive': { Page: ArchivePage, name: 'Archive' },
   '#/stats': { Page: StatsPage, name: 'Stats' },
   '#/rss': { Page: InfoPage, name: 'RSS' },
+  '#/work': { Page: WorkPage, name: 'Work' },
 };
 const pages = {
   About: ['A little about this place', 'Linda is a small home for the things I make, write, and love. A place to keep everything connected.', 'This is a design preview. Personal details and destinations are ready for you to make your own.'],
@@ -444,6 +447,7 @@ function App({ managing }) {
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
           <Suspense fallback={<a className="station-entry" href="/hub#/chat" aria-label="进入站内联络站"><ChatCircle size={18} weight="light" aria-hidden="true" /><span className="station-entry-text"><span className="station-entry-line">联络站</span></span><ArrowUpRight size={15} aria-hidden="true" /></a>}><StationEntry /></Suspense>
+          <WorkEntry />
         </aside>
         <section id="links" tabIndex={-1} className="links-panel" aria-labelledby="links-title">
           {/* 页头两行：上面一排「编号 + 说明」各占一端，下面才是标题。
