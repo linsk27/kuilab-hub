@@ -8,7 +8,7 @@
  *
  * 改版本号就会清掉旧缓存；部署新构建后第一次访问会顺带刷新。
  */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const ASSETS = `hub-assets-${VERSION}`;
 const PAGES = `hub-pages-${VERSION}`;
 

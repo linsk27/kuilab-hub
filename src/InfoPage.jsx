@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, Rss } from '@phosphor-icons/react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 import SiteNav from './SiteNav';
+import './info.css';
 
 // #/about 与 #/rss：两张短的说明页。
 // 它们以前是首页上的弹窗 —— 导航里挂着，点开却只是盖一层遮罩，跳转感是假的。

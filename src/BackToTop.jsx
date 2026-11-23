@@ -13,7 +13,7 @@ const HOME_HASHES = ['', '#/', '#/manage'];
 
 export default function BackToTop() {
   const [scrolled, setScrolled] = useState(false);
-  const [onHome, setOnHome] = useState(() => HOME_HASHES.includes(window.location.hash));
+  const [onHome, setOnHome] = useState(() => (typeof window === 'undefined' ? true : HOME_HASHES.includes(window.location.hash)));
 
   useEffect(() => {
     let frame = 0;

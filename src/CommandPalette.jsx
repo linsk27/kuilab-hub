@@ -144,7 +144,7 @@ export default function CommandPalette({ pageNames, onOpenPage = () => {}, links
       { id: 'act:play', group: '动作', label: '播放 / 暂停音乐', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'toggle' })), keywords: 'music play pause 音乐 播放' },
       { id: 'act:next', group: '动作', label: '下一首', hint: '随身听', icon: MusicNotes, run: () => window.dispatchEvent(new CustomEvent('hub:player', { detail: 'next' })), keywords: 'next 下一首 切歌' },
       { id: 'act:hub', group: '动作', label: '去联络站', hint: '留言 / 邀请', icon: ChatCircle, external: '/hub', keywords: 'hub station 联络 留言' },
-      { id: 'act:copy', group: '动作', label: '复制本站链接', hint: window.location.host, icon: Copy, run: () => navigator.clipboard?.writeText(window.location.href), keywords: 'copy url 复制 链接' },
+      { id: 'act:copy', group: '动作', label: '复制本站链接', hint: typeof window === 'undefined' ? 'kuilab.cn' : window.location.host, icon: Copy, run: () => navigator.clipboard?.writeText(window.location.href), keywords: 'copy url 复制 链接' },
     );
     return list;
   }, [pageNames, links, onOpenPage, onToggleTheme]);

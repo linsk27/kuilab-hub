@@ -3,6 +3,7 @@ import { ChatCircle, Trash } from '@phosphor-icons/react';
 import { rpc, rpcErrorText } from './station-rpc';
 import { useTheme } from './theme';
 import ThemeToggle from './ThemeToggle';
+import './station.css';
 
 const GUEST_KEY = 'personal-hub-guest-v1';
 const AUTHOR_KEY = 'personal-hub-author-v1';

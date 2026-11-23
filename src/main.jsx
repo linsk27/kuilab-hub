@@ -53,6 +53,13 @@ const pages = {
 // 不再经历「空列表 → 卡片铺开」那一下 —— 那正是页面高度抽搐的来源。
 // 首次访问仍然会拉，这里只负责「回来时不闪」。
 let linksCache = null;
+
+// 构建期预渲染（scripts/prerender.mjs）会在 Node 里先调它，
+// 把 links.json / now.json 塞进模块缓存 —— 否则 SSR 只能渲出骨架。
+export function seedPrerender({ links, now } = {}) {
+  if (links) linksCache = links;
+  if (now) nowCache = now;
+}
 let nowCache = null;
 const blogCache = new Map();
 const STORAGE_KEY = 'personal-hub-links-v1';
@@ -634,8 +641,8 @@ function GlobalPalette() {
   );
 }
 
-function Router() {
-  const [route, setRoute] = useState(() => location.hash);
+export function Router() {
+  const [route, setRoute] = useState(() => (typeof location === 'undefined' ? '' : location.hash));
   useEffect(() => {
     // 用 transition 更新：新页面的 chunk 还没到时，React 会先留着旧页面，
     // 而不是先卸掉、露出「正在打开…」再换上来 —— 那一闪就是这么来的
@@ -690,10 +697,13 @@ function Router() {
       }, { once: true });
     }
   }, []);
-  const callback = new URLSearchParams(location.search).has('provider');
+  // 构建期预渲染时没有 location，按「首页、无 OAuth 回调」处理
+  const search = typeof location === 'undefined' ? '' : location.search;
+  const here = typeof location === 'undefined' ? '/' : location.pathname;
+  const callback = new URLSearchParams(search).has('provider');
   // #/author 是给作者本人保存的低调书签：直接打开口令框，口令只由服务端校验。
   const authorEntry = route === '#/author';
-  const path = location.pathname.replace(/\/+$/, '') || '/';
+  const path = here.replace(/\/+$/, '') || '/';
   // /hub/chat 这类深链也要能直接打开（历史书签、分享出去的地址），不让它掉到 404
   const isStationPath = /^\/(chat|hub)(\/.+)?$/.test(path);
   const station = isStationPath || route === '#/chat' || authorEntry || callback;
@@ -723,6 +733,7 @@ function Router() {
     </>
   );
 }
+if (typeof document !== 'undefined') {
 const root = createRoot(document.getElementById('root'));
 root.render(<React.StrictMode><Router /></React.StrictMode>);
 
@@ -736,6 +747,7 @@ root.render(<React.StrictMode><Router /></React.StrictMode>);
     document.documentElement.setAttribute('data-boot', 'done');
   });
 })();
+}
 
 // 离线缓存：只在生产构建里注册，首屏渲染完再装，不跟首屏抢带宽。
 // 开发环境不注册——否则改动会被缓存住，热更新看起来像没生效。

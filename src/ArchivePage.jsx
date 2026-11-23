@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 import SiteNav from './SiteNav';
 import FoldMark from './Folds';
+import './archive.css';
 
 // #/archive 年表：把「博客文章」和「站点更新」并成一条时间线。
 // 数据全是现成的：文章来自 /api/blog（服务端抓 RSS），更新来自 public/now.json。

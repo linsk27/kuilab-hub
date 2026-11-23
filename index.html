@@ -135,7 +135,9 @@
         #boot .b-cards{grid-template-columns:1fr; gap:16px}
         #boot .b-card{height:418px}
       }
-      /* React 挂载完成后撤掉骨架（由 main.jsx 打标记） */
+      /* 样式表一到，预渲染的真内容就能顶上来，骨架让位；
+         JS 挂载完成也撤（双保险，main.jsx 打 data-boot） */
+      html[data-css="1"] #boot,
       html[data-boot="done"] #boot{display:none}
     </style>
   </head>
@@ -156,6 +158,22 @@
       </div>
     </div>
     <div id="root"></div>
+    <script>
+      // /hub、/chat 这些地址由 rewrite 指向同一份 index.html，
+      // 里面预渲染的是首页内容 —— 不是首页就立刻清掉，别让访客先看到别人的首页。
+      if (document.documentElement.classList.contains('not-home')) {
+        var r = document.getElementById('root');
+        if (r) r.innerHTML = '';
+      }
+    </script>
+    <script>
+      // /hub、/chat 这些地址由 rewrite 指向同一份 index.html，
+      // 里面预渲染的是首页内容 —— 不是首页就立刻清掉，别让访客先看到别人的首页。
+      if (document.documentElement.classList.contains('not-home')) {
+        var r = document.getElementById('root');
+        if (r) r.innerHTML = '';
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

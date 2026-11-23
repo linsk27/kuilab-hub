@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle';
 import { useTheme } from './theme';
 import SiteNav from './SiteNav';
 import { readCounters } from './counters';
+import './stats.css';
 
 // #/stats 一些数字
 // 只放三类事实：站点自己的累计（云端聚合、没有个人信息）、内容量（RSS / links.json）、
