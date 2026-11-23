@@ -544,32 +544,6 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 .page .now-row dd{flex:1; min-width:0; font-size:12px; line-height:1.65; color:var(--ink-2)}
 
-/* ---- 右栏「最近」：三条带日期的记录，和索引页共用一套细线 ---- */
-.page .recent{
-  list-style:none; margin:16px 0 0; padding:0;
-  border-top:1px solid var(--line-faint);
-}
-.page .recent-head{
-  display:flex; align-items:baseline; justify-content:space-between;
-  padding:8px 0 7px;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; font-weight:500;
-  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
-}
-.page .recent-item{
-  display:flex; align-items:baseline; gap:12px;
-  padding:7px 0; border-top:1px solid var(--line-faint);
-}
-.page .recent-date{
-  flex:0 0 38px; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
-  letter-spacing:.04em; color:var(--ink-3); font-variant-numeric:tabular-nums;
-}
-.page .recent-text{flex:1; min-width:0; font-size:12px; line-height:1.6; color:var(--ink-2)}
-.page .recent-tag{
-  flex:0 0 auto; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px;
-  letter-spacing:.08em; color:var(--ink-3);
-  border:1px solid var(--line-faint); border-radius:999px; padding:2px 7px;
-}
-
 /* ---- 标题逐词上浮（结构，动画在下面） ---- */
 .page .split{display:inline-block}
 .page .split-line{
@@ -935,27 +909,6 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
   .page .feed-title{font-size:12px}
 }
 
-/* ---- 卡片底部的 meta 栅格：三等分，细线分隔 ---- */
-.page .meta-grid{
-  display:flex; margin-top:20px; padding-top:14px; border-top:1px solid var(--line-faint);
-}
-.page .meta-cell{
-  flex:1; min-width:0; display:flex; flex-direction:column; gap:7px;
-  padding:0 16px; border-left:1px solid var(--line-faint);
-}
-.page .meta-cell:first-child{padding-left:0; border-left:0}
-.page .meta-cell span{
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; letter-spacing:.22em;
-  text-transform:uppercase; color:var(--ink-3); opacity:.8;
-}
-.page .meta-cell b{
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:14px; font-weight:500;
-  letter-spacing:.02em; color:var(--ink-strong); font-variant-numeric:tabular-nums;
-}
-.page .meta-cell:nth-child(1){animation:ink-rise .8s var(--ease) .18s both}
-.page .meta-cell:nth-child(2){animation:ink-rise .8s var(--ease) .24s both}
-.page .meta-cell:nth-child(3){animation:ink-rise .8s var(--ease) .3s both}
-
 /* 入场再柔一点：从模糊到清晰 */
 @keyframes ink-focus{from{opacity:0; transform:translateY(12px); filter:blur(8px)} to{opacity:1; transform:none; filter:blur(0)}}
 .page .rail{animation:ink-focus .8s var(--ease) both}
@@ -963,9 +916,6 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 .page .footer{animation:ink-focus .9s var(--ease) .2s both}
 
 @media(max-width:767px){
-  .page .meta-grid{margin-top:24px; padding-top:14px}
-  .page .meta-cell{padding:0 10px}
-  .page .meta-cell b{font-size:13px}
   .theme-toggle{width:48px}
   .theme-toggle.dark .theme-knob{transform:translateX(24px)}
   .rail{gap:10px}
@@ -1567,15 +1517,12 @@ input, textarea, [contenteditable="true"]{cursor:text}
 @keyframes ghost-pulse{0%,100%{opacity:.5}50%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.page .ghost-note{animation:none}}
 
-/* Now / 最近 的占位：高度直接对齐真实块（实测 142 / 136），
+/* Now 的占位：高度直接对齐真实块（实测 142），
    数据一到只换内容、不改高度，纸面就不会往上顶 */
 .page .now-skeleton{min-height:142px}
-.page .recent-skeleton{min-height:136px}
 .page .now-skeleton .now-row dt,
 .page .now-skeleton .now-row dd{display:flex; align-items:center}
-.page .now-skeleton .ghost-bar,
-.page .recent-skeleton .ghost-bar{height:7px; display:block; border-radius:3px; background:var(--line-faint); opacity:.7}
-.page .recent-skeleton .recent-item{align-items:center}
+.page .now-skeleton .ghost-bar{height:7px; display:block; border-radius:3px; background:var(--line-faint); opacity:.7}
 
 /* ============================================================
    版式重排 v2 · 一套外框 / 一套内框 / 一套字号阶梯
@@ -1637,16 +1584,10 @@ input, textarea, [contenteditable="true"]{cursor:text}
 .page .feature-side .marker{margin-top:0}
 .page .feature-feed{padding-left:20px; justify-content:center}
 
-/* ---- 6. 最近 / 统计：节奏收一档，小字统一 9.5 ---- */
-.page .recent{margin-top:18px}
-.page .recent-head{padding:7px 0 6px; font-size:9.5px}
-.page .recent-item{padding:6px 0}
+/* ---- 6. 右栏落款：节奏收一档，小字统一 9.5 ---- */
 .page .now-head,
 .page .feed-head{font-size:9.5px}
 .page .panel-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--line-faint)}
-.page .meta-grid{margin-top:0; padding-top:0; border-top:0}
-.page .meta-cell span{font-size:9px}
-.page .meta-cell b{font-size:15px}
 .page .panel-signoff{margin-top:10px}
 
 /* ---- 7. 页脚：一句话 + 导航合成一条居中的线 ----
@@ -1698,9 +1639,6 @@ input, textarea, [contenteditable="true"]{cursor:text}
   .page .footer nav{justify-content:center; gap:20px}
 }
 
-/* 标签去掉小方框，只留字——三个边框挤在右端太吵 */
-.page .recent-tag{border:0; padding:0; opacity:.9}
-
 /* ---- 9. 纸色主题下卡片要「立」得起来 ---- */
 [data-theme="light"] .page .link-note{
   border-color: rgba(23,20,17,.10);
@@ -1741,51 +1679,34 @@ input, textarea, [contenteditable="true"]{cursor:text}
 .page .link-note h3{font-size:19px}
 .page .link-note p{font-size:11.5px; line-height:1.65}
 .page .feature-side h3{font-size:19px}
-.page .recent-item{padding:7px 0}
-.page .recent-text{font-size:12.5px}
 .page .now-row dd{font-size:12.5px}
 .page .feed-title{font-size:13px}
 .page .feed-list a{padding:7px 0}
 
-/* ---- 12. 底部收成一行：两格数据 + 右端落款 ----
-   原来「Zone +08」和顶栏的 UTC+8 是同一件事，去掉；落款单独一行也并进来。
-   这样右栏下方那条 88px 的空洞缩到 40，还少了一条孤立的小字。 */
-.page .panel-foot{display:flex; align-items:flex-end; justify-content:space-between; gap:20px}
-.page .panel-foot .meta-grid{flex:1; min-width:0}
-.page .meta-cell{flex:0 0 auto; min-width:190px}
-.page .panel-signoff{margin:0 0 2px; text-align:right; white-space:nowrap}
+/* ---- 12. 底部只留一句落款 ----
+   原来的「Links 02 / Status Open」两格数据是手写的装饰：卡片本身就摆着两个链接，
+   Status 不对应任何真实状态，而且整块是 aria-hidden 的。删掉，只留落款。 */
+.page .panel-foot{display:flex; align-items:flex-end; justify-content:flex-start; gap:20px}
+.page .panel-signoff{margin:0 0 2px; text-align:left; white-space:nowrap}
 
 /* 订阅卡左栏说明放宽到整栏：11.5px 下「笔记、作品与所想记录。」会在 120px 处折行 */
 .page .link-wall .note-wrap.is-feature .feature-side p{max-width:150px}
 @media(max-width:1050px){
-  .page .meta-cell{min-width:140px}
   .page .link-wall .note-wrap.is-feature .feature-side p{max-width:132px}
 }
 @media(max-width:767px){
   .page .panel-foot{flex-direction:column; align-items:flex-start; gap:10px}
-  .page .meta-cell{min-width:0; flex:1}
   .page .panel-signoff{text-align:left; white-space:normal}
   .page .link-wall .note-wrap.is-feature .feature-side p{max-width:none}
 }
 
-/* ---- 13. 把右栏那段空洞填掉：卡片长高 24px、最近三行各加 4px ----
-   右栏比左栏矮 98px，靠 margin-top:auto 沉底后，空洞全挤在「最近」和底部之间。 */
-.page .link-note{min-height:186px}
-.page .recent{margin-top:20px}
-.page .recent-item{padding:9px 0}
-.page .panel-foot{padding-top:18px}
-
-/* 卡片 186 太高：只有两张卡，内容撑不满，中间全是空气。回到 168，
-   把余量留给「最近」和底部 —— 空隙放在两段之间比放在卡片内部好看。 */
+/* ---- 13. 卡片高度 ----
+   只有两张卡，内容撑不满，186 太高、153 又显扁；168 是内容与留白的折中。
+   右侧「最近」删掉之后，右栏的余量集中到卡片与落款之间，不再被切成两段。 */
 .page .link-note{min-height:168px}
 .page .feature-side{justify-content:flex-start}
 .page .feature-side .marker{margin-top:16px}
-
-/* ---- 14. 让余量均分，而不是全堆在一处 ----
-   两个 margin-top:auto 会把自由空间平分：卡片 → 46 → 最近 → 46 → 底部统计。
-   一处 92px 的空洞看着像漏了东西，两处 46px 才像有意留的呼吸。 */
-.page .recent,
-.page .recent-skeleton{margin-top:auto}
+.page .panel-foot{padding-top:18px}
 
 /* ============================================================
    装备页 v3：拉宽 + 左侧章节索引
@@ -2107,13 +2028,11 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 }
 
 /* 落款挪到左边：右下角是那只猫的地盘，字放在那儿会被盖掉半句 */
-.page .panel-foot{justify-content:space-between; padding-right:0}
-.page .panel-foot .meta-grid{flex:0 1 auto}
+.page .panel-foot{justify-content:flex-start; padding-right:0}
 .page .panel-signoff{margin:0; text-align:left; white-space:nowrap}
 @media(max-width:767px){
   .page .panel-foot{flex-direction:column; align-items:flex-start}
-  .page .panel-signoff{order:2; margin-top:10px}
-  .page .panel-foot .meta-grid{order:1; flex:1 1 auto; width:100%}
+  .page .panel-signoff{margin-top:10px}
 }
 
 /* 手机上没有左侧状态时，导航会掉进第一栏被压扁 —— 三块都显式指定列 */
@@ -2146,15 +2065,12 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 .page .rail,
 .page .paper-shell,
 .page .footer,
-.page .panel-foot .meta-cell,
 .page .link-note,
 .page .split-word{animation:none}
 
 html.enter .page .rail{animation:ink-focus .8s var(--ease) both}
 html.enter .page .paper-shell{animation:ink-rise .8s var(--ease) both}
 html.enter .page .footer{animation:ink-focus .9s var(--ease) .2s both}
-html.enter .page .panel-foot .meta-cell:nth-child(1){animation:ink-rise .8s var(--ease) .18s both}
-html.enter .page .panel-foot .meta-cell:nth-child(2){animation:ink-rise .8s var(--ease) .24s both}
 html.enter .page .link-note{animation:note-in 340ms cubic-bezier(.05,.7,.1,1) backwards}
 html.enter .page .note-wrap:nth-child(2) .link-note{animation-delay:40ms}
 html.enter .page .note-wrap:nth-child(3) .link-note{animation-delay:80ms}
@@ -3082,4 +2998,18 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
 [data-theme="dark"] .dock-btn{
   border-color: color-mix(in srgb, #fff 13%, transparent);
   background: color-mix(in srgb, #fff 5%, transparent);
+}
+
+/* ============================================================
+   删掉「最近」之后，右栏矮了一截
+   ------------------------------------------------------------
+   两张卡 168 高，卡片底到落款空出 237px，像漏了一整块内容。
+   把卡抬到 272：一是填住这张纸的下半部分，二是 365×272 更接近
+   手账里一张便签的比例（168 时显得扁）。卡内文字仍靠上，
+   底部短横用 margin-top:auto 沉底，留白落在卡内下半，不显得空。
+   ============================================================ */
+.page .link-note{min-height:236px}
+@media(max-width:767px){
+  /* 手机上单列排下来，236 会拖得很长，回到内容自己的高度 */
+  .page .link-note{min-height:190px}
 }

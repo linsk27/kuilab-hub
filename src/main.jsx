@@ -582,30 +582,11 @@ function App({ managing }) {
             </div>
           </div>}
 
-          {!nowLoaded && <ol className="recent recent-skeleton" aria-hidden="true">
-            <li className="recent-head"><span>最近</span><span><span className="ghost-bar" style={{ width: 26 }} /></span></li>
-            {[0, 1, 2].map(i => <li className="recent-item" key={i}>
-              <span className="recent-date"><span className="ghost-bar" style={{ width: 26 }} /></span>
-              <span className="recent-text"><span className="ghost-bar" style={{ width: `${72 - i * 14}%` }} /></span>
-            </li>)}
-          </ol>}
-          {now?.updates?.length ? <ol className="recent">
-            <li className="recent-head"><span>最近</span><span>{String(now.updates.length).padStart(2, '0')} 条</span></li>
-            {now.updates.slice(0, 3).map(item => <li className="recent-item" key={`${item.date}-${item.text}`}>
-              <span className="recent-date">{String(item.date || '').slice(5)}</span>
-              <span className="recent-text">{item.text}</span>
-              {item.tag && <span className="recent-tag">{item.tag}</span>}
-            </li>)}
-          </ol> : null}
           {pageCount > 1 && <nav className="pagination" aria-label="链接分页"><button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="上一页">←</button><span aria-live="polite">{currentPage} / {pageCount}</span><button disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="下一页">→</button></nav>}
           <p className="link-notice" role="status">{notice}</p>
           {/* 底部这一条用 margin-top:auto 沉到底：右栏比左栏矮 51px 的缺口就是这么补上的 */}
           <div className="panel-foot">
             <p className="panel-signoff">{!showSamples && savedLinks.length ? `${savedLinks.length} links, collected with care.` : 'A collection of things, always growing.'}<Heart size={13} weight="light" aria-hidden="true" /></p>
-            <div className="meta-grid" aria-hidden="true">
-              <div className="meta-cell"><span>Links</span><b>{links.length ? String(links.length).padStart(2, '0') : '—'}</b></div>
-              <div className="meta-cell"><span>Status</span><b>Open</b></div>
-            </div>
           </div>
         </section>
       </main>
