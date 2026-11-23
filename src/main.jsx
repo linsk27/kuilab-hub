@@ -660,8 +660,14 @@ export function Router() {
     let cancelled = false;
     const warm = () => {
       if (cancelled || document.hidden) return;
-      const load = mod => import(mod).catch(() => { /* 预取失败不影响点进去时的正常加载 */ });
-      load('./UsesPage'); load('./ArchivePage'); load('./StatsPage'); load('./InfoPage');
+      // 每个 import 都写成字面量：交给变量（import(mod)）Vite 没法静态解析，
+      // 运行时会去请求 /assets/UsesPage 这种不存在的路径（静默 404 很久了）。
+      Promise.all([
+        import('./UsesPage'),
+        import('./ArchivePage'),
+        import('./StatsPage'),
+        import('./InfoPage'),
+      ]).catch(() => { /* 预取失败不影响点进去时的正常加载 */ });
     };
     const idle = window.requestIdleCallback ? window.requestIdleCallback(warm, { timeout: 3000 }) : window.setTimeout(warm, 2200);
     return () => {

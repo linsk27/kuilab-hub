@@ -172,3 +172,23 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 .arc-month{position:relative}
 
 .arc-month-head{padding-right:28px}
+
+/* 年表沿用装备页的 132px 索引栏，但年份只有一个时左侧索引不渲染，
+   正文就会掉进那 132px 的窄栏里（文字竖着排成一列）。
+   有索引才用两栏，没索引就让正文吃满整行。 */
+.arc-main{grid-template-columns:minmax(0,1fr); column-gap:0}
+.arc-main:has(.arc-toc){grid-template-columns:132px minmax(0,1fr); column-gap:44px}
+@media(max-width:900px){
+  .arc-main,
+  .arc-main:has(.arc-toc){grid-template-columns:minmax(0,1fr); column-gap:0}
+}
+
+/* 年表沿用装备页的 132px 索引栏，但年份只有一个时左侧索引不渲染，
+   正文就会掉进那 132px 的窄栏里（文字竖着排成一列）。
+   有索引才用两栏，没索引就让正文吃满整行。 */
+.arc-main{grid-template-columns:minmax(0,1fr); column-gap:0}
+.arc-main:has(.arc-toc){grid-template-columns:132px minmax(0,1fr); column-gap:44px}
+@media(max-width:900px){
+  .arc-main,
+  .arc-main:has(.arc-toc){grid-template-columns:minmax(0,1fr); column-gap:0}
+}
