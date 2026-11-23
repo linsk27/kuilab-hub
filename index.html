@@ -24,6 +24,11 @@
           document.documentElement.dataset.theme = 'dark';
         }
         // 入场动画只在首屏放一次：从子页面回来不该再把标题、卡片重放一遍
+        // boot：骨架正在顶着首屏，真实内容出现时不该再淡入（否则撤骨架那一下会闪空）
+        document.documentElement.classList.add('boot');
+        // 骨架画的是首页版面：/hub、/chat、直接进子页时不该出现
+        var isHome = location.pathname === '/' && (location.hash === '' || location.hash === '#' || location.hash === '#/');
+        if (!isHome) document.documentElement.classList.add('not-home');
         document.documentElement.classList.add('enter');
         setTimeout(function () {
           document.documentElement.classList.remove('enter');
@@ -47,8 +52,109 @@
     <meta property="og:url" content="https://www.kuilab.cn/" />
     <meta name="twitter:card" content="summary" />
     <title>Linda · kuilab</title>
+    <style>
+      /* ------------------------------------------------------------
+         首屏骨架
+         ------------------------------------------------------------
+         React 要等 110KB 的 JS 下完、执行完才画第一帧，中间这段时间
+         页面上什么都没有（实测弱网 1.9s 全白）。这里先用纯 HTML 画出
+         纸、头像、名字和两张卡的轮廓，React 挂载后再撤掉。
+         尺寸按真实版面取值，误差在几像素内，撤掉时几乎看不出切换。
+         ------------------------------------------------------------ */
+      :root{
+        --boot-bg:#1A1715; --boot-paper:#272420; --boot-line:#3A342D; --boot-name:#EDE7DE;
+      }
+      html[data-theme="light"]{
+        --boot-bg:#F3EFE8; --boot-paper:#FDFAF3; --boot-line:#E8E1D6; --boot-name:#2A241E;
+      }
+      #boot{position:fixed; inset:0; z-index:9; background:var(--boot-bg); display:flex; justify-content:center; overflow:hidden; pointer-events:none}
+      html.not-home #boot{display:none}
+      /* 顶部那条状态栏（1440 实测 150,121 1140×26）也跟着画，撤骨架时才不会突然多一行 */
+      #boot .b-rail{
+        position:absolute; top:121px; left:50%; transform:translateX(-50%);
+        width:min(1140px, calc(100% - 48px));
+        display:flex; align-items:center; justify-content:space-between;
+      }
+      #boot .b-rail i{display:block; height:7px; border-radius:4px; background:var(--boot-line)}
+      #boot .b-rail .b-l{width:118px}
+      #boot .b-rail .b-c{display:flex; gap:22px}
+      #boot .b-rail .b-c i{width:30px}
+      #boot .b-rail .b-r{width:56px}
+      /* 尺寸全部照真实版面取值（1440 实测：纸 1140×595 @ top169，头像 152 居中于 264 列） */
+      #boot .b-paper{
+        margin-top:169px; width:min(1140px, calc(100% - 48px)); height:595px;
+        box-sizing:border-box; padding:52px 44px 40px;
+        display:grid; grid-template-columns:264px minmax(0,1fr); column-gap:44px;
+        background:var(--boot-paper); border-radius:12px;
+      }
+      #boot .b-left{
+        display:flex; flex-direction:column; align-items:center; padding-top:47px;
+      }
+      #boot .b-ring{
+        width:152px; height:152px; border-radius:50%; overflow:hidden;
+        background:var(--boot-line);
+      }
+      #boot .b-ring img{width:100%; height:100%; object-fit:cover; display:block}
+      #boot .b-name{
+        margin:30px 0 0; font-family:Georgia,"Songti SC",serif; font-weight:400;
+        font-size:62px; line-height:1.05; letter-spacing:-.02em; color:var(--boot-name);
+      }
+      #boot .b-tag{margin-top:18px; height:11px; width:170px; border-radius:4px; background:var(--boot-line)}
+      #boot .b-lines{margin-top:34px; display:grid; gap:12px; width:100%}
+      #boot .b-line{height:11px; border-radius:4px; background:var(--boot-line)}
+      #boot .b-line.w1{width:72%} #boot .b-line.w2{width:86%} #boot .b-line.w3{width:54%}
+      #boot .b-title{margin:0 0 56px; height:30px; width:190px; border-radius:5px; background:var(--boot-line)}
+      #boot .b-cards{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+      #boot .b-card{height:236px; border-radius:20px; background:var(--boot-line); opacity:.5}
+      @media(max-width:1399px){
+        #boot .b-rail{top:129px; width:min(1080px, calc(100% - 48px))}
+        #boot .b-paper{margin-top:177px; width:min(1080px, calc(100% - 48px)); height:579px; padding:44px 44px 32px}
+      }
+      @media(max-width:1050px){
+        #boot .b-rail{top:88px; width:min(880px, calc(100% - 48px))}
+        #boot .b-rail .b-c{gap:14px}
+        #boot .b-rail .b-c i{width:22px}
+        #boot .b-paper{
+          margin-top:120px; width:min(880px, calc(100% - 48px)); height:677px;
+          padding:36px 32px 28px; grid-template-columns:210px minmax(0,1fr); column-gap:32px;
+        }
+        #boot .b-name{font-size:48px}
+      }
+      @media(max-width:767px){
+        #boot .b-rail{top:80px; width:calc(100% - 48px)}
+        #boot .b-rail .b-l{width:0}
+        #boot .b-rail .b-c{gap:16px}
+        #boot .b-rail .b-c i{width:20px}
+        #boot .b-rail .b-r{width:40px}
+        #boot .b-paper{
+          margin-top:125px; width:calc(100% - 48px); height:auto;
+          padding:30px 22px 26px; grid-template-columns:minmax(0,1fr); row-gap:40px;
+        }
+        #boot .b-left{padding-top:48px}
+        #boot .b-name{font-size:42px}
+        #boot .b-cards{grid-template-columns:1fr; gap:16px}
+        #boot .b-card{height:418px}
+      }
+      /* React 挂载完成后撤掉骨架（由 main.jsx 打标记） */
+      html[data-boot="done"] #boot{display:none}
+    </style>
   </head>
   <body>
+    <div id="boot" aria-hidden="true">
+      <div class="b-rail"><i class="b-l"></i><span class="b-c"><i></i><i></i><i></i><i></i><i></i></span><i class="b-r"></i></div>
+      <div class="b-paper">
+        <div class="b-left">
+          <div class="b-ring"><img src="/images/portrait-linda.webp" alt="" width="160" height="160" decoding="async" fetchpriority="high" /></div>
+          <div class="b-name">Linda</div>
+          <div class="b-tag"></div>
+          <div class="b-lines"><i class="b-line w1"></i><i class="b-line w2"></i><i class="b-line w3"></i></div>
+        </div>
+        <div class="b-right">
+          <div class="b-title"></div>
+          <div class="b-cards"><i class="b-card"></i><i class="b-card"></i></div>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

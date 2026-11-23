@@ -483,7 +483,7 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 
 /* ---- 便签卡片依次入场：340ms 落在卡片 200-350ms 区间，退出比进入快 ---- */
 @keyframes note-in{from{opacity:0;transform:translateY(10px) scale(.996) rotate(-.8deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
-.link-note{animation:note-in 340ms cubic-bezier(.05,.7,.1,1) backwards}
+.link-note{animation:note-in 240ms cubic-bezier(.05,.7,.1,1) backwards}
 .note-wrap:nth-child(2) .link-note{animation-delay:40ms}
 .note-wrap:nth-child(3) .link-note{animation-delay:80ms}
 .note-wrap:nth-child(4) .link-note{animation-delay:120ms}
@@ -910,10 +910,10 @@ p.gc-dialog-hint{font-size:11px;line-height:1.7;color:#8b7c6d;margin:0}
 }
 
 /* 入场再柔一点：从模糊到清晰 */
-@keyframes ink-focus{from{opacity:0; transform:translateY(12px); filter:blur(8px)} to{opacity:1; transform:none; filter:blur(0)}}
-.page .rail{animation:ink-focus .8s var(--ease) both}
-.page .paper-shell{animation:ink-rise .8s var(--ease) both}
-.page .footer{animation:ink-focus .9s var(--ease) .2s both}
+@keyframes ink-focus{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+.page .rail{animation:ink-focus .4s var(--ease) both}
+.page .paper-shell{animation:ink-rise .42s var(--ease) both}
+.page .footer{animation:ink-focus .46s var(--ease) .08s both}
 
 @media(max-width:767px){
   .theme-toggle{width:48px}
@@ -2068,14 +2068,14 @@ a.arc-text:hover .arc-arrow{opacity:.9; transform:none}
 .page .link-note,
 .page .split-word{animation:none}
 
-html.enter .page .rail{animation:ink-focus .8s var(--ease) both}
-html.enter .page .paper-shell{animation:ink-rise .8s var(--ease) both}
-html.enter .page .footer{animation:ink-focus .9s var(--ease) .2s both}
-html.enter .page .link-note{animation:note-in 340ms cubic-bezier(.05,.7,.1,1) backwards}
-html.enter .page .note-wrap:nth-child(2) .link-note{animation-delay:40ms}
-html.enter .page .note-wrap:nth-child(3) .link-note{animation-delay:80ms}
+html.enter .page .rail{animation:ink-focus .4s var(--ease) both}
+html.enter .page .paper-shell{animation:ink-rise .42s var(--ease) both}
+html.enter .page .footer{animation:ink-focus .46s var(--ease) .08s both}
+html.enter .page .link-note{animation:note-in 240ms cubic-bezier(.05,.7,.1,1) backwards}
+html.enter .page .note-wrap:nth-child(2) .link-note{animation-delay:30ms}
+html.enter .page .note-wrap:nth-child(3) .link-note{animation-delay:60ms}
 html.enter .page .note-wrap:nth-child(4) .link-note{animation-delay:120ms}
-html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
+html.enter .page .split-word{animation:word-rise .5s var(--ease) both}
 
 /* ============================================================
    About / RSS：两张说明页
@@ -3013,3 +3013,17 @@ html.enter .page .split-word{animation:word-rise .92s var(--ease) both}
   /* 手机上单列排下来，236 会拖得很长，回到内容自己的高度 */
   .page .link-note{min-height:190px}
 }
+
+/* ============================================================
+   有首屏骨架时，不要再来一遍入场动画
+   ------------------------------------------------------------
+   index.html 里的骨架已经在给第一眼，React 挂载后撤骨架的那一帧
+   如果纸张还从 opacity 0 淡入，中间会空一下 —— 看起来像闪了一次。
+   骨架在扛首屏的这段时间里（html.boot），入场动画全部关掉，
+   页面直接以最终状态接上。
+   ============================================================ */
+html.boot .page .rail,
+html.boot .page .paper-shell,
+html.boot .page .footer,
+html.boot .page .link-note,
+html.boot .page .split-word{animation:none}

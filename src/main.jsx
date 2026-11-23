@@ -644,13 +644,24 @@ function Router() {
     return () => window.removeEventListener('hashchange', update);
   }, []);
 
-  // 首页稳定之后把三张内容页悄悄取回来，点导航就是瞬间的
+  // 首页稳定之后把几张内容页悄悄取回来，点导航就是瞬间的。
+  // 但弱网 / 开了省流量时不预取 —— 四个 chunk 会跟首屏抢带宽，反而更慢。
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      const warm = mod => import(mod).catch(() => { /* 预取失败不影响点进去时的正常加载 */ });
-      warm('./UsesPage'); warm('./ArchivePage'); warm('./StatsPage'); warm('./InfoPage');
-    }, 1500);
-    return () => window.clearTimeout(id);
+    const net = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (net?.saveData) return undefined;
+    if (/^(slow-2g|2g|3g)$/.test(net?.effectiveType || '')) return undefined;
+    let cancelled = false;
+    const warm = () => {
+      if (cancelled || document.hidden) return;
+      const load = mod => import(mod).catch(() => { /* 预取失败不影响点进去时的正常加载 */ });
+      load('./UsesPage'); load('./ArchivePage'); load('./StatsPage'); load('./InfoPage');
+    };
+    const idle = window.requestIdleCallback ? window.requestIdleCallback(warm, { timeout: 3000 }) : window.setTimeout(warm, 2200);
+    return () => {
+      cancelled = true;
+      if (window.cancelIdleCallback && typeof idle === 'number') window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+    };
   }, []);
   // 每次会话只上报一次访问，用于作者后台看今日/近 7 天访问量；不采集 IP、UA 等个人信息。
   useEffect(() => {
@@ -658,13 +669,26 @@ function Router() {
       if (sessionStorage.getItem('ph-tracked')) return;
       sessionStorage.setItem('ph-tracked', '1');
     } catch { return; }
-    const path = location.pathname.startsWith('/hub') || location.hash.startsWith('#/chat') ? '/hub' : '/';
-    fetch('/api/station', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'track_visit', payload: { path } }),
-      cache: 'no-store',
-    }).catch(() => { /* 统计失败不影响页面 */ });
+    // 上报放在 load 之后、浏览器空闲时：它要跨到函数区跑一趟，
+    // 首屏取数据时抢的每一点带宽都会体现在白屏时长上。
+    const send = () => {
+      const path = location.pathname.startsWith('/hub') || location.hash.startsWith('#/chat') ? '/hub' : '/';
+      fetch('/api/station', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'track_visit', payload: { path } }),
+        cache: 'no-store',
+      }).catch(() => { /* 统计失败不影响页面 */ });
+    };
+    if (document.readyState === 'complete') {
+      if (window.requestIdleCallback) window.requestIdleCallback(send, { timeout: 5000 });
+      else window.setTimeout(send, 1500);
+    } else {
+      window.addEventListener('load', () => {
+        if (window.requestIdleCallback) window.requestIdleCallback(send, { timeout: 5000 });
+        else window.setTimeout(send, 1200);
+      }, { once: true });
+    }
   }, []);
   const callback = new URLSearchParams(location.search).has('provider');
   // #/author 是给作者本人保存的低调书签：直接打开口令框，口令只由服务端校验。
@@ -699,7 +723,19 @@ function Router() {
     </>
   );
 }
-createRoot(document.getElementById('root')).render(<React.StrictMode><Router /></React.StrictMode>);
+const root = createRoot(document.getElementById('root'));
+root.render(<React.StrictMode><Router /></React.StrictMode>);
+
+// 撤掉 index.html 里的首屏骨架。等首页那张纸真的进了 DOM 再撤 ——
+// 万一首帧只是 fallback，撤早了会出现「骨架没了、内容还没上」的空档。
+(function dropBoot(attempt = 0) {
+  const ready = document.querySelector('.paper-shell') || attempt > 90;
+  if (!ready) { requestAnimationFrame(() => dropBoot(attempt + 1)); return; }
+  requestAnimationFrame(() => {
+    // boot 类留着不摘：摘掉会让入场动画重新生效，从 opacity 0 再跑一遍
+    document.documentElement.setAttribute('data-boot', 'done');
+  });
+})();
 
 // 离线缓存：只在生产构建里注册，首屏渲染完再装，不跟首屏抢带宽。
 // 开发环境不注册——否则改动会被缓存住，热更新看起来像没生效。
