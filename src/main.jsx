@@ -11,6 +11,7 @@ import SiteEffects from './SiteEffects';
 import { bump } from './counters';
 import SiteNav from './SiteNav';
 import SideDock from './SideDock';
+import WorkDone from './WorkDone';
 import RoleAsk from './RoleAsk';
 import { useRole, setRole } from './role';
 
@@ -462,6 +463,7 @@ function App({ managing }) {
             {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
           </dl>}
           {/* 两枚入口由 SideDock 用 portal 挂出去；这里只留一个窄屏的落点 */}
+          {role !== 'guest' && <WorkDone />}
           <div className="dock-slot" id="dock-inline" />
           <SideDock />
         </aside>

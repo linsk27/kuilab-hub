@@ -37,6 +37,18 @@ function hhmm(iso) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+// 创建/完成时间的显示：当天只给时分，不是今天就带上「月/日」，
+// 否则一条昨天建、今天做完的事，两边都写着 09:12 看不出先后。
+function stampLabel(iso) {
+  const day = localDay(iso);
+  if (!day) return '—';
+  const time = hhmm(iso);
+  if (day === todayKey()) return time;
+  const month = Number(day.slice(5, 7));
+  const date = Number(day.slice(8, 10));
+  return `${month}/${date} ${time}`;
+}
+
 function stampOf(item) {
   return new Date(item.upd || item.doneAt || item.at || 0).getTime() || 0;
 }
@@ -99,7 +111,7 @@ export default function WorkPage() {
   const [items, setItems] = useState(loadAll);
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
+  const [tab, setTab] = useState('open');   // open | today | history
   const [pass, setPass] = useState(() => { try { return window.localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } });
   const [localOnly, setLocalOnly] = useState(() => { try { return window.localStorage.getItem(LOCAL_ONLY_KEY) === '1'; } catch { return false; } });
   const [draftPass, setDraftPass] = useState('');
@@ -293,7 +305,10 @@ export default function WorkPage() {
             {done && <Check size={11} weight="bold" aria-hidden="true" />}
           </button>
           <span className="wk-text">{item.text}</span>
-          <span className="wk-time">{done ? hhmm(item.doneAt) : hhmm(item.at)}</span>
+          <span className="wk-meta">
+            <span className="wk-stamp">建 {stampLabel(item.at)}</span>
+            {done && <span className="wk-stamp is-done-at">完 {stampLabel(item.doneAt)}</span>}
+          </span>
           <button type="button" className="wk-del" onClick={() => remove(item.id)} aria-label={`删除：${item.text}`}>
             <Trash size={13} weight="light" aria-hidden="true" />
           </button>
@@ -301,6 +316,12 @@ export default function WorkPage() {
       ))}
     </ul>
   );
+
+  const TABS = [
+    { id: 'open', label: '待办', count: open.length },
+    { id: 'today', label: '今天完成', count: doneToday.length },
+    { id: 'history', label: '历史', count: history.past },
+  ];
 
   const syncLabel = localOnly ? '只在这台设备'
     : sync === 'pulling' ? '正在取云端…'
@@ -323,8 +344,8 @@ export default function WorkPage() {
           <div className="uses-top">
             <span className="uses-kicker">10 — Work</span>
             <span className="uses-meta">
+              {/* 数字已经在标签上，这里只说状态，别重复一遍 */}
               {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `${open.length} 件没做完` : '手上没有待办'}
-              {role !== 'guest' && !locked && doneToday.length ? ` · 今天完成 ${doneToday.length}` : ''}
             </span>
           </div>
           <h1>{role === 'guest' ? '这一页是私人的' : '今天做点什么'}</h1>
@@ -393,38 +414,34 @@ export default function WorkPage() {
               <button type="submit" className="wk-add-btn">加上</button>
             </form>
 
-            {open.length > 0 && (
-              <section className="wk-block" aria-label="还没做完">
-                {rows(open, false)}
-              </section>
-            )}
+            <nav className="wk-tabs" role="tablist" aria-label="待办视图">
+              {TABS.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  id={`wk-tab-${item.id}`}
+                  aria-selected={tab === item.id}
+                  aria-controls="wk-panel"
+                  className={`wk-tab${tab === item.id ? ' is-active' : ''}`}
+                  onClick={() => setTab(item.id)}
+                >
+                  <span>{item.label}</span>
+                  <b>{item.count}</b>
+                </button>
+              ))}
+            </nav>
 
-            {doneToday.length > 0 && (
-              <section className="wk-block" aria-label="今天完成">
-                <div className="wk-sub"><span>今天勾掉的</span><span>{doneToday.length}</span></div>
-                {rows(doneToday, true)}
-              </section>
-            )}
+            <div className="wk-panel" id="wk-panel" role="tabpanel" aria-labelledby={`wk-tab-${tab}`}>
+              {tab === 'open' && (open.length
+                ? rows(open, false)
+                : <p className="wk-empty">手上没有待办了。上面那行输入框，回车就加上。</p>)}
 
-            {!open.length && !doneToday.length && (
-              <p className="wk-empty">今天还什么都没写。上面那行输入框，回车就加上了。</p>
-            )}
+              {tab === 'today' && (doneToday.length
+                ? rows(doneToday, true)
+                : <p className="wk-empty">今天还没勾掉任何一条。</p>)}
 
-            <section className="wk-history">
-              <button
-                type="button"
-                className="wk-history-toggle"
-                onClick={() => setShowHistory(v => !v)}
-                aria-expanded={showHistory}
-              >
-                <span>历史</span>
-                <span className="wk-history-count">
-                  {history.past ? `${history.past} 条` : '还没有'}
-                </span>
-                <span className={`wk-caret${showHistory ? ' is-open' : ''}`} aria-hidden="true">⌄</span>
-              </button>
-
-              {showHistory && (
+              {tab === 'history' && (
                 <>
                   <label className="wk-search">
                     <MagnifyingGlass size={14} weight="light" aria-hidden="true" />
@@ -439,7 +456,9 @@ export default function WorkPage() {
                   </label>
 
                   {history.groups.length === 0 && (
-                    <p className="wk-empty">{query ? '没找到。换个词试试。' : '还没有勾掉的事情。'}</p>
+                    <p className="wk-empty">
+                      {query ? '没找到。换个词试试。' : '还没有更早的记录 —— 今天勾掉的在「今天完成」里。'}
+                    </p>
                   )}
 
                   {history.groups.map(([day, list]) => (
@@ -450,7 +469,7 @@ export default function WorkPage() {
                   ))}
                 </>
               )}
-            </section>
+            </div>
 
             <footer className="uses-foot">
               <span className="wk-foot-left">

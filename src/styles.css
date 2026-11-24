@@ -3002,3 +3002,84 @@ html[data-css="1"] #boot{display:none}
 
 /* 预渲染的首页标记在样式表到达后顶上来，骨架同时让位（data-css 由 link onload 打） */
 html[data-css="1"] #boot{display:none}
+
+/* ============================================================
+   首页左栏「今日完成」
+   ------------------------------------------------------------
+   NOW 下面一小块：三条今天勾掉的待办 + 总数。
+   和时间列一样用等宽小字，和 NOW 表的标签对齐；正文只给一行，
+   太长就省略 —— 这里是"今天干了什么"的一瞥，不是清单。
+   ============================================================ */
+.done-now{
+  margin-top:24px; padding-top:14px; width:100%;
+  border-top:1px solid var(--line-faint);
+  /* 左栏整体是居中的（名字、tagline），这块要显式靠左 */
+  text-align:left;
+}
+.done-now-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+.done-now-list{list-style:none; margin:11px 0 0; padding:0; display:grid; gap:8px}
+.done-now-list li{display:flex; align-items:baseline; gap:9px; min-width:0}
+.done-now-time{
+  flex:0 0 auto; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.04em; color:var(--ink-3); opacity:.85;
+  font-variant-numeric:tabular-nums;
+}
+.done-now-text{
+  flex:1; min-width:0; font-size:12px; line-height:1.55; color:var(--ink-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-align:left;
+}
+.done-now-more{
+  display:inline-block; margin-top:10px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.1em; color:var(--ink-3); text-decoration:none;
+  transition:color .18s var(--ease);
+}
+.done-now-more:hover{color:var(--warm)}
+
+/* ============================================================
+   首页左栏「今日完成」
+   ------------------------------------------------------------
+   NOW 下面一小块：三条今天勾掉的待办 + 总数。
+   和时间列一样用等宽小字，和 NOW 表的标签对齐；正文只给一行，
+   太长就省略 —— 这里是"今天干了什么"的一瞥，不是清单。
+   ============================================================ */
+.done-now{
+  margin-top:24px; padding-top:14px; width:100%;
+  border-top:1px solid var(--line-faint);
+  /* 左栏整体是居中的（名字、tagline），这块要显式靠左 */
+  text-align:left;
+}
+.done-now-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+.done-now-list{list-style:none; margin:11px 0 0; padding:0; display:grid; gap:8px}
+.done-now-list li{display:flex; align-items:baseline; gap:9px; min-width:0}
+.done-now-time{
+  flex:0 0 auto; font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.04em; color:var(--ink-3); opacity:.85;
+  font-variant-numeric:tabular-nums;
+}
+.done-now-text{
+  flex:1; min-width:0; font-size:12px; line-height:1.55; color:var(--ink-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-align:left;
+}
+.done-now-more{
+  display:inline-block; margin-top:10px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.1em; color:var(--ink-3); text-decoration:none;
+  transition:color .18s var(--ease);
+}
+.done-now-more:hover{color:var(--warm)}
+
+/* 左栏多了「今日完成」之后纸面变高，右栏卡片却还停在 236，底下空出一大块。
+   拉高到 300（约 +64），把空当从 250 收到 180 左右 —— 再多卡片内部就空了，
+   试过让它 flex:1 吃满，结果两张卡到 440，里面像漏了内容。 */
+.page .paper-shell:has(.done-now) .link-note{min-height:300px}
