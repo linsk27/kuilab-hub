@@ -37,13 +37,13 @@ function hhmm(iso) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// 创建/完成时间的显示：当天只给时分，不是今天就带上「月/日」，
-// 否则一条昨天建、今天做完的事，两边都写着 09:12 看不出先后。
-function stampLabel(iso) {
+// 创建/完成时间的显示：和"这一页是哪天"同一天只给时分，跨天就带上「月/日」，
+// 否则在 23 号那页看一条 24 号才勾掉的事，会读成 23 号 10:00。
+function stampLabel(iso, base) {
   const day = localDay(iso);
   if (!day) return '—';
   const time = hhmm(iso);
-  if (day === todayKey()) return time;
+  if (day === (base || todayKey())) return time;
   const month = Number(day.slice(5, 7));
   const date = Number(day.slice(8, 10));
   return `${month}/${date} ${time}`;
@@ -208,6 +208,14 @@ export default function WorkPage() {
     [alive, day],
   );
 
+  // 那天记下、但后来才勾掉的。只按「勾掉的日期」归档的话，这些在记下的那天
+  // 会整片消失（比如 23 号写、24 号才勾），所以留在「待办」下面划掉给个交代。
+  const dayClosedLater = useMemo(
+    () => alive.filter(item => item.done && localDay(item.at) === day && localDay(item.doneAt) !== day)
+      .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')),
+    [alive, day],
+  );
+
   // 更早还挂着没勾的。这一页只看当天，但漏在旧日子里的不能让它们悄悄消失，
   // 所以只在「待办」下面留一行指路，不把旧条目摊进来。
   const olderOpen = useMemo(
@@ -368,8 +376,8 @@ export default function WorkPage() {
           </button>
           <span className="wk-text">{item.text}</span>
           <span className="wk-meta">
-            <span className="wk-stamp">建 {stampLabel(item.at)}</span>
-            {done && <span className="wk-stamp is-done-at">完 {stampLabel(item.doneAt)}</span>}
+            <span className="wk-stamp">建 {stampLabel(item.at, day)}</span>
+            {done && <span className="wk-stamp is-done-at">完 {stampLabel(item.doneAt, day)}</span>}
           </span>
           <button type="button" className="wk-del" onClick={() => remove(item.id)} aria-label={`删除：${item.text}`}>
             <Trash size={13} weight="light" aria-hidden="true" />
@@ -593,11 +601,23 @@ export default function WorkPage() {
                 <>
                   {dayOpen.length
                     ? rows(dayOpen, false)
-                    : <p className="wk-empty">
-                        {day === today
-                          ? '今天还没有待办。上面写好回车，就加到今天。'
-                          : '这天没有留下待办。'}
-                      </p>}
+                    : (dayClosedLater.length === 0 && (
+                        <p className="wk-empty">
+                          {day === today
+                            ? '今天还没有待办。上面写好回车，就加到今天。'
+                            : '这天没有留下待办。'}
+                        </p>
+                      ))}
+
+                  {dayClosedLater.length > 0 && (
+                    <div className="wk-later">
+                      <div className="wk-sub">
+                        <span>这天记下、后来勾掉的</span>
+                        <span>{dayClosedLater.length}</span>
+                      </div>
+                      {rows(dayClosedLater, true)}
+                    </div>
+                  )}
 
                   {olderOpen.length > 0 && (
                     <button
