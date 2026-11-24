@@ -202,16 +202,10 @@ export default function WorkPage() {
       .sort((a, b) => (b.at || '').localeCompare(a.at || '')),
     [alive, day],
   );
+  // 已完成 = 和这天有关、且已经勾掉的：那天勾掉的（可能是更早写的），
+  // 加上那天写下、后来才勾的。两头都算，才不会在任一天里凭空少东西。
   const dayDone = useMemo(
-    () => alive.filter(item => item.done && localDay(item.doneAt) === day)
-      .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')),
-    [alive, day],
-  );
-
-  // 那天记下、但后来才勾掉的。只按「勾掉的日期」归档的话，这些在记下的那天
-  // 会整片消失（比如 23 号写、24 号才勾），所以留在「待办」下面划掉给个交代。
-  const dayClosedLater = useMemo(
-    () => alive.filter(item => item.done && localDay(item.at) === day && localDay(item.doneAt) !== day)
+    () => alive.filter(item => item.done && (localDay(item.doneAt) === day || localDay(item.at) === day))
       .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')),
     [alive, day],
   );
@@ -601,23 +595,11 @@ export default function WorkPage() {
                 <>
                   {dayOpen.length
                     ? rows(dayOpen, false)
-                    : (dayClosedLater.length === 0 && (
-                        <p className="wk-empty">
-                          {day === today
-                            ? '今天还没有待办。上面写好回车，就加到今天。'
-                            : '这天没有留下待办。'}
-                        </p>
-                      ))}
-
-                  {dayClosedLater.length > 0 && (
-                    <div className="wk-later">
-                      <div className="wk-sub">
-                        <span>这天记下、后来勾掉的</span>
-                        <span>{dayClosedLater.length}</span>
-                      </div>
-                      {rows(dayClosedLater, true)}
-                    </div>
-                  )}
+                    : <p className="wk-empty">
+                        {day === today
+                          ? '今天还没有待办。上面写好回车，就加到今天。'
+                          : '这天没有留下待办。'}
+                      </p>}
 
                   {olderOpen.length > 0 && (
                     <button

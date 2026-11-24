@@ -548,6 +548,3 @@
 }
 
 .wk-older:hover{color:var(--warm)}
-
-/* 「那天记下、后来勾掉的」：放在待办下面，和真正的待办隔开一条细线 */
-.wk-later{margin-top:22px}
