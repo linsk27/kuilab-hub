@@ -387,24 +387,31 @@
 
 .wk-cal-d:hover{background:var(--btn-bg-h); color:var(--ink-strong)}
 
-/* 勾过待办的日子垫一层极淡的暖色。小点挂在格子底部会飘到下一行去，
-   整格淡底色反倒更像日历：既看得见，又不和「今天」的方框打架。 */
-.wk-cal-d.has{background:var(--warm-faint)}
+/* 月历的深浅只有三档：
+   浅 = 那天只勾掉过，中 = 那天记过（有创建的历史），深 = 两样都有。
+   小点挂在格子底部会飘到下一行去，整格底色更像日历，也不和「今天」的方框打架。 */
+.wk-cal-d.lv1{background:color-mix(in srgb, var(--warm) 9%, transparent)}
+.wk-cal-d.lv2{background:color-mix(in srgb, var(--warm) 18%, transparent)}
+.wk-cal-d.lv3{background:color-mix(in srgb, var(--warm) 30%, transparent)}
 
 .wk-cal-d.is-today{box-shadow:inset 0 0 0 1px var(--line-strong)}
 
 .wk-cal-d.is-on{background:var(--warm); color:#1A1715}
 [data-theme="light"] .wk-cal-d.is-on{color:#FFFDF7}
 
-.wk-side-note{
-  margin:10px 0 0; font-size:9px; line-height:1.7; letter-spacing:.02em;
-  color:var(--ink-3); opacity:.75;
+/* 三档的图例：不写一句解释，直接给三个色块 */
+.wk-side-key{
+  display:flex; flex-wrap:wrap; gap:5px 12px; margin:12px 0 0;
+  font-size:9px; letter-spacing:.02em; color:var(--ink-3);
 }
 
-.wk-side-note{
-  margin:10px 0 0; font-size:9px; line-height:1.7; letter-spacing:.02em;
-  color:var(--ink-3); opacity:.75;
-}
+.wk-side-key span{display:inline-flex; align-items:center; gap:5px}
+
+.wk-key{display:inline-block; width:8px; height:8px; border-radius:2px}
+
+.wk-key.lv1{background:color-mix(in srgb, var(--warm) 9%, transparent); box-shadow:inset 0 0 0 1px var(--line-faint)}
+.wk-key.lv2{background:color-mix(in srgb, var(--warm) 18%, transparent)}
+.wk-key.lv3{background:color-mix(in srgb, var(--warm) 30%, transparent)}
 
 .wk-side-foot{
   display:flex; align-items:baseline; justify-content:space-between; gap:8px;

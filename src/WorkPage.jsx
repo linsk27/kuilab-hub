@@ -203,7 +203,7 @@ export default function WorkPage() {
   );
   const doneTotal = useMemo(() => alive.filter(item => item.done).length, [alive]);
 
-  // 每天勾掉了几条：月历上的小点、当天筛选的条数都从这儿来
+  // 每天勾掉了几条：月历的深浅、当天筛选的条数都从这儿来
   const doneByDay = useMemo(() => {
     const map = new Map();
     alive.forEach(item => {
@@ -214,10 +214,23 @@ export default function WorkPage() {
     return map;
   }, [alive]);
 
-  // 有记录的日子，从新到旧 —— 窄屏那个日期下拉用它
-  const doneDays = useMemo(() => [...doneByDay.keys()].sort((a, b) => b.localeCompare(a)), [doneByDay]);
+  // 每天新记了几条。月历要分深浅：只勾掉的、只记过的、两样都有的
+  const createdByDay = useMemo(() => {
+    const map = new Map();
+    alive.forEach(item => {
+      const key = localDay(item.at);
+      if (key) map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }, [alive]);
 
-  // 月历格子：周一开头，前面用空位补齐；顺手把这个月一共几条算出来
+  // 有痕迹的日子（新建过或勾掉过），从新到旧 —— 窄屏那个日期下拉用它
+  const recordDays = useMemo(() => {
+    const keys = new Set([...doneByDay.keys(), ...createdByDay.keys()]);
+    return [...keys].sort((a, b) => b.localeCompare(a));
+  }, [doneByDay, createdByDay]);
+
+  // 月历格子：周一开头，前面用空位补齐；顺手数一下这个月有几天留下过东西
   const cal = useMemo(() => {
     const y = pickMonth.getFullYear();
     const m = pickMonth.getMonth();
@@ -229,10 +242,10 @@ export default function WorkPage() {
     for (let d = 1; d <= total; d += 1) {
       const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       days.push(key);
-      count += doneByDay.get(key) || 0;
+      if (doneByDay.get(key) || createdByDay.get(key)) count += 1;
     }
     return { y, m, days, count };
-  }, [pickMonth, doneByDay]);
+  }, [pickMonth, doneByDay, createdByDay]);
 
   const history = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -415,17 +428,21 @@ export default function WorkPage() {
                 ))}
                 {cal.days.map((key, index) => {
                   if (!key) return <span className="wk-cal-gap" key={`gap-${index}`} aria-hidden="true" />;
-                  const count = doneByDay.get(key) || 0;
+                  const made = createdByDay.get(key) || 0;
+                  const did = doneByDay.get(key) || 0;
+                  // 三档深浅：浅 = 只勾掉过，中 = 记过（有创建的历史），深 = 两样都有
+                  const level = made && did ? 3 : made ? 2 : did ? 1 : 0;
                   const isOn = key === dayFilter;
+                  const marks = [made ? `新建 ${made} 件` : '', did ? `完成 ${did} 件` : ''].filter(Boolean).join('，');
                   return (
                     <button
                       type="button"
                       key={key}
-                      className={`wk-cal-d${count ? ' has' : ''}${key === today ? ' is-today' : ''}${isOn ? ' is-on' : ''}`}
+                      className={`wk-cal-d${level ? ` lv${level}` : ''}${key === today ? ' is-today' : ''}${isOn ? ' is-on' : ''}`}
                       onClick={() => pickDay(key)}
                       aria-pressed={isOn}
-                      aria-label={`${dayLabel(key)}${count ? `，完成 ${count} 件` : ''}`}
-                      title={`${dayLabel(key)}${count ? ` · 完成 ${count} 件` : ''}`}
+                      aria-label={`${dayLabel(key)}${marks ? `，${marks}` : ''}`}
+                      title={`${dayLabel(key)}${marks ? ` · ${marks}` : ''}`}
                     >
                       {Number(key.slice(8))}
                     </button>
@@ -433,7 +450,12 @@ export default function WorkPage() {
                 })}
               </div>
 
-              <p className="wk-side-note">有底色的日子勾过待办</p>
+              {/* 三档深浅要说清楚，不然只看得出"有深有浅" */}
+              <div className="wk-side-key">
+                <span><i className="wk-key lv1" aria-hidden="true" />完成</span>
+                <span><i className="wk-key lv2" aria-hidden="true" />新建</span>
+                <span><i className="wk-key lv3" aria-hidden="true" />都有</span>
+              </div>
 
               <div className="wk-side-foot">
                 <button
@@ -443,7 +465,7 @@ export default function WorkPage() {
                 >
                   全部
                 </button>
-                <span>本月 {cal.count} 件</span>
+                <span>本月 {cal.count} 天</span>
               </div>
             </nav>
           )}
@@ -568,9 +590,12 @@ export default function WorkPage() {
                       aria-label="按完成日期筛选"
                     >
                       <option value="">全部</option>
-                      {doneDays.map(day => (
-                        <option key={day} value={day}>{dayLabel(day)}（{doneByDay.get(day)}）</option>
-                      ))}
+                      {recordDays.map(day => {
+                        const made = createdByDay.get(day) || 0;
+                        const did = doneByDay.get(day) || 0;
+                        const marks = [made ? `新建 ${made}` : '', did ? `完成 ${did}` : ''].filter(Boolean).join(' · ');
+                        return <option key={day} value={day}>{dayLabel(day)}　{marks}</option>;
+                      })}
                     </select>
                     <i aria-hidden="true">▾</i>
                   </label>
@@ -590,7 +615,7 @@ export default function WorkPage() {
                   {history.groups.length === 0 && (
                     <p className="wk-empty">
                       {dayFilter
-                        ? `${dayLabel(dayFilter)}还没有勾掉的记录。`
+                        ? `${dayLabel(dayFilter)}还没有勾掉的记录。${createdByDay.get(dayFilter) ? `那天新建了 ${createdByDay.get(dayFilter)} 件，还没勾。` : ''}`
                         : query ? '没找到。换个词试试。' : '还没有更早的记录 —— 今天勾掉的在「今天完成」里。'}
                     </p>
                   )}
