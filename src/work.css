@@ -452,3 +452,99 @@
 
   .wk-date-pick i{font-style:normal; font-size:9px; color:var(--ink-3); margin-left:-4px}
 }
+
+
+/* ============================================================
+   一天一页：翻到过去的日子时，写待办那行换成说明
+   ============================================================ */
+.wk-daybar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:28px; min-height:46px; padding:0 2px;
+  border-bottom:1px solid var(--line-faint);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9.5px; letter-spacing:.1em; color:var(--ink-3);
+}
+
+.wk-daybar button{
+  flex:none; padding:6px 12px; border:1px solid var(--warm-line); border-radius:9px;
+  background:var(--btn-bg); color:var(--ink-2);
+  font-family:inherit; font-size:10px; letter-spacing:.04em;
+  transition:color .18s var(--ease), border-color .18s var(--ease);
+}
+
+.wk-daybar button:hover{color:var(--ink-strong); border-color:var(--warm)}
+
+/* 标签行右侧那行小字：当前看的是哪一天（窄屏有下拉，不用重复） */
+.wk-tabs-day{
+  margin-left:auto; padding-bottom:10px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.12em; color:var(--ink-3);
+}
+
+@media(max-width:1099px){
+  .wk-tabs-day{display:none}
+}
+
+/* 窄屏的日期下拉就贴在标签上方，别把间距撑成两段 */
+.wk-date-pick + .wk-tabs{margin-top:12px}
+
+.wk-side-all:disabled{opacity:.5; cursor:default}
+
+
+/* ============================================================
+   一天一页：翻到过去的日子时，写待办那行换成说明
+   ============================================================ */
+.wk-daybar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-top:28px; min-height:46px; padding:0 2px;
+  border-bottom:1px solid var(--line-faint);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9.5px; letter-spacing:.1em; color:var(--ink-3);
+}
+
+.wk-daybar button{
+  flex:none; padding:6px 12px; border:1px solid var(--warm-line); border-radius:9px;
+  background:var(--btn-bg); color:var(--ink-2);
+  font-family:inherit; font-size:10px; letter-spacing:.04em;
+  transition:color .18s var(--ease), border-color .18s var(--ease);
+}
+
+.wk-daybar button:hover{color:var(--ink-strong); border-color:var(--warm)}
+
+/* 标签行右侧那行小字：当前看的是哪一天（窄屏有下拉，不用重复） */
+.wk-tabs-day{
+  margin-left:auto; padding-bottom:10px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.12em; color:var(--ink-3);
+}
+
+@media(max-width:1099px){
+  .wk-tabs-day{display:none}
+}
+
+/* 窄屏的日期下拉就贴在标签上方，别把间距撑成两段 */
+.wk-date-pick + .wk-tabs{margin-top:12px}
+
+.wk-side-all:disabled{opacity:.5; cursor:default}
+
+/* 「待办」下面那一行指路：更早的日子还挂着几件，点一下跳过去 */
+.wk-older{
+  display:block; margin-top:14px; padding:6px 0;
+  border:0; background:none; text-align:left;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9.5px; letter-spacing:.08em; color:var(--ink-3);
+  transition:color .18s var(--ease);
+}
+
+.wk-older:hover{color:var(--warm)}
+
+/* 「待办」下面那一行指路：更早的日子还挂着几件，点一下跳过去 */
+.wk-older{
+  display:block; margin-top:14px; padding:6px 0;
+  border:0; background:none; text-align:left;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9.5px; letter-spacing:.08em; color:var(--ink-3);
+  transition:color .18s var(--ease);
+}
+
+.wk-older:hover{color:var(--warm)}
