@@ -202,10 +202,10 @@ export default function WorkPage() {
       .sort((a, b) => (b.at || '').localeCompare(a.at || '')),
     [alive, day],
   );
-  // 已完成 = 和这天有关、且已经勾掉的：那天勾掉的（可能是更早写的），
-  // 加上那天写下、后来才勾的。两头都算，才不会在任一天里凭空少东西。
+  // 已完成只算「那天记下的、已经勾掉的」。一条待办只属于它被记下的那天，
+  // 24 号勾掉 23 号写的，它仍然在 23 号，不重复出现在 24 号。
   const dayDone = useMemo(
-    () => alive.filter(item => item.done && (localDay(item.doneAt) === day || localDay(item.at) === day))
+    () => alive.filter(item => item.done && localDay(item.at) === day)
       .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')),
     [alive, day],
   );
@@ -218,18 +218,8 @@ export default function WorkPage() {
   );
   const oldestOpenDay = olderOpen.length ? localDay(olderOpen[olderOpen.length - 1].at) : '';
 
-  // 每天勾掉了几条：月历的深浅、当天的条数都从这儿来
-  const doneByDay = useMemo(() => {
-    const map = new Map();
-    alive.forEach(item => {
-      if (!item.done) return;
-      const key = localDay(item.doneAt);
-      if (key) map.set(key, (map.get(key) || 0) + 1);
-    });
-    return map;
-  }, [alive]);
-
-  // 每天新记了几条。月历要分深浅：只勾掉的、只记过的、两样都有的
+  // 每天记下几条、其中勾掉几条。月历的深浅用这两个数：
+  // 全勾完 = 浅，还有没勾 = 中，一半一半 = 深 —— 看颜色就知道那天收没收尾。
   const createdByDay = useMemo(() => {
     const map = new Map();
     alive.forEach(item => {
@@ -239,11 +229,21 @@ export default function WorkPage() {
     return map;
   }, [alive]);
 
-  // 窄屏那个日期下拉的选项：今天 + 所有留下过东西的日子，从新到旧
+  const doneOfCreatedByDay = useMemo(() => {
+    const map = new Map();
+    alive.forEach(item => {
+      if (!item.done) return;
+      const key = localDay(item.at);
+      if (key) map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }, [alive]);
+
+  // 窄屏那个日期下拉的选项：今天 + 所有记过东西的日子，从新到旧
   const dayOptions = useMemo(() => {
-    const keys = new Set([today, day, ...doneByDay.keys(), ...createdByDay.keys()]);
+    const keys = new Set([today, day, ...createdByDay.keys()]);
     return [...keys].sort((a, b) => b.localeCompare(a));
-  }, [today, day, doneByDay, createdByDay]);
+  }, [today, day, createdByDay]);
 
   // 月历格子：周一开头，前面用空位补齐；顺手数一下这个月有几天留下过东西
   const cal = useMemo(() => {
@@ -257,10 +257,10 @@ export default function WorkPage() {
     for (let d = 1; d <= total; d += 1) {
       const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       days.push(key);
-      if (doneByDay.get(key) || createdByDay.get(key)) count += 1;
+      if (createdByDay.get(key)) count += 1;
     }
     return { y, m, days, count };
-  }, [pickMonth, doneByDay, createdByDay]);
+  }, [pickMonth, createdByDay]);
 
   function commit(next) {
     setItems(next);
@@ -424,11 +424,11 @@ export default function WorkPage() {
                 {cal.days.map((key, index) => {
                   if (!key) return <span className="wk-cal-gap" key={`gap-${index}`} aria-hidden="true" />;
                   const made = createdByDay.get(key) || 0;
-                  const did = doneByDay.get(key) || 0;
-                  // 三档深浅：浅 = 只勾掉过，中 = 记过（有创建的历史），深 = 两样都有
-                  const level = made && did ? 3 : made ? 2 : did ? 1 : 0;
+                  const did = doneOfCreatedByDay.get(key) || 0;
+                  // 三档深浅按"那天记下的收没收尾"：都勾完 = 浅，还有没勾 = 中，一半一半 = 深
+                  const level = !made ? 0 : did === made ? 1 : did === 0 ? 2 : 3;
                   const isOn = key === day;
-                  const marks = [made ? `新建 ${made} 件` : '', did ? `完成 ${did} 件` : ''].filter(Boolean).join('，');
+                  const marks = made ? `记下 ${made} 件，勾掉 ${did} 件` : '';
                   return (
                     <button
                       type="button"
@@ -447,9 +447,9 @@ export default function WorkPage() {
 
               {/* 三档深浅要说清楚，不然只看得出"有深有浅" */}
               <div className="wk-side-key">
-                <span><i className="wk-key lv1" aria-hidden="true" />完成</span>
-                <span><i className="wk-key lv2" aria-hidden="true" />新建</span>
-                <span><i className="wk-key lv3" aria-hidden="true" />都有</span>
+                <span><i className="wk-key lv1" aria-hidden="true" />都勾完</span>
+                <span><i className="wk-key lv2" aria-hidden="true" />有没勾</span>
+                <span><i className="wk-key lv3" aria-hidden="true" />各半</span>
               </div>
 
               <div className="wk-side-foot">
@@ -618,7 +618,7 @@ export default function WorkPage() {
                 : <p className="wk-empty">
                     {day === today
                       ? '今天还没勾掉任何一条。'
-                      : `这天没有勾掉任何一条。${createdByDay.get(day) ? `新建过 ${createdByDay.get(day)} 件，还没勾。` : ''}`}
+                      : `这天没有勾掉任何一条。${createdByDay.get(day) ? `记下过 ${createdByDay.get(day)} 件，还没勾。` : ''}`}
                   </p>)}
             </div>
 
