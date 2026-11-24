@@ -275,3 +275,31 @@
 @media(max-width:767px){
   .wk-guest{padding:20px 18px 18px; margin-top:24px}
 }
+
+/* 条目少的时候这张纸会缩成一小条，悬在页面中间显得薄。
+   给个下限，让页头和页脚之间始终有呼吸（条目多了自然更高）。 */
+@media(min-width:768px){
+  .work-sheet{min-height:560px}
+}
+
+/* 条目少的时候这张纸会缩成一小条，悬在页面中间显得薄。
+   给个下限，让页头和页脚之间始终有呼吸（条目多了自然更高）。 */
+@media(min-width:768px){
+  .work-sheet{min-height:560px}
+}
+
+/* 有了最小高度之后，内容少时余量会堆在页脚下面（页脚悬在中间）。
+   把纸改成纵向 flex，页脚用 margin-top:auto 沉到底。 */
+.work-sheet{display:flex; flex-direction:column}
+/* 竖排之后，子元素的 margin:auto 会让它们缩成内容宽度（横向 auto margin 优先于 stretch），
+   显式给满宽，再由各自的 max-width:720 收住 */
+.work-sheet > *{width:100%}
+.work-sheet .uses-foot{margin-top:auto}
+
+/* 有了最小高度之后，内容少时余量会堆在页脚下面（页脚悬在中间）。
+   把纸改成纵向 flex，页脚用 margin-top:auto 沉到底。 */
+.work-sheet{display:flex; flex-direction:column}
+/* 竖排之后，子元素的 margin:auto 会让它们缩成内容宽度（横向 auto margin 优先于 stretch），
+   显式给满宽，再由各自的 max-width:720 收住 */
+.work-sheet > *{width:100%}
+.work-sheet .uses-foot{margin-top:auto}

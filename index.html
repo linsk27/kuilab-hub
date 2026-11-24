@@ -29,6 +29,42 @@
         // 骨架画的是首页版面：/hub、/chat、直接进子页时不该出现
         var isHome = location.pathname === '/' && (location.hash === '' || location.hash === '#' || location.hash === '#/');
         if (!isHome) document.documentElement.classList.add('not-home');
+
+        // 首页左栏那块「今日完成」要等 React 才知道有几条，会出现一次高度跳动。
+        // 这里先按本地数据判断「有没有」，有就先占住 160px（块高 136 + 上边距 24），
+        // React 挂载后把占位换掉，高度不变。
+        try {
+          var role = localStorage.getItem('hub-role');
+          var items = JSON.parse(localStorage.getItem('hub-work-v1') || '[]');
+          var t = new Date();
+          var key = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
+          var hasDone = Array.isArray(items) && items.some(function (item) {
+            if (!item || !item.done || item.deleted || !item.doneAt) return false;
+            var d = new Date(item.doneAt);
+            if (isNaN(d.getTime())) return false;
+            var k = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+            return k === key;
+          });
+          if (role !== 'guest' && hasDone) document.documentElement.classList.add('has-done');
+        } catch (e) {}
+
+        // 首页左栏那块「今日完成」要等 React 才知道有几条，会出现一次高度跳动。
+        // 这里先按本地数据判断「有没有」，有就先占住 160px（块高 136 + 上边距 24），
+        // React 挂载后把占位换掉，高度不变。
+        try {
+          var role = localStorage.getItem('hub-role');
+          var items = JSON.parse(localStorage.getItem('hub-work-v1') || '[]');
+          var t = new Date();
+          var key = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
+          var hasDone = Array.isArray(items) && items.some(function (item) {
+            if (!item || !item.done || item.deleted || !item.doneAt) return false;
+            var d = new Date(item.doneAt);
+            if (isNaN(d.getTime())) return false;
+            var k = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+            return k === key;
+          });
+          if (role !== 'guest' && hasDone) document.documentElement.classList.add('has-done');
+        } catch (e) {}
         document.documentElement.classList.add('enter');
         setTimeout(function () {
           document.documentElement.classList.remove('enter');
