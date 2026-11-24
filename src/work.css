@@ -303,3 +303,145 @@
    显式给满宽，再由各自的 max-width:720 收住 */
 .work-sheet > *{width:100%}
 .work-sheet .uses-foot{margin-top:auto}
+
+
+/* ============================================================
+   工作页左栏：日期索引
+   ------------------------------------------------------------
+   纸面 1140 宽、内容只有 720，左边一直空着一条。这里放一张月历：
+   有记录的日子落一个小点，点一天就筛到那天（今天 → 「今天完成」，
+   更早 → 「历史」只看那一天），再点一次取消。
+   宽度不够时整栏收起来，改用「历史」里那一行日期下拉。
+   ============================================================ */
+.wk-layout{
+  width:100%; max-width:720px; margin-inline:auto;
+  flex:1; display:grid;
+  grid-template-columns:minmax(0,1fr); grid-template-rows:1fr;
+}
+
+/* 页脚靠 margin-top:auto 沉底，得先让这一列自己撑满整行高 */
+.wk-main{display:flex; flex-direction:column; min-width:0}
+
+/* 同上：竖排之后 margin:auto 会让输入行、标签、列表缩成内容宽度 */
+.wk-main > *{width:100%}
+
+.wk-side{display:none}
+
+@media(min-width:1100px){
+  .wk-layout:has(.wk-side){
+    max-width:928px;
+    grid-template-columns:172px minmax(0,1fr); column-gap:36px;
+  }
+
+  .wk-side{
+    display:block; position:sticky; top:40px; align-self:start;
+  }
+
+  /* 账簿式的竖线：把日期索引和正文分开，两端渐隐，不用画满整张纸 */
+  .wk-layout:has(.wk-side) .wk-main{position:relative}
+
+  .wk-layout:has(.wk-side) .wk-main::before{
+    content:""; position:absolute; left:-18px; top:2px; bottom:2px; width:1px;
+    pointer-events:none;
+    background:linear-gradient(180deg, transparent, var(--line-soft) 9%, var(--line-soft) 88%, transparent);
+  }
+}
+
+.wk-side-head{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+}
+
+.wk-side-nav{display:inline-flex; align-items:center; gap:1px}
+
+.wk-side-nav button{
+  border:0; background:none; border-radius:5px; padding:3px 4px;
+  color:var(--ink-3); font-family:inherit; font-size:12px; line-height:1;
+  transition:color .18s var(--ease), background-color .18s var(--ease);
+}
+
+.wk-side-nav button:hover{color:var(--ink-strong); background:var(--btn-bg-h)}
+
+.wk-side-nav .wk-side-month{
+  font-size:9px; letter-spacing:.1em;
+  color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+
+.wk-cal{display:grid; grid-template-columns:repeat(7,1fr); gap:2px 1px; margin-top:12px}
+
+.wk-cal-w{
+  padding-bottom:3px; text-align:center;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:8.5px; letter-spacing:.04em; color:var(--ink-3); opacity:.62;
+}
+
+.wk-cal-gap{height:26px}
+
+.wk-cal-d{
+  position:relative; height:26px; padding:0; border:0; border-radius:6px; background:none;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:10px; color:var(--ink-2); font-variant-numeric:tabular-nums;
+  transition:background-color .16s var(--ease), color .16s var(--ease), box-shadow .16s var(--ease);
+}
+
+.wk-cal-d:hover{background:var(--btn-bg-h); color:var(--ink-strong)}
+
+/* 勾过待办的日子垫一层极淡的暖色。小点挂在格子底部会飘到下一行去，
+   整格淡底色反倒更像日历：既看得见，又不和「今天」的方框打架。 */
+.wk-cal-d.has{background:var(--warm-faint)}
+
+.wk-cal-d.is-today{box-shadow:inset 0 0 0 1px var(--line-strong)}
+
+.wk-cal-d.is-on{background:var(--warm); color:#1A1715}
+[data-theme="light"] .wk-cal-d.is-on{color:#FFFDF7}
+
+.wk-side-note{
+  margin:10px 0 0; font-size:9px; line-height:1.7; letter-spacing:.02em;
+  color:var(--ink-3); opacity:.75;
+}
+
+.wk-side-note{
+  margin:10px 0 0; font-size:9px; line-height:1.7; letter-spacing:.02em;
+  color:var(--ink-3); opacity:.75;
+}
+
+.wk-side-foot{
+  display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+  margin-top:12px; padding-top:10px; border-top:1px solid var(--line-faint);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9px; letter-spacing:.12em; color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+}
+
+.wk-side-all{
+  padding:2px 0; border:0; background:none;
+  font-family:inherit; font-size:9px; letter-spacing:.12em; color:var(--ink-3);
+  transition:color .18s var(--ease);
+}
+
+.wk-side-all.is-on{color:var(--warm)}
+.wk-side-all:hover{color:var(--ink-strong)}
+
+
+/* 窄屏：日期筛选收成一行下拉（放在「历史」里） */
+.wk-date-pick{display:none}
+
+@media(max-width:1099px){
+  /* 不做成第二个输入框：和搜索框挤在一起会显得重。
+     一行小字 + 右侧的日期，下面一条细线，和标签栏一个语气。 */
+  .wk-date-pick{
+    display:flex; align-items:baseline; gap:8px; margin-top:16px;
+    padding-bottom:9px; border-bottom:1px solid var(--line-faint);
+    font-family:ui-monospace,"SF Mono",Menlo,monospace;
+    font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+  }
+
+  .wk-date-pick select{
+    flex:1; min-width:0; appearance:none; border:0; padding:4px 0;
+    background:none; color:var(--ink-2); text-align:right;
+    font-family:inherit; font-size:11px; letter-spacing:.02em;
+  }
+
+  .wk-date-pick i{font-style:normal; font-size:9px; color:var(--ink-3); margin-left:-4px}
+}

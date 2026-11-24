@@ -112,6 +112,12 @@ export default function WorkPage() {
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('open');   // open | today | history
+  // 左栏日期索引：pickMonth 只是"翻到哪个月"，dayFilter 才是真正生效的筛选
+  const [pickMonth, setPickMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [dayFilter, setDayFilter] = useState('');
   const [pass, setPass] = useState(() => { try { return window.localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } });
   const [localOnly, setLocalOnly] = useState(() => { try { return window.localStorage.getItem(LOCAL_ONLY_KEY) === '1'; } catch { return false; } });
   const [draftPass, setDraftPass] = useState('');
@@ -197,11 +203,43 @@ export default function WorkPage() {
   );
   const doneTotal = useMemo(() => alive.filter(item => item.done).length, [alive]);
 
+  // 每天勾掉了几条：月历上的小点、当天筛选的条数都从这儿来
+  const doneByDay = useMemo(() => {
+    const map = new Map();
+    alive.forEach(item => {
+      if (!item.done) return;
+      const key = localDay(item.doneAt);
+      if (key) map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }, [alive]);
+
+  // 有记录的日子，从新到旧 —— 窄屏那个日期下拉用它
+  const doneDays = useMemo(() => [...doneByDay.keys()].sort((a, b) => b.localeCompare(a)), [doneByDay]);
+
+  // 月历格子：周一开头，前面用空位补齐；顺手把这个月一共几条算出来
+  const cal = useMemo(() => {
+    const y = pickMonth.getFullYear();
+    const m = pickMonth.getMonth();
+    const lead = (new Date(y, m, 1).getDay() + 6) % 7;
+    const total = new Date(y, m + 1, 0).getDate();
+    const days = [];
+    for (let i = 0; i < lead; i += 1) days.push('');
+    let count = 0;
+    for (let d = 1; d <= total; d += 1) {
+      const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push(key);
+      count += doneByDay.get(key) || 0;
+    }
+    return { y, m, days, count };
+  }, [pickMonth, doneByDay]);
+
   const history = useMemo(() => {
     const q = query.trim().toLowerCase();
     const past = alive.filter(item => item.done && localDay(item.doneAt) !== today);
     const pool = q ? alive.filter(item => item.done) : past;
-    const hit = q ? pool.filter(item => item.text.toLowerCase().includes(q)) : pool;
+    const hit = (q ? pool.filter(item => item.text.toLowerCase().includes(q)) : pool)
+      .filter(item => !dayFilter || localDay(item.doneAt) === dayFilter);
     const groups = new Map();
     hit
       .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || ''))
@@ -211,13 +249,30 @@ export default function WorkPage() {
         groups.get(key).push(item);
       });
     return { groups: [...groups.entries()], total: hit.length, past: past.length };
-  }, [alive, query, today]);
+  }, [alive, query, today, dayFilter]);
 
   function commit(next) {
     setItems(next);
     saveAll(next);
     schedulePush(next);
   }
+
+  // 点日历上的某一天：今天就直接去「今天完成」，更早的去「历史」里只看那一天。
+  // 再点一次同样的日子就当取消，不然选中的状态没法退出来。
+  function pickDay(key) {
+    if (dayFilter === key) { setDayFilter(''); return; }
+    setDayFilter(key);
+    setQuery('');
+    setTab(key === today ? 'today' : 'history');
+  }
+
+  function pickTab(id) {
+    setTab(id);
+    // 换标签就是换一件事看，上一天的筛选留着会让人以为列表丢了条目
+    setDayFilter('');
+  }
+
+  const shiftMonth = step => setPickMonth(cur => new Date(cur.getFullYear(), cur.getMonth() + step, 1));
 
   function add(event) {
     event.preventDefault();
@@ -333,30 +388,91 @@ export default function WorkPage() {
   return (
     <div className="page uses-page">
       <main className="uses-sheet work-sheet">
-        <header className="uses-head">
-          <div className="uses-bar">
-            <a className="uses-back" href="#/">
-              <ArrowLeft size={14} weight="light" aria-hidden="true" />
-              回到首页
-            </a>
-            <SiteNav current="Work" />
-          </div>
-          <div className="uses-top">
-            <span className="uses-kicker">10 — Work</span>
-            <span className="uses-meta">
-              {/* 数字已经在标签上，这里只说状态，别重复一遍 */}
-              {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `${open.length} 件没做完` : '手上没有待办'}
-            </span>
-          </div>
-          <h1>{role === 'guest' ? '这一页是私人的' : '今天做点什么'}</h1>
-          <p className="uses-lede">
-            {role === 'guest'
-              ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
-              : locked
-                ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
-                : '写一条、回车就好。勾掉的东西会落到下面的历史里，随时能翻回去找。'}
-          </p>
-        </header>
+        <div className="wk-layout">
+          {/* 左栏日期索引：纸面左边原来空着一大条，正好放一张月历。
+              有记录的日子点一个小点，点一天就去那天；窄屏没有这栏，改用「历史」里的日期下拉。 */}
+          {role !== 'guest' && !locked && (
+            <nav className="wk-side" aria-label="按日期筛选">
+              <div className="wk-side-head">
+                <span className="wk-side-title">日期</span>
+                <span className="wk-side-nav">
+                  <button type="button" onClick={() => shiftMonth(-1)} aria-label="上个月">‹</button>
+                  <button
+                    type="button"
+                    className="wk-side-month"
+                    onClick={() => { const d = new Date(); setPickMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}
+                    title="回到本月"
+                  >
+                    {cal.y}.{String(cal.m + 1).padStart(2, '0')}
+                  </button>
+                  <button type="button" onClick={() => shiftMonth(1)} aria-label="下个月">›</button>
+                </span>
+              </div>
+
+              <div className="wk-cal">
+                {['一', '二', '三', '四', '五', '六', '日'].map(w => (
+                  <span className="wk-cal-w" key={w} aria-hidden="true">{w}</span>
+                ))}
+                {cal.days.map((key, index) => {
+                  if (!key) return <span className="wk-cal-gap" key={`gap-${index}`} aria-hidden="true" />;
+                  const count = doneByDay.get(key) || 0;
+                  const isOn = key === dayFilter;
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      className={`wk-cal-d${count ? ' has' : ''}${key === today ? ' is-today' : ''}${isOn ? ' is-on' : ''}`}
+                      onClick={() => pickDay(key)}
+                      aria-pressed={isOn}
+                      aria-label={`${dayLabel(key)}${count ? `，完成 ${count} 件` : ''}`}
+                      title={`${dayLabel(key)}${count ? ` · 完成 ${count} 件` : ''}`}
+                    >
+                      {Number(key.slice(8))}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="wk-side-note">有底色的日子勾过待办</p>
+
+              <div className="wk-side-foot">
+                <button
+                  type="button"
+                  className={`wk-side-all${dayFilter ? '' : ' is-on'}`}
+                  onClick={() => setDayFilter('')}
+                >
+                  全部
+                </button>
+                <span>本月 {cal.count} 件</span>
+              </div>
+            </nav>
+          )}
+
+          <div className="wk-main">
+            <header className="uses-head">
+              <div className="uses-bar">
+                <a className="uses-back" href="#/">
+                  <ArrowLeft size={14} weight="light" aria-hidden="true" />
+                  回到首页
+                </a>
+                <SiteNav current="Work" />
+              </div>
+              <div className="uses-top">
+                <span className="uses-kicker">10 — Work</span>
+                <span className="uses-meta">
+                  {/* 数字已经在标签上，这里只说状态，别重复一遍 */}
+                  {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `${open.length} 件没做完` : '手上没有待办'}
+                </span>
+              </div>
+              <h1>{role === 'guest' ? '这一页是私人的' : '今天做点什么'}</h1>
+              <p className="uses-lede">
+                {role === 'guest'
+                  ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
+                  : locked
+                    ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
+                    : '写一条、回车就好。勾掉的东西会落到下面的历史里，随时能翻回去找。'}
+              </p>
+            </header>
 
         {role === 'guest' ? (
           <div className="wk-guest">
@@ -424,7 +540,7 @@ export default function WorkPage() {
                   aria-selected={tab === item.id}
                   aria-controls="wk-panel"
                   className={`wk-tab${tab === item.id ? ' is-active' : ''}`}
-                  onClick={() => setTab(item.id)}
+                  onClick={() => pickTab(item.id)}
                 >
                   <span>{item.label}</span>
                   <b>{item.count}</b>
@@ -443,6 +559,22 @@ export default function WorkPage() {
 
               {tab === 'history' && (
                 <>
+                  {/* 窄屏没有左栏月历，日期筛选收成这一行下拉 */}
+                  <label className="wk-date-pick">
+                    <span>按日期</span>
+                    <select
+                      value={dayFilter}
+                      onChange={event => setDayFilter(event.target.value)}
+                      aria-label="按完成日期筛选"
+                    >
+                      <option value="">全部</option>
+                      {doneDays.map(day => (
+                        <option key={day} value={day}>{dayLabel(day)}（{doneByDay.get(day)}）</option>
+                      ))}
+                    </select>
+                    <i aria-hidden="true">▾</i>
+                  </label>
+
                   <label className="wk-search">
                     <MagnifyingGlass size={14} weight="light" aria-hidden="true" />
                     <input
@@ -457,7 +589,9 @@ export default function WorkPage() {
 
                   {history.groups.length === 0 && (
                     <p className="wk-empty">
-                      {query ? '没找到。换个词试试。' : '还没有更早的记录 —— 今天勾掉的在「今天完成」里。'}
+                      {dayFilter
+                        ? `${dayLabel(dayFilter)}还没有勾掉的记录。`
+                        : query ? '没找到。换个词试试。' : '还没有更早的记录 —— 今天勾掉的在「今天完成」里。'}
                     </p>
                   )}
 
@@ -495,6 +629,8 @@ export default function WorkPage() {
             </footer>
           </>
         )}
+          </div>
+        </div>
       </main>
     </div>
   );
