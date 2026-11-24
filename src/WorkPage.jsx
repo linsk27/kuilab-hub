@@ -111,7 +111,7 @@ export default function WorkPage() {
   const [items, setItems] = useState(loadAll);
   const [draft, setDraft] = useState('');
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState('open');   // open | today | history
+  const [tab, setTab] = useState('open');   // open | done
   // 左栏日期索引：pickMonth 只是"翻到哪个月"，dayFilter 才是真正生效的筛选
   const [pickMonth, setPickMonth] = useState(() => {
     const d = new Date();
@@ -196,11 +196,6 @@ export default function WorkPage() {
     () => alive.filter(item => !item.done).sort((a, b) => (b.at || '').localeCompare(a.at || '')),
     [alive],
   );
-  const doneToday = useMemo(
-    () => alive.filter(item => item.done && localDay(item.doneAt) === today)
-      .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')),
-    [alive, today],
-  );
   const doneTotal = useMemo(() => alive.filter(item => item.done).length, [alive]);
 
   // 每天勾掉了几条：月历的深浅、当天筛选的条数都从这儿来
@@ -224,11 +219,8 @@ export default function WorkPage() {
     return map;
   }, [alive]);
 
-  // 有痕迹的日子（新建过或勾掉过），从新到旧 —— 窄屏那个日期下拉用它
-  const recordDays = useMemo(() => {
-    const keys = new Set([...doneByDay.keys(), ...createdByDay.keys()]);
-    return [...keys].sort((a, b) => b.localeCompare(a));
-  }, [doneByDay, createdByDay]);
+  // 勾掉过东西的日子，从新到旧 —— 窄屏那个日期下拉只列这些天
+  const doneDays = useMemo(() => [...doneByDay.keys()].sort((a, b) => b.localeCompare(a)), [doneByDay]);
 
   // 月历格子：周一开头，前面用空位补齐；顺手数一下这个月有几天留下过东西
   const cal = useMemo(() => {
@@ -247,10 +239,10 @@ export default function WorkPage() {
     return { y, m, days, count };
   }, [pickMonth, doneByDay, createdByDay]);
 
-  const history = useMemo(() => {
+  // 「已完成」就是全部的历史：今天勾掉的也在里面，按天从新到旧排
+  const completed = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const past = alive.filter(item => item.done && localDay(item.doneAt) !== today);
-    const pool = q ? alive.filter(item => item.done) : past;
+    const pool = alive.filter(item => item.done);
     const hit = (q ? pool.filter(item => item.text.toLowerCase().includes(q)) : pool)
       .filter(item => !dayFilter || localDay(item.doneAt) === dayFilter);
     const groups = new Map();
@@ -261,8 +253,8 @@ export default function WorkPage() {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       });
-    return { groups: [...groups.entries()], total: hit.length, past: past.length };
-  }, [alive, query, today, dayFilter]);
+    return { groups: [...groups.entries()], total: hit.length };
+  }, [alive, query, dayFilter]);
 
   function commit(next) {
     setItems(next);
@@ -270,13 +262,13 @@ export default function WorkPage() {
     schedulePush(next);
   }
 
-  // 点日历上的某一天：今天就直接去「今天完成」，更早的去「历史」里只看那一天。
+  // 点日历上的某一天：去「已完成」里只看那一天。
   // 再点一次同样的日子就当取消，不然选中的状态没法退出来。
   function pickDay(key) {
     if (dayFilter === key) { setDayFilter(''); return; }
     setDayFilter(key);
     setQuery('');
-    setTab(key === today ? 'today' : 'history');
+    setTab('done');
   }
 
   function pickTab(id) {
@@ -387,8 +379,7 @@ export default function WorkPage() {
 
   const TABS = [
     { id: 'open', label: '待办', count: open.length },
-    { id: 'today', label: '今天完成', count: doneToday.length },
-    { id: 'history', label: '历史', count: history.past },
+    { id: 'done', label: '已完成', count: doneTotal },
   ];
 
   const syncLabel = localOnly ? '只在这台设备'
@@ -403,7 +394,7 @@ export default function WorkPage() {
       <main className="uses-sheet work-sheet">
         <div className="wk-layout">
           {/* 左栏日期索引：纸面左边原来空着一大条，正好放一张月历。
-              有记录的日子点一个小点，点一天就去那天；窄屏没有这栏，改用「历史」里的日期下拉。 */}
+              有记录的日子点一个小点，点一天就去那天；窄屏没有这栏，改用「已完成」里的日期下拉。 */}
           {role !== 'guest' && !locked && (
             <nav className="wk-side" aria-label="按日期筛选">
               <div className="wk-side-head">
@@ -492,7 +483,7 @@ export default function WorkPage() {
                   ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
                   : locked
                     ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
-                    : '写一条、回车就好。勾掉的东西会落到下面的历史里，随时能翻回去找。'}
+                    : '写一条、回车就好。勾掉的东西会收进「已完成」，随时能翻回去找。'}
               </p>
             </header>
 
@@ -575,30 +566,25 @@ export default function WorkPage() {
                 ? rows(open, false)
                 : <p className="wk-empty">手上没有待办了。上面那行输入框，回车就加上。</p>)}
 
-              {tab === 'today' && (doneToday.length
-                ? rows(doneToday, true)
-                : <p className="wk-empty">今天还没勾掉任何一条。</p>)}
-
-              {tab === 'history' && (
+              {tab === 'done' && (
                 <>
-                  {/* 窄屏没有左栏月历，日期筛选收成这一行下拉 */}
-                  <label className="wk-date-pick">
-                    <span>按日期</span>
-                    <select
-                      value={dayFilter}
-                      onChange={event => setDayFilter(event.target.value)}
-                      aria-label="按完成日期筛选"
-                    >
-                      <option value="">全部</option>
-                      {recordDays.map(day => {
-                        const made = createdByDay.get(day) || 0;
-                        const did = doneByDay.get(day) || 0;
-                        const marks = [made ? `新建 ${made}` : '', did ? `完成 ${did}` : ''].filter(Boolean).join(' · ');
-                        return <option key={day} value={day}>{dayLabel(day)}　{marks}</option>;
-                      })}
-                    </select>
-                    <i aria-hidden="true">▾</i>
-                  </label>
+                  {/* 窄屏没有左栏月历，日期筛选收成这一行下拉；只有一天时没必要多这一行 */}
+                  {doneDays.length > 1 && (
+                    <label className="wk-date-pick">
+                      <span>按日期</span>
+                      <select
+                        value={dayFilter}
+                        onChange={event => setDayFilter(event.target.value)}
+                        aria-label="按完成日期筛选"
+                      >
+                        <option value="">全部</option>
+                        {doneDays.map(day => (
+                          <option key={day} value={day}>{dayLabel(day)}　完成 {doneByDay.get(day)}</option>
+                        ))}
+                      </select>
+                      <i aria-hidden="true">▾</i>
+                    </label>
+                  )}
 
                   <label className="wk-search">
                     <MagnifyingGlass size={14} weight="light" aria-hidden="true" />
@@ -606,21 +592,21 @@ export default function WorkPage() {
                       value={query}
                       onChange={event => setQuery(event.target.value)}
                       placeholder="搜一条做过的事"
-                      aria-label="搜索历史待办"
+                      aria-label="搜索已完成的待办"
                       autoComplete="off"
                     />
                     {query && <button type="button" onClick={() => setQuery('')} aria-label="清除搜索">×</button>}
                   </label>
 
-                  {history.groups.length === 0 && (
+                  {completed.groups.length === 0 && (
                     <p className="wk-empty">
                       {dayFilter
                         ? `${dayLabel(dayFilter)}还没有勾掉的记录。${createdByDay.get(dayFilter) ? `那天新建了 ${createdByDay.get(dayFilter)} 件，还没勾。` : ''}`
-                        : query ? '没找到。换个词试试。' : '还没有更早的记录 —— 今天勾掉的在「今天完成」里。'}
+                        : query ? '没找到。换个词试试。' : '还没有勾掉的事。勾一条，它就会落到这里。'}
                     </p>
                   )}
 
-                  {history.groups.map(([day, list]) => (
+                  {completed.groups.map(([day, list]) => (
                     <div className="wk-day" key={day}>
                       <div className="wk-sub"><span>{dayLabel(day)}</span><span>{list.length}</span></div>
                       {rows(list, true)}
