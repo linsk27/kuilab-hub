@@ -56,12 +56,10 @@ const pages = {
 let linksCache = null;
 
 // 构建期预渲染（scripts/prerender.mjs）会在 Node 里先调它，
-// 把 links.json / now.json 塞进模块缓存 —— 否则 SSR 只能渲出骨架。
-export function seedPrerender({ links, now } = {}) {
+// 把 links.json 塞进模块缓存 —— 否则 SSR 只能渲出骨架。
+export function seedPrerender({ links } = {}) {
   if (links) linksCache = links;
-  if (now) nowCache = now;
 }
-let nowCache = null;
 const blogCache = new Map();
 const STORAGE_KEY = 'personal-hub-links-v1';
 const PAGE_SIZE = 6;
@@ -387,19 +385,6 @@ function App({ managing }) {
     setNotice('已导出 links.json。替换项目 public/links.json 并重新部署后，所有访客才会看到更新。');
   }
   const [portraitReady, setPortraitReady] = useState(false);
-  // 左栏「现在」与右栏「最近」来自 public/now.json：改内容不用重新构建
-  const [now, setNow] = useState(() => nowCache);
-  // 第一次取回之前先用等高占位顶住：Now 和「最近」一出现，纸会突然长高 57px
-  const [nowLoaded, setNowLoaded] = useState(() => Boolean(nowCache));
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch(`${import.meta.env.BASE_URL}now.json`, { signal: controller.signal })
-      .then(response => (response.ok ? response.json() : null))
-      .then(data => { if (data) { nowCache = data; setNow(data); } })
-      .catch(() => { /* 读不到就沿用缓存，没有缓存就不显示这两块 */ })
-      .finally(() => { if (!controller.signal.aborted) setNowLoaded(true); });
-    return () => controller.abort();
-  }, []);
   const [content, setContent] = useState(null);
   const [copied, setCopied] = useState(false);
   // 带 feed 标记的那条链接（现在是 gblog）会把博客最近几篇直接排进卡片。
@@ -449,19 +434,6 @@ function App({ managing }) {
           <div className={`portrait-wrap relative ${portraitReady ? 'is-loaded' : ''}`}><img className="portrait rounded-full object-cover" src={`${import.meta.env.BASE_URL}images/portrait-linda.webp`} alt="An anime-style portrait of a young man holding a telephone" decoding="async" fetchPriority="high" width="160" height="160" draggable={false} onLoad={() => setPortraitReady(true)} onError={() => setPortraitReady(true)} /><span className="portrait-spark spark-one" aria-hidden="true">✧</span><span className="portrait-spark spark-two" aria-hidden="true">✧</span></div>
           <h1 className="site-title"><SplitWords text="Linda" base={240} step={80} /></h1>
           <p className="profile-tagline">Everything I do,<br className="mobile-break" /> linked here.</p>
-          {!now && !nowLoaded && <dl className="now now-skeleton" aria-hidden="true">
-            <div className="now-head"><dt>Now</dt><dd><span className="ghost-bar" style={{ width: 42 }} /></dd></div>
-            {[0, 1, 2].map(i => <div className="now-row" key={i}>
-              <dt><span className="ghost-bar" style={{ width: 18 }} /></dt>
-              <dd><span className="ghost-bar" style={{ width: `${64 - i * 12}%` }} /></dd>
-            </div>)}
-          </dl>}
-          {now && <dl className="now">
-            <div className="now-head"><dt>Now</dt><dd>{now.updated}</dd></div>
-            {now.status && <div className="now-row"><dt>状态</dt><dd>{now.status}</dd></div>}
-            {now.doing && <div className="now-row"><dt>在做</dt><dd>{now.doing}</dd></div>}
-            {now.reading && <div className="now-row"><dt>在读</dt><dd>{now.reading}</dd></div>}
-          </dl>}
           {/* 两枚入口由 SideDock 用 portal 挂出去；这里只留一个窄屏的落点 */}
           {role !== 'guest' && <WorkDone />}
           <div className="dock-slot" id="dock-inline" />
@@ -566,7 +538,7 @@ function App({ managing }) {
           {/* 右栏只有三种"没有卡片"的状态：读取中 / 读取失败 / 确实还没有。
               三种都走同一张索引页，避免首屏几秒里只剩一行小字。 */}
           {(loadState === 'error' || (loadState === 'ready' && !links.length)) && <div
-            className={`empty-links ${managing ? 'is-managing' : ''} ${now?.updates?.length ? 'is-compact' : ''}`}
+            className={`empty-links ${managing ? 'is-managing' : ''}`}
             data-state={loadState === 'ready' ? 'empty' : loadState}
             role={loadState === 'ready' ? undefined : 'status'}
           >

@@ -15,10 +15,9 @@ const root = process.cwd();
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
 const linksRaw = JSON.parse(read('public/links.json'));
-const now = JSON.parse(read('public/now.json'));
 const links = Array.isArray(linksRaw) ? linksRaw : linksRaw.links ?? [];
 
-let html = await render({ links, now });
+let html = await render({ links });
 
 // 头像在客户端要等 onLoad 才加 is-loaded（渐变浮现），预渲染里没有 JS，
 // 补上这个类，否则静态版是空圆环。

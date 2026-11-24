@@ -506,33 +506,6 @@ h2{font-size:25px}
 }
 
 
-/* ---- 左栏 NOW：真实内容（来自 public/now.json），填掉标题与入口之间那段空白 ---- */
-.page .now{
-  width:100%; margin:18px 0 2px; text-align:left; padding:0;
-  border-top:1px solid var(--line-faint);
-}
-
-.page .now-head,
-.page .now-row{
-  display:flex; align-items:baseline; gap:12px;
-  padding:8px 0; border-bottom:1px solid var(--line-faint);
-}
-
-.page .now-head{
-  justify-content:space-between; padding-top:9px;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:8.5px; font-weight:500;
-  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
-}
-
-.page .now-head dd{font-variant-numeric:tabular-nums; letter-spacing:.08em}
-
-.page .now-row dt{
-  flex:0 0 32px; font-size:9.5px; letter-spacing:.06em; color:var(--ink-3);
-}
-
-.page .now-row dd{flex:1; min-width:0; font-size:12px; line-height:1.65; color:var(--ink-2)}
-
-
 /* ---- 标题逐词上浮（结构，动画在下面） ---- */
 .page .split{display:inline-block}
 
@@ -695,20 +668,6 @@ h2{font-size:25px}
 @keyframes empty-breathe{0%,100%{opacity:.45}50%{opacity:1}}
 
 .page .empty-links[data-state="error"] .empty-mark{color:var(--danger); border-color:var(--line)}
-
-/* 下面已经有「最近」列表时，空状态收成一行——大块留白只适合"页面上什么都没有"的时候 */
-.page .empty-links.is-compact .empty-body{
-  flex-direction:row; align-items:baseline; gap:12px; text-align:left;
-  padding:10px 0 12px;
-}
-
-.page .empty-links.is-compact .empty-mark{display:none}
-
-.page .empty-links.is-compact h3{font-size:13px; margin-top:0; white-space:nowrap}
-
-.page .empty-links.is-compact p{margin:0; font-size:11px; line-height:1.6}
-
-.page .empty-links.is-compact .empty-foot{display:none}
 
 
 .page .empty-foot{
@@ -1797,15 +1756,6 @@ input, textarea, [contenteditable="true"]{cursor:text}
 }
 
 
-/* Now 的占位：高度直接对齐真实块（实测 142），
-   数据一到只换内容、不改高度，纸面就不会往上顶 */
-.page .now-skeleton{min-height:142px}
-
-.page .now-skeleton .now-row dt,
-.page .now-skeleton .now-row dd{display:flex; align-items:center}
-
-.page .now-skeleton .ghost-bar{height:7px; display:block; border-radius:3px; background:var(--line-faint); opacity:.7}
-
 
 /* ============================================================
    版式重排 v2 · 一套外框 / 一套内框 / 一套字号阶梯
@@ -1886,7 +1836,6 @@ input, textarea, [contenteditable="true"]{cursor:text}
 
 
 /* ---- 6. 右栏落款：节奏收一档，小字统一 9.5 ---- */
-.page .now-head,
 .page .feed-head{font-size:9.5px}
 
 .page .panel-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--line-faint)}
@@ -2018,8 +1967,6 @@ input, textarea, [contenteditable="true"]{cursor:text}
 .page .link-note p{font-size:11.5px; line-height:1.65}
 
 .page .feature-side h3{font-size:19px}
-
-.page .now-row dd{font-size:12.5px}
 
 .page .feed-title{font-size:13px}
 
@@ -3000,56 +2947,15 @@ html.boot .page .split-word{animation:none}
 /* 预渲染的首页标记在样式表到达后顶上来，骨架同时让位（data-css 由 link onload 打） */
 html[data-css="1"] #boot{display:none}
 
-/* 预渲染的首页标记在样式表到达后顶上来，骨架同时让位（data-css 由 link onload 打） */
-html[data-css="1"] #boot{display:none}
-
 /* ============================================================
    首页左栏「今日完成」
    ------------------------------------------------------------
-   NOW 下面一小块：三条今天勾掉的待办 + 总数。
-   和时间列一样用等宽小字，和 NOW 表的标签对齐；正文只给一行，
-   太长就省略 —— 这里是"今天干了什么"的一瞥，不是清单。
+   左栏 NOW 那块撤掉之后，这里紧接着 tagline：三条今天勾掉的
+   待办 + 总数。等宽小字，正文只给一行，太长就省略 —— 这里是
+   "今天干了什么"的一瞥，不是清单。
    ============================================================ */
 .done-now{
-  margin-top:24px; padding-top:14px; width:100%;
-  border-top:1px solid var(--line-faint);
-  /* 左栏整体是居中的（名字、tagline），这块要显式靠左 */
-  text-align:left;
-}
-.done-now-head{
-  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
-}
-.done-now-list{list-style:none; margin:11px 0 0; padding:0; display:grid; gap:8px}
-.done-now-list li{display:flex; align-items:baseline; gap:9px; min-width:0}
-.done-now-time{
-  flex:0 0 auto; font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9px; letter-spacing:.04em; color:var(--ink-3); opacity:.85;
-  font-variant-numeric:tabular-nums;
-}
-.done-now-text{
-  flex:1; min-width:0; font-size:12px; line-height:1.55; color:var(--ink-2);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  text-align:left;
-}
-.done-now-more{
-  display:inline-block; margin-top:10px;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9px; letter-spacing:.1em; color:var(--ink-3); text-decoration:none;
-  transition:color .18s var(--ease);
-}
-.done-now-more:hover{color:var(--warm)}
-
-/* ============================================================
-   首页左栏「今日完成」
-   ------------------------------------------------------------
-   NOW 下面一小块：三条今天勾掉的待办 + 总数。
-   和时间列一样用等宽小字，和 NOW 表的标签对齐；正文只给一行，
-   太长就省略 —— 这里是"今天干了什么"的一瞥，不是清单。
-   ============================================================ */
-.done-now{
-  margin-top:24px; padding-top:14px; width:100%;
+  margin-top:28px; padding-top:14px; width:100%;
   border-top:1px solid var(--line-faint);
   /* 左栏整体是居中的（名字、tagline），这块要显式靠左 */
   text-align:left;
@@ -3088,32 +2994,12 @@ html[data-css="1"] #boot{display:none}
    「今日完成」的首屏占位
    ------------------------------------------------------------
    这块内容只有 React 挂载后才知道有几条（localStorage），
-   如果不占位，首页会从 595 长到 755、整体上跳 71px。
+   如果不占位，有记录的访客会看到纸面忽然长高一截。
    head 里先判断「今天有没有勾掉的」，有就给 html.has-done；
-   这个占位只在那种情况下显示，高度 = 块高 136 + 上边距 24。
+   这个占位只在那种情况下显示，高度 = 块高 136 + 上边距 28。
    React 挂载时整棵 #root 被替换，占位随之消失，真块补上同一位置。
    ============================================================ */
 .done-slot{display:none}
-html.has-done .done-slot{display:block; height:160px}
+html.has-done .done-slot{display:block; height:164px}
 /* 真块也钉住同样的高度：1 条时不会比占位矮，避免反向上跳 */
 .done-now{min-height:136px}
-@media(max-width:767px){
-  html.has-done .done-slot{height:160px}
-}
-
-/* ============================================================
-   「今日完成」的首屏占位
-   ------------------------------------------------------------
-   这块内容只有 React 挂载后才知道有几条（localStorage），
-   如果不占位，首页会从 595 长到 755、整体上跳 71px。
-   head 里先判断「今天有没有勾掉的」，有就给 html.has-done；
-   这个占位只在那种情况下显示，高度 = 块高 136 + 上边距 24。
-   React 挂载时整棵 #root 被替换，占位随之消失，真块补上同一位置。
-   ============================================================ */
-.done-slot{display:none}
-html.has-done .done-slot{display:block; height:160px}
-/* 真块也钉住同样的高度：1 条时不会比占位矮，避免反向上跳 */
-.done-now{min-height:136px}
-@media(max-width:767px){
-  html.has-done .done-slot{height:160px}
-}

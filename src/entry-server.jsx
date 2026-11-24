@@ -39,14 +39,14 @@ function installBrowserStubs() {
   }
 }
 
-export async function render({ links, now } = {}) {
+export async function render({ links } = {}) {
   installBrowserStubs();
   const [{ renderToReadableStream }, React, { Router, seedPrerender }] = await Promise.all([
     import('react-dom/server'),
     import('react'),
     import('./main.jsx'),
   ]);
-  seedPrerender({ links, now });
+  seedPrerender({ links });
 
   // renderToString 不支持 Suspense（页面里有懒加载的音乐播放器和命令面板，
   // 一碰就整页放弃渲染）。改用流式渲染：这两块的 fallback 是 null，

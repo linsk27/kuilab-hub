@@ -31,25 +31,7 @@
         if (!isHome) document.documentElement.classList.add('not-home');
 
         // 首页左栏那块「今日完成」要等 React 才知道有几条，会出现一次高度跳动。
-        // 这里先按本地数据判断「有没有」，有就先占住 160px（块高 136 + 上边距 24），
-        // React 挂载后把占位换掉，高度不变。
-        try {
-          var role = localStorage.getItem('hub-role');
-          var items = JSON.parse(localStorage.getItem('hub-work-v1') || '[]');
-          var t = new Date();
-          var key = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
-          var hasDone = Array.isArray(items) && items.some(function (item) {
-            if (!item || !item.done || item.deleted || !item.doneAt) return false;
-            var d = new Date(item.doneAt);
-            if (isNaN(d.getTime())) return false;
-            var k = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-            return k === key;
-          });
-          if (role !== 'guest' && hasDone) document.documentElement.classList.add('has-done');
-        } catch (e) {}
-
-        // 首页左栏那块「今日完成」要等 React 才知道有几条，会出现一次高度跳动。
-        // 这里先按本地数据判断「有没有」，有就先占住 160px（块高 136 + 上边距 24），
+        // 这里先按本地数据判断「有没有」，有就先占住 160px（块高 136 + 上边距 28），
         // React 挂载后把占位换掉，高度不变。
         try {
           var role = localStorage.getItem('hub-role');
@@ -79,12 +61,11 @@
     <!-- 首屏两张图：人像是 LCP，给它高优先级且先于脚本开始下载；小猫随后、低优先级 -->
     <link rel="preload" as="image" href="/images/portrait-linda.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="/cat/cat-sprite.webp" fetchpriority="low" />
-    <!-- 首页两处数据提前拉：和脚本并行，React 挂载时通常已经在缓存里，页面不会先空后满 -->
+    <!-- 首页数据提前拉：和脚本并行，React 挂载时通常已经在缓存里，页面不会先空后满 -->
     <link rel="preload" href="/links.json" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="/now.json" as="fetch" crossorigin="anonymous" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Linda · kuilab" />
-    <meta property="og:description" content="Linda：一个安静的个人网站入口，链接、近况、联络站与随身听。" />
+    <meta property="og:description" content="Linda：一个安静的个人网站入口，链接、待办、联络站与随身听。" />
     <meta property="og:url" content="https://www.kuilab.cn/" />
     <meta name="twitter:card" content="summary" />
     <title>Linda · kuilab</title>
@@ -136,9 +117,6 @@
         font-size:62px; line-height:1.05; letter-spacing:-.02em; color:var(--boot-name);
       }
       #boot .b-tag{margin-top:18px; height:11px; width:170px; border-radius:4px; background:var(--boot-line)}
-      #boot .b-lines{margin-top:34px; display:grid; gap:12px; width:100%}
-      #boot .b-line{height:11px; border-radius:4px; background:var(--boot-line)}
-      #boot .b-line.w1{width:72%} #boot .b-line.w2{width:86%} #boot .b-line.w3{width:54%}
       #boot .b-title{margin:0 0 56px; height:30px; width:190px; border-radius:5px; background:var(--boot-line)}
       #boot .b-cards{display:grid; grid-template-columns:1fr 1fr; gap:20px}
       #boot .b-card{height:236px; border-radius:20px; background:var(--boot-line); opacity:.5}
@@ -179,10 +157,6 @@
          先把预渲染的首页内容藏起来，避免闪一下别人的首页 */
       html.not-home #root{display:none}
       html.not-home[data-boot="done"] #root{display:block}
-      /* /hub、/chat 也是这份 HTML：在解析到 body 末尾的清空脚本之前，
-         先把预渲染的首页内容藏起来，避免闪一下别人的首页 */
-      html.not-home #root{display:none}
-      html.not-home[data-boot="done"] #root{display:block}
     </style>
   </head>
   <body>
@@ -193,7 +167,6 @@
           <div class="b-ring"><img src="/images/portrait-linda.webp" alt="" width="160" height="160" decoding="async" fetchpriority="high" /></div>
           <div class="b-name">Linda</div>
           <div class="b-tag"></div>
-          <div class="b-lines"><i class="b-line w1"></i><i class="b-line w2"></i><i class="b-line w3"></i></div>
         </div>
         <div class="b-right">
           <div class="b-title"></div>
