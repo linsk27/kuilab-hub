@@ -110,7 +110,7 @@ export default function RoleAsk() {
             <button type="submit" className="role-go" disabled={busy}>{busy ? '…' : '进入'}</button>
           </div>
           {error && <p className="role-ask-error" role="alert">{error}</p>}
-          <p className="role-ask-note">只用来解锁你的待办。说错了也只是打不开旧记录，不会有别的影响。</p>
+          <p className="role-ask-note">这句就是你的空间名：同一句进同一份清单，换一句就是换一个空空间。说错了只是打不开旧记录。</p>
           <button type="button" className="role-ask-back" onClick={() => { setStep('ask'); setError(''); }}>返回</button>
         </form>
       )}

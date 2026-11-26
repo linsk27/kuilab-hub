@@ -512,22 +512,23 @@ export default function WorkPage() {
           </div>
         ) : locked ? (
           <form className="wk-lock" onSubmit={unlock}>
-            <label className="wk-lock-label" htmlFor="wk-pass">一句只有你知道的话</label>
+            <label className="wk-lock-label" htmlFor="wk-pass">空间口令 · 一句只有你知道的话</label>
             <div className="wk-lock-row">
               <input
                 id="wk-pass"
                 type="password"
                 value={draftPass}
                 onChange={event => { setDraftPass(event.target.value); setPassError(''); }}
-                placeholder="至少 6 个字符，例如一句歌词"
+                placeholder="至少 6 个字符，第一次输就是设置"
                 autoComplete="new-password"
               />
               <button type="submit" className="wk-add-btn">开锁</button>
             </div>
             {passError && <p className="wk-error" role="alert">{passError}</p>}
             <p className="wk-lock-note">
-              第一次用就是<b>设置</b>它，之后在别的设备上输入同一句就能看到同一份待办。
-              服务器只存它的哈希、不存原文；忘了就找不回云端那份 —— 本机还会留一份，可以导出。
+              这句就是你的<b>空间名</b>：同一句进同一份清单，<b>换一句就是一个空白的新空间</b>，
+              旧的那份还在，只是要原来那句才进得去。服务器只存它的哈希、不存原文；
+              忘了就找不回云端那份 —— 本机还留着一份，可以先导出。
             </p>
             <button type="button" className="wk-lock-skip" onClick={useLocalOnly}>
               先只用这台设备，不同步
