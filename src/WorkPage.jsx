@@ -218,6 +218,13 @@ export default function WorkPage() {
   );
   const oldestOpenDay = olderOpen.length ? localDay(olderOpen[olderOpen.length - 1].at) : '';
 
+  // 今天空着、但别的日子有记录时，给一条"最近一次记录在哪"的指路：
+  // 一天一页容易让人以为数据没了，其实只是今天没写。
+  const lastRecordedDay = useMemo(() => {
+    const keys = [...createdByDay.keys()].filter(k => k !== day).sort((a, b) => b.localeCompare(a));
+    return keys[0] || '';
+  }, [createdByDay, day]);
+
   // 每天记下几条、其中勾掉几条。月历的深浅用这两个数：
   // 全勾完 = 浅，还有没勾 = 中，一半一半 = 深 —— 看颜色就知道那天收没收尾。
   const createdByDay = useMemo(() => {
@@ -601,6 +608,12 @@ export default function WorkPage() {
                           ? '今天还没有待办。上面写好回车，就加到今天。'
                           : '这天没有留下待办。'}
                       </p>}
+
+                  {day === today && !dayOpen.length && olderOpen.length === 0 && lastRecordedDay && (
+                    <button type="button" className="wk-older" onClick={() => selectDay(lastRecordedDay)}>
+                      最近的记录在 {dayLabel(lastRecordedDay)}，去看看
+                    </button>
+                  )}
 
                   {olderOpen.length > 0 && (
                     <button
