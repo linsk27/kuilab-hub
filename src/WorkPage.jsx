@@ -604,9 +604,11 @@ export default function WorkPage() {
                   {dayOpen.length
                     ? rows(dayOpen, false)
                     : <p className="wk-empty">
-                        {day === today
-                          ? '今天还没有待办。上面写好回车，就加到今天。'
-                          : '这天没有留下待办。'}
+                        {(sync === 'offline' || sync === 'error') && !items.length
+                          ? '云端这次没连上，本机也是空的。数据还在云端，网络通了会自动再取一次 —— 不用急着重新记。'
+                          : day === today
+                            ? '今天还没有待办。上面写好回车，就加到今天。'
+                            : '这天没有留下待办。'}
                       </p>}
 
                   {day === today && !dayOpen.length && olderOpen.length === 0 && lastRecordedDay && (
