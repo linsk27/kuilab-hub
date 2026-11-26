@@ -218,13 +218,6 @@ export default function WorkPage() {
   );
   const oldestOpenDay = olderOpen.length ? localDay(olderOpen[olderOpen.length - 1].at) : '';
 
-  // 今天空着、但别的日子有记录时，给一条"最近一次记录在哪"的指路：
-  // 一天一页容易让人以为数据没了，其实只是今天没写。
-  const lastRecordedDay = useMemo(() => {
-    const keys = [...createdByDay.keys()].filter(k => k !== day).sort((a, b) => b.localeCompare(a));
-    return keys[0] || '';
-  }, [createdByDay, day]);
-
   // 每天记下几条、其中勾掉几条。月历的深浅用这两个数：
   // 全勾完 = 浅，还有没勾 = 中，一半一半 = 深 —— 看颜色就知道那天收没收尾。
   const createdByDay = useMemo(() => {
@@ -245,6 +238,13 @@ export default function WorkPage() {
     });
     return map;
   }, [alive]);
+
+  // 今天空着、但别的日子有记录时，给一条"最近一次记录在哪"的指路：
+  // 一天一页容易让人以为数据没了，其实只是今天没写。
+  const lastRecordedDay = useMemo(() => {
+    const keys = [...createdByDay.keys()].filter(k => k !== day).sort((a, b) => b.localeCompare(a));
+    return keys[0] || '';
+  }, [createdByDay, day]);
 
   // 窄屏那个日期下拉的选项：今天 + 所有记过东西的日子，从新到旧
   const dayOptions = useMemo(() => {
