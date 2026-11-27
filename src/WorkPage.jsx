@@ -450,11 +450,12 @@ export default function WorkPage() {
               </div>
 
               <div className="wk-side-foot">
-                <span className="wk-side-picks">
+                <div className="wk-side-picks" role="group" aria-label="看哪一段">
                   <button
                     type="button"
                     className={`wk-side-all${!day ? ' is-on' : ''}`}
                     onClick={() => setDay('')}
+                    aria-pressed={!day}
                   >
                     全部
                   </button>
@@ -462,11 +463,12 @@ export default function WorkPage() {
                     type="button"
                     className={`wk-side-all${day === today ? ' is-on' : ''}`}
                     onClick={goToday}
+                    aria-pressed={day === today}
                   >
                     今天
                   </button>
-                </span>
-                <span>本月 {cal.count} 天</span>
+                </div>
+                <span className="wk-side-count">本月 {cal.count} 天记过</span>
               </div>
             </nav>
           )}
