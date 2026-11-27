@@ -314,6 +314,7 @@ function App({ managing }) {
   const pageCount = Math.max(1, Math.ceil(links.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleLinks = links.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const hasFeature = visibleLinks.some(link => link.feed && link.url);
 
   // 键盘流：j / k（或 ↑↓）选卡片，Enter 或 o 打开，Esc 收起。
   // 输入框里打字、⌘K 面板或弹窗打开时完全不接管 —— 否则在搜索框里打 j 就会跳卡片。
@@ -480,7 +481,7 @@ function App({ managing }) {
           {!managing && role === 'host' && draft !== null && <p className="preview-note">当前显示这台设备的链接草稿；访客仍看到已发布版本。</p>}
           {managing && <><p className="management-help">点卡片右上角的铅笔编辑，点 × 移除；卡片左下角的箭头调整顺序。改完后导出 links.json，替换 public/links.json 并重新部署，线上才会更新。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => openEditor()}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
-          <div className={`link-wall grid ${managing ? 'is-managing' : ''} ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
+          <div className={`link-wall grid count-${visibleLinks.length} ${hasFeature ? 'has-feature' : ''} ${managing ? 'is-managing' : ''} ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
             {/* 还在取链接时先占住一行卡片的高度：不占的话，数据一到卡片撑开，
                 整张纸会往上顶 57px（页面是垂直居中的），看着就是"抽一下" */}
             {loadState === 'loading' && !links.length && [0, 1, 2].map(i => (
