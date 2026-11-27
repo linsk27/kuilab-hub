@@ -3006,6 +3006,26 @@ html[data-css="1"] #boot{display:none}
    试过让它 flex:1 吃满，结果两张卡到 440，里面像漏了内容。 */
 .page .paper-shell:has(.done-now) .link-note{min-height:300px}
 
+/* 三张链接时不再硬塞三栏：订阅卡横跨一行，另外两张在下一行等宽铺开。
+   两行都按内容收高，避免单张小卡被 300px 的行高撑出大片空白。 */
+.page .link-wall:has(> .note-wrap:nth-child(3):last-child){
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.page .link-wall:has(> .note-wrap:nth-child(3):last-child) > .note-wrap.is-feature{
+  grid-column:1/-1;
+}
+
+.page .paper-shell .link-wall:has(> .note-wrap:nth-child(3):last-child) .link-note{
+  min-height:180px;
+}
+
+@media(max-width:767px){
+  .page .link-wall:has(> .note-wrap:nth-child(3):last-child){
+    grid-template-columns:1fr;
+  }
+}
+
 /* ============================================================
    「今日完成」的首屏占位
    ------------------------------------------------------------
