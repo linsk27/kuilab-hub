@@ -267,10 +267,10 @@ function App({ managing }) {
   const dialog = useRef(null);
   const editor = useRef(null);
   const [publishedLinks, setPublishedLinks] = useState(() => linksCache ?? []);
-  const [draft, setDraft] = useState(null);
+  const [draft, setDraft] = useState(() => (role === 'host' ? readDraft() : null));
   const [loadState, setLoadState] = useState(() => (linksCache ? 'ready' : 'loading'));
   useEffect(() => {
-    setDraft(managing ? readDraft() : null);
+    setDraft(role === 'host' ? readDraft() : null);
     const controller = new AbortController();
     async function load() {
       try {
@@ -289,8 +289,8 @@ function App({ managing }) {
     }
     load();
     return () => controller.abort();
-  }, [managing]);
-  const savedLinks = managing ? (draft ?? publishedLinks) : publishedLinks;
+  }, [managing, role]);
+  const savedLinks = role === 'host' && draft !== null ? draft : publishedLinks;
   const [page, setPage] = useState(1);
   const [showSamples, setShowSamples] = useState(false);
   const [formError, setFormError] = useState('');
@@ -477,6 +477,7 @@ function App({ managing }) {
             </div>
             <h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /><HandUnderline /></h2>
           </header>
+          {!managing && role === 'host' && draft !== null && <p className="preview-note">当前显示这台设备的链接草稿；访客仍看到已发布版本。</p>}
           {managing && <><p className="management-help">点卡片右上角的铅笔编辑，点 × 移除；卡片左下角的箭头调整顺序。改完后导出 links.json，替换 public/links.json 并重新部署，线上才会更新。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => openEditor()}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
           <div className={`link-wall grid ${managing ? 'is-managing' : ''} ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
