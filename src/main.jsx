@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, startTransition, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, ArrowBendUpRight, X, Copy, Check, House, ArrowsClockwise } from '@phosphor-icons/react';
+import { BookmarkSimple, GithubLogo, NotePencil, PaintBrush, Heart, ChatCircle, Coins, ArrowUpRight, Cloud, ArrowBendUpRight, X, Copy, Check, House, ArrowsClockwise, PencilSimple } from '@phosphor-icons/react';
 import './styles.css';
 import './theme.css';   // 主题模块：令牌 + 各页面皮肤，必须在 styles.css 之后
 import { useTheme } from './theme';
@@ -63,6 +63,7 @@ export function seedPrerender({ links } = {}) {
 const blogCache = new Map();
 const STORAGE_KEY = 'personal-hub-links-v1';
 const PAGE_SIZE = 6;
+const EMPTY_LINK_FORM = { name: '', url: '', detail: '', color: 'sand' };
 // links.json 里可以用 "icon": "note" 之类的短名挑图标，写不认识的就退回书签
 const CARD_ICONS = { note: NotePencil, github: GithubLogo, heart: Heart, chat: ChatCircle, brush: PaintBrush, coin: Coins };
 function parseLinks(data) {
@@ -293,6 +294,8 @@ function App({ managing }) {
   const [page, setPage] = useState(1);
   const [showSamples, setShowSamples] = useState(false);
   const [formError, setFormError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [linkForm, setLinkForm] = useState(EMPTY_LINK_FORM);
   const [notice, setNotice] = useState('');
   // 搜索即预览：⌘K 里敲字时，命中的卡片亮起来、其余淡下去
   const [search, setSearch] = useState('');
@@ -353,16 +356,38 @@ function App({ managing }) {
     try { localStorage.setItem(STORAGE_KEY, serializeLinks(next)); setDraft(next); setFormError(''); return true; }
     catch { setFormError('浏览器无法保存。请检查存储权限或可用空间。'); return false; }
   }
-  function addLink(event) {
+  function openEditor(link = null) {
+    setEditingId(link?.id ?? null);
+    setLinkForm(link ? {
+      name: link.name,
+      url: link.url,
+      detail: link.detail || '',
+      color: link.color || 'sand',
+    } : EMPTY_LINK_FORM);
+    setFormError('');
+    editor.current?.showModal();
+  }
+  function closeEditor() {
+    editor.current?.close();
+    setFormError('');
+  }
+  function saveLink(event) {
     event.preventDefault();
-    const fields = new FormData(event.currentTarget);
-    const name = fields.get('name').trim();
+    const name = linkForm.name.trim();
+    const detail = linkForm.detail.trim();
     let url;
-    try { url = new URL(fields.get('url').trim()); if (!['https:', 'http:'].includes(url.protocol)) throw Error(); }
+    try { url = new URL(linkForm.url.trim()); if (!['https:', 'http:'].includes(url.protocol)) throw Error(); }
     catch { setFormError('请输入完整的 http:// 或 https:// 网址。'); return; }
     if (!name) { setFormError('请填写链接名称。'); return; }
-    const next = [...savedLinks, { id: crypto.randomUUID(), name, url: url.href, detail: fields.get('detail').trim(), color: fields.get('color'), icon: BookmarkSimple }];
-    if (persist(next)) { setShowSamples(false); setPage(Math.ceil(next.length / PAGE_SIZE)); editor.current.close(); event.currentTarget.reset(); setNotice('链接已添加，并保存在当前浏览器。'); }
+    const next = editingId
+      ? savedLinks.map(link => link.id === editingId ? { ...link, name, url: url.href, detail, color: linkForm.color } : link)
+      : [...savedLinks, { id: crypto.randomUUID(), name, url: url.href, detail, color: linkForm.color, icon: BookmarkSimple }];
+    if (persist(next)) {
+      setShowSamples(false);
+      if (!editingId) setPage(Math.ceil(next.length / PAGE_SIZE));
+      closeEditor();
+      setNotice(editingId ? '链接已更新，并保存在当前浏览器。' : '链接已添加，并保存在当前浏览器。');
+    }
   }
   function removeLink(id) {
     if (persist(savedLinks.filter(x => x.id !== id))) setNotice('已从浏览器草稿移除，公开页未改变。');
@@ -426,7 +451,7 @@ function App({ managing }) {
       <div className="decoration cloud" aria-hidden="true"><Cloud size={43} weight="thin" /></div>
       <div className="decoration top-heart" aria-hidden="true"><Heart size={25} weight="duotone" /></div>
       <div className="decoration top-arrow" aria-hidden="true"><ArrowBendUpRight size={65} weight="thin" /></div>
-      {managing && <div className="management-banner"><strong>链接管理 · 浏览器草稿</strong><a href="#/">退出管理，返回公开页 <ArrowUpRight size={16} aria-hidden="true" /></a></div>}
+      {managing && <div className="management-banner"><div className="management-copy"><strong>链接管理 · 当前浏览器草稿</strong><span>添加、编辑与排序先保存在这台设备，导出并部署后才会公开。</span></div><a href="#/">退出管理，返回公开页 <ArrowUpRight size={16} aria-hidden="true" /></a></div>}
       <main className="paper-shell grid" aria-label={managing ? 'Linda 链接管理' : 'Linda'}>
         {/* 边缘光（移植自 react-bits BorderGlow）：只在指针靠近卡片边缘时亮起那一段边 */}
         <span className="shell-edge" aria-hidden="true" />
@@ -445,13 +470,16 @@ function App({ managing }) {
           <header className="panel-head">
             <div className="head-top">
               <span className="head-kicker">02 — Index</span>
-              <span className="head-note">a few places to find me</span>
+              <div className="head-tools">
+                <span className="head-note">a few places to find me</span>
+                {role === 'host' && !managing && <a className="manage-entry" href="#/manage">管理链接</a>}
+              </div>
             </div>
             <h2 id="links-title"><SplitWords text="All Links" accent="." base={320} step={80} /><HandUnderline /></h2>
           </header>
-          {managing && <><p className="management-help">公开页只展示已部署的 links.json。这里的修改仅保存为当前浏览器草稿；导出后替换 public/links.json 并重新部署才能公开。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => { setFormError(''); editor.current.showModal(); }}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
+          {managing && <><p className="management-help">点卡片右上角的铅笔编辑，点 × 移除；卡片左下角的箭头调整顺序。改完后导出 links.json，替换 public/links.json 并重新部署，线上才会更新。此入口仅做界面隔离，不是身份认证。</p><div className="link-toolbar"><button className="small-control" disabled={loadState !== 'ready'} onClick={() => openEditor()}>＋ 添加链接</button><button className="small-control" disabled={loadState !== 'ready'} onClick={exportLinks}>导出 links.json</button><button className="sample-toggle" disabled={loadState !== 'ready'} onClick={() => { setShowSamples(!showSamples); setPage(1); }}>{showSamples ? '返回链接草稿' : '查看示例样式'}</button></div>{draft !== null && <p className="preview-note">正在预览此浏览器的草稿，公开页不受影响。</p>}{formError && <p className="form-error" role="alert">{formError}</p>}</>}
           {showSamples && <p className="preview-note">示例预览，不会保存到你的链接中。</p>}
-          <div className={`link-wall grid ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
+          <div className={`link-wall grid ${managing ? 'is-managing' : ''} ${search ? 'has-search' : ''}`} aria-busy={loadState === 'loading'}>
             {/* 还在取链接时先占住一行卡片的高度：不占的话，数据一到卡片撑开，
                 整张纸会往上顶 57px（页面是垂直居中的），看着就是"抽一下" */}
             {loadState === 'loading' && !links.length && [0, 1, 2].map(i => (
@@ -502,7 +530,10 @@ function App({ managing }) {
                         </ol>}
                     </div>
                   </article>
-                  {managing && !showSamples && <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>}
+                  {managing && !showSamples && <div className="card-actions">
+                    <button className="edit-link" aria-label={`编辑 ${name}`} title="编辑" onClick={() => openEditor(savedLinks.find(link => link.id === id))}><PencilSimple size={14} /></button>
+                    <button className="remove-link" aria-label={`移除 ${name}`} title="移除" onClick={() => removeLink(id)}><X size={14} /></button>
+                  </div>}
                 </div>;
               }
               const hot = search && `${name} ${detail || ''} ${url}`.toLowerCase().includes(search);
@@ -527,7 +558,10 @@ function App({ managing }) {
                   <ArrowsClockwise size={12} weight="light" aria-hidden="true" />
                 </button>}
                 {managing && !showSamples && <>
-                <button className="remove-link" aria-label={`移除 ${name}`} onClick={() => removeLink(id)}><X size={13} /></button>
+                <div className="card-actions">
+                <button className="edit-link" aria-label={`编辑 ${name}`} title="编辑" onClick={() => openEditor(savedLinks.find(link => link.id === id))}><PencilSimple size={14} /></button>
+                <button className="remove-link" aria-label={`移除 ${name}`} title="移除" onClick={() => removeLink(id)}><X size={14} /></button>
+                </div>
                 {savedLinks.length > 1 && <div className="move-links">
                   <button className="move-link" aria-label={`上移 ${name}`} disabled={at <= 0} onClick={() => moveLink(id, -1)}>↑</button>
                   <button className="move-link" aria-label={`下移 ${name}`} disabled={at >= savedLinks.length - 1} onClick={() => moveLink(id, 1)}>↓</button>
@@ -554,7 +588,7 @@ function App({ managing }) {
               <p>{loadState !== 'ready'
                 ? (loadState === 'loading' ? '稍等一下，列表马上到。' : '刷新页面重试，或稍后再来。')
                 : (managing ? '添加链接到草稿，导出后发布。' : '作品、文章和喜欢的地方，会陆续放在这里。')}</p>
-              {managing && loadState === 'ready' && <button className="small-control" onClick={() => { setFormError(''); editor.current.showModal(); }}>添加第一个链接</button>}
+              {managing && loadState === 'ready' && <button className="small-control" onClick={() => openEditor()}>添加第一个链接</button>}
             </div>
             <div className="empty-foot" aria-hidden="true">
               <span>{loadState !== 'ready' ? (loadState === 'loading' ? 'Fetching' : 'Retry') : (managing ? 'Draft' : 'Soon')}</span>
@@ -576,7 +610,7 @@ function App({ managing }) {
       <Suspense fallback={null}><MusicPlayer /></Suspense>
       <footer className="footer flex flex-col items-center"><p>A small home on the internet.</p></footer>
     </div>
-    {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={addLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">添加一张便签</h2><button type="button" className="close-button" onClick={() => editor.current.close()} aria-label="关闭添加链接"><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color"><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">保存链接</button></form></dialog>}
+    {managing && <dialog ref={editor} className="detail-dialog editor-dialog" aria-labelledby="editor-title"><form className="dialog-inner" onSubmit={saveLink}><div className="flex justify-between items-start gap-6"><h2 id="editor-title">{editingId ? '编辑这张便签' : '添加一张便签'}</h2><button type="button" className="close-button" onClick={closeEditor} aria-label={editingId ? '关闭编辑链接' : '关闭添加链接'}><X size={20} /></button></div><p>每页放六张。保存到当前浏览器草稿，导出并重新部署后才会显示在公开页。</p><label htmlFor="link-name">名称</label><input id="link-name" name="name" required maxLength={50} autoFocus placeholder="例如：我的作品集" value={linkForm.name} onChange={event => setLinkForm(form => ({ ...form, name: event.target.value }))} /><label htmlFor="link-url">网址</label><input id="link-url" name="url" type="url" required placeholder="https://example.com" aria-describedby="form-error" value={linkForm.url} onChange={event => setLinkForm(form => ({ ...form, url: event.target.value }))} /><label htmlFor="link-detail">一句介绍（选填）</label><input id="link-detail" name="detail" maxLength={100} placeholder="记录这个链接的小注释" value={linkForm.detail} onChange={event => setLinkForm(form => ({ ...form, detail: event.target.value }))} /><label htmlFor="link-color">便签标记</label><select id="link-color" name="color" value={linkForm.color} onChange={event => setLinkForm(form => ({ ...form, color: event.target.value }))}><option value="sand">浅米色</option><option value="pink">浅粉色</option><option value="blue">浅蓝色</option></select><p id="form-error" className="form-error" role="alert">{formError}</p><button className="copy-button" type="submit">{editingId ? '保存修改' : '保存链接'}</button></form></dialog>}
     <dialog ref={dialog} className="detail-dialog" onClick={e => { if (e.target === e.currentTarget) dialog.current.close(); }}><div className="dialog-inner"><div className="flex justify-between items-start gap-6"><h2>{content?.title}</h2><button className="close-button" onClick={() => dialog.current.close()} aria-label="Close dialog"><X size={20} /></button></div><h3>{content?.paragraphs[0]}</h3>{content?.paragraphs.slice(1).map(p => <p key={p}>{p}</p>)}<button className="copy-button inline-flex items-center gap-2" onClick={copy}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? 'Link copied' : 'Copy this page link'}</button><span className="sr-only" role="status">{copied ? 'Page link copied to clipboard' : ''}</span></div></dialog>
   </div>;
 }
@@ -617,6 +651,7 @@ function GlobalPalette() {
 
 export function Router() {
   const [route, setRoute] = useState(() => (typeof location === 'undefined' ? '' : location.hash));
+  const role = useRole();
   useEffect(() => {
     // 用 transition 更新：新页面的 chunk 还没到时，React 会先留着旧页面，
     // 而不是先卸掉、露出「正在打开…」再换上来 —— 那一闪就是这么来的
@@ -701,7 +736,8 @@ export function Router() {
     const { Page, name } = PAGE_ROUTE[route];
     view = <><Page name={name} /><SiteEffects /></>;
   } else {
-    view = <><App key={route === '#/manage' ? 'manage' : 'public'} managing={route === '#/manage'} /><SiteEffects /></>;
+    const managing = route === '#/manage' && role === 'host';
+    view = <><App key={managing ? 'manage' : 'public'} managing={managing} /><SiteEffects /></>;
   }
 
   return (

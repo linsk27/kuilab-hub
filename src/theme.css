@@ -292,6 +292,8 @@ body {
 
 .page .management-banner a{background:var(--accent); color:var(--accent-ink)}
 
+.page .management-copy span{color:var(--ink-3)}
+
 .page .management-help,
 .page .link-notice,
 .page .preview-note,
@@ -302,7 +304,9 @@ body {
   background:var(--btn-bg); border-color:var(--btn-line); color:var(--ink-2);
 }
 
-.page .remove-link{background:var(--panel-a); color:var(--ink-3)}
+.page .card-actions :is(.edit-link,.remove-link){background:var(--panel-a); color:var(--ink-3)}
+
+.page .card-actions :is(.edit-link,.remove-link):hover{background:var(--btn-bg-h); color:var(--ink-strong)}
 
 .page .move-link{
   background:var(--btn-bg); border-color:var(--btn-line); color:var(--ink-2);

@@ -126,8 +126,9 @@ h2{font-size:25px}
 .sample-toggle{background:none;border:0;min-height:44px;font-size:11px;color:#72645f}
 .note-wrap{position:relative;min-width:0}
 .note-wrap .link-note{display:block;width:100%;height:100%}
-.remove-link{position:absolute;right:1px;top:1px;min-width:44px;min-height:44px;background:#fefefde8;color:#8b6969;border:0;border-radius:3px;opacity:0}
-.note-wrap:focus-within .remove-link,.note-wrap:hover .remove-link{opacity:1}
+.card-actions{position:absolute;right:2px;top:2px;z-index:3;display:flex;gap:3px}
+.edit-link,.remove-link{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:#fefefde8;color:#7e7063;border:0;border-radius:5px;opacity:1}
+.remove-link{color:#8b6969}
 .empty-links{min-height:265px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#9f8b7b;border:1px dashed #e5ddd3;border-radius:4px;padding:24px}
 .empty-links h3{font-family:inherit;font-size:17px;color:#64574e;margin-top:17px}
 .empty-links p{font-size:12px;color:#786c62;line-height:1.8;margin:12px 0 20px}
@@ -161,6 +162,8 @@ h2{font-size:25px}
 }
 
 .management-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;margin-bottom:16px;border:1px solid #d8cdc0;border-radius:6px;background:#f5f0e9;color:#53483e;font-size:13px}
+.management-copy{display:flex;flex-direction:column;gap:4px}
+.management-copy span{font-size:12px;line-height:1.7;color:#75685c}
 .management-banner a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;background:#66574b;color:#fdfbf7;border-radius:4px;text-decoration:none;font-weight:600}
 .management-help{font-size:12px;line-height:1.8;color:#685d53;margin:-10px 0 24px;max-width:65ch}
 .management-help+.link-toolbar{flex-wrap:wrap;justify-content:flex-start;margin-top:0}
@@ -1799,9 +1802,11 @@ input, textarea, [contenteditable="true"]{cursor:text}
 .page .panel-head{display:block; position:relative; margin-bottom:24px}
 
 .page .head-top{
-  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
   margin-bottom:12px;
 }
+
+.page .head-tools{display:flex;align-items:center;justify-content:flex-end;gap:14px;min-width:0}
 
 .page .head-kicker,
 .page .head-note{
@@ -1811,6 +1816,17 @@ input, textarea, [contenteditable="true"]{cursor:text}
 }
 
 .page .head-kicker{color:var(--ink-2)}
+
+.page .manage-entry{
+  display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;
+  border:1px solid var(--btn-line);border-radius:999px;background:var(--btn-bg);
+  color:var(--ink-2);font-size:11.5px;font-weight:600;text-decoration:none;white-space:nowrap;
+  transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease);
+}
+
+.page .manage-entry:hover{background:var(--btn-bg-h);color:var(--ink-strong);border-color:var(--line)}
+
+.page .link-wall.is-managing .feature-feed .feed-head{padding-right:96px}
 
 /* 编号从 h2::before 挪到真元素上了，伪元素收掉 */
 .page .links-panel h2{position:relative}
