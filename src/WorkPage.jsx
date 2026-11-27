@@ -393,6 +393,37 @@ export default function WorkPage() {
   return (
     <div className="page uses-page">
       <main className="uses-sheet work-sheet">
+        <header className="uses-head">
+          <div className="uses-bar">
+            <a className="uses-back" href="#/">
+              <ArrowLeft size={14} weight="light" aria-hidden="true" />
+              回到首页
+            </a>
+            <SiteNav current="Work" />
+          </div>
+          <div className="uses-top">
+            <span className="uses-kicker">10 — Work</span>
+            <span className="uses-meta">
+              {/* 数字已经在标签上，这里只说状态，别重复一遍 */}
+              {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `共 ${open.length} 件没做完` : '手上没有待办'}
+            </span>
+          </div>
+          <h1>
+            {role === 'guest' ? '这一页是私人的'
+              : day ? (day === today ? '今天做点什么' : '那天做了什么')
+                : '记下的都在这儿'}
+          </h1>
+          <p className="uses-lede">
+            {role === 'guest'
+              ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
+              : locked
+                ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
+                : day
+                  ? '这天记下的，和这天勾掉的。'
+                  : '左边点哪天就只看哪天；不选，就是全部。'}
+          </p>
+        </header>
+
         <div className="wk-layout">
           {/* 左栏日期索引：纸面左边原来空着一大条，正好放一张月历。
               有记录的日子点一个小点，点一天就去那天；窄屏没有这栏，改用「已完成」里的日期下拉。 */}
@@ -474,37 +505,6 @@ export default function WorkPage() {
           )}
 
           <div className="wk-main">
-            <header className="uses-head">
-              <div className="uses-bar">
-                <a className="uses-back" href="#/">
-                  <ArrowLeft size={14} weight="light" aria-hidden="true" />
-                  回到首页
-                </a>
-                <SiteNav current="Work" />
-              </div>
-              <div className="uses-top">
-                <span className="uses-kicker">10 — Work</span>
-                <span className="uses-meta">
-                  {/* 数字已经在标签上，这里只说状态，别重复一遍 */}
-                  {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `共 ${open.length} 件没做完` : '手上没有待办'}
-                </span>
-              </div>
-              <h1>
-                {role === 'guest' ? '这一页是私人的'
-                  : day ? (day === today ? '今天做点什么' : '那天做了什么')
-                    : '记下的都在这儿'}
-              </h1>
-              <p className="uses-lede">
-                {role === 'guest'
-                  ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
-                  : locked
-                    ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
-                    : day
-                      ? '一天一页：左边点哪天，就看那天记下的和勾掉的。'
-                      : '左边点哪天就只看哪天；不选，就是全部。写一条、回车，它会落在今天。'}
-              </p>
-            </header>
-
         {role === 'guest' ? (
           <div className="wk-guest">
             <p className="wk-guest-title">这是 Linda 的私人待办</p>
@@ -591,9 +591,9 @@ export default function WorkPage() {
             )}
 
             {/* 两栏并排：左边还没勾的，右边勾掉的；不选日期就是全部 */}
-            <div className="wk-cols">
-              <section className="wk-col">
-                <div className="wk-col-head"><span>待办</span><b>{dayOpen.length}</b></div>
+            <div className="wk-groups">
+              <section className="wk-group">
+                <div className="wk-group-head"><span>待办</span><b>{dayOpen.length}</b></div>
                 {dayOpen.length
                   ? rows(dayOpen, false)
                   : <p className="wk-empty">
@@ -610,8 +610,8 @@ export default function WorkPage() {
                 )}
               </section>
 
-              <section className="wk-col">
-                <div className="wk-col-head"><span>已完成</span><b>{dayDone.length}</b></div>
+              <section className="wk-group">
+                <div className="wk-group-head"><span>已完成</span><b>{dayDone.length}</b></div>
                 {dayDone.length
                   ? rows(dayDone, true)
                   : <p className="wk-empty">
@@ -624,32 +624,35 @@ export default function WorkPage() {
               </section>
             </div>
 
-            <footer className="uses-foot">
-              <span className="wk-foot-left">
-                <span className={`wk-sync is-${sync}${localOnly ? ' is-local' : ''}`}>
-                  {localOnly ? <CloudSlash size={11} weight="light" aria-hidden="true" /> : <CloudCheck size={11} weight="light" aria-hidden="true" />}
-                  {syncLabel}
-                </span>
-                <button type="button" className="wk-foot-btn" onClick={exportAll}>
-                  <DownloadSimple size={12} weight="light" aria-hidden="true" />导出
-                </button>
-                <button type="button" className="wk-foot-btn" onClick={() => fileRef.current?.click()}>
-                  <UploadSimple size={12} weight="light" aria-hidden="true" />导入
-                </button>
-                <input ref={fileRef} type="file" accept="application/json,.json" onChange={importAll} hidden />
-                <button type="button" className="wk-foot-btn" onClick={signOut}>
-                  <LockSimple size={12} weight="light" aria-hidden="true" />换一把锁
-                </button>
-              </span>
-              <span className="uses-foot-right">
-                <a className="wk-foot-link" href="#/uses">这站怎么搭的 <ArrowUpRight size={11} weight="light" aria-hidden="true" /></a>
-                <ThemeToggle theme={theme} onToggle={toggle} />
-              </span>
-            </footer>
           </>
         )}
           </div>
         </div>
+
+        {role !== 'guest' && !locked && (
+          <footer className="uses-foot">
+            <span className="wk-foot-left">
+              <span className={`wk-sync is-${sync}${localOnly ? ' is-local' : ''}`}>
+                {localOnly ? <CloudSlash size={11} weight="light" aria-hidden="true" /> : <CloudCheck size={11} weight="light" aria-hidden="true" />}
+                {syncLabel}
+              </span>
+              <button type="button" className="wk-foot-btn" onClick={exportAll}>
+                <DownloadSimple size={12} weight="light" aria-hidden="true" />导出
+              </button>
+              <button type="button" className="wk-foot-btn" onClick={() => fileRef.current?.click()}>
+                <UploadSimple size={12} weight="light" aria-hidden="true" />导入
+              </button>
+              <input ref={fileRef} type="file" accept="application/json,.json" onChange={importAll} hidden />
+              <button type="button" className="wk-foot-btn" onClick={signOut}>
+                <LockSimple size={12} weight="light" aria-hidden="true" />换一把锁
+              </button>
+            </span>
+            <span className="uses-foot-right">
+              <a className="wk-foot-link" href="#/uses">这站怎么搭的 <ArrowUpRight size={11} weight="light" aria-hidden="true" /></a>
+              <ThemeToggle theme={theme} onToggle={toggle} />
+            </span>
+          </footer>
+        )}
       </main>
     </div>
   );

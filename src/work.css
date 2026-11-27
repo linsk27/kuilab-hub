@@ -2,18 +2,31 @@
 
 
 /* 输入行 */
-.wk-add{display:flex; gap:10px; margin-top:28px; max-width:720px}
+/* 输入行不做成一个横贯整栏的空盒子 —— 那看着像没填完的表单。
+   改成纸面上的一条横线：字写在线上，「加上」贴在右端，焦点时线变暖。 */
+.wk-add{
+  display:flex; align-items:center; gap:12px;
+  margin-top:30px; max-width:none;
+  border-bottom:1px solid var(--line);
+  transition:border-color .2s var(--ease);
+}
+
+.wk-add:focus-within{border-bottom-color:var(--warm-line)}
 
 .wk-add input{
-  flex:1; min-width:0; min-height:46px; padding:0 15px;
-  border:1px solid var(--line); border-radius:12px;
-  background:var(--panel-b); color:var(--ink); font:inherit; font-size:13.5px;
-  transition:border-color .2s var(--ease), background-color .2s var(--ease);
+  flex:1; min-width:0; min-height:44px; padding:0 2px;
+  border:0; border-radius:0; background:none;
+  color:var(--ink); font:inherit; font-size:14px;
 }
 
 .wk-add input::placeholder{color:var(--ink-3)}
 
-.wk-add input:focus{outline:none; border-color:var(--warm-line); background:var(--panel-a)}
+.wk-add input:focus{outline:none; border:0; background:none}
+
+.wk-add .wk-add-btn{
+  min-height:32px; margin-bottom:6px; padding:0 15px;
+  border-radius:9px; font-size:11.5px;
+}
 
 .wk-add-btn{
   flex:none; min-height:46px; padding:0 20px; border-radius:12px;
@@ -84,46 +97,7 @@
 @media(hover:none){.wk-del{opacity:.5}
 }
 
-
-/* 分组小标题 */
-.wk-block{margin-top:30px}
-
-.wk-sub{
-  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  max-width:720px; padding-bottom:8px; border-bottom:1px solid var(--line-soft);
-  font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:9.5px;
-  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
-}
-
-.wk-day{margin-top:24px}
-
 .wk-empty{max-width:720px; margin-top:18px; font-size:12.5px; line-height:1.9; color:var(--ink-3)}
-
-
-/* 视图标签：待办 / 今天完成 / 历史 —— 三个视角平铺，不用展开收起 */
-.wk-tabs{
-  display:flex; align-items:baseline; gap:22px;
-  /* 和工作页其它块同一条左边缘（它们都是 720 居中） */
-  margin:30px auto 4px; max-width:720px;
-  border-bottom:1px solid var(--line-faint);
-}
-.wk-tab{
-  position:relative; display:inline-flex; align-items:baseline; gap:6px;
-  padding:0 0 10px; border:0; background:none; cursor:pointer;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:10px; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--ink-3); transition:color .18s var(--ease);
-}
-.wk-tab b{
-  font-weight:500; font-size:9px; letter-spacing:.02em;
-  color:var(--ink-3); opacity:.75; font-variant-numeric:tabular-nums;
-}
-.wk-tab.is-active{color:var(--ink-strong)}
-.wk-tab.is-active b{color:var(--warm); opacity:1}
-.wk-tab.is-active::after{
-  content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px;
-  background:var(--warm);
-}
 @media(hover:hover) and (pointer:fine){
   .wk-tab:hover{color:var(--ink-2)}
 }
@@ -281,20 +255,6 @@
 @media(min-width:768px){
   .work-sheet{min-height:560px}
 }
-
-/* 条目少的时候这张纸会缩成一小条，悬在页面中间显得薄。
-   给个下限，让页头和页脚之间始终有呼吸（条目多了自然更高）。 */
-@media(min-width:768px){
-  .work-sheet{min-height:560px}
-}
-
-/* 有了最小高度之后，内容少时余量会堆在页脚下面（页脚悬在中间）。
-   把纸改成纵向 flex，页脚用 margin-top:auto 沉到底。 */
-.work-sheet{display:flex; flex-direction:column}
-/* 竖排之后，子元素的 margin:auto 会让它们缩成内容宽度（横向 auto margin 优先于 stretch），
-   显式给满宽，再由各自的 max-width:720 收住 */
-.work-sheet > *{width:100%}
-.work-sheet .uses-foot{margin-top:auto}
 
 /* 有了最小高度之后，内容少时余量会堆在页脚下面（页脚悬在中间）。
    把纸改成纵向 flex，页脚用 margin-top:auto 沉到底。 */
@@ -471,88 +431,10 @@
   .wk-date-pick i{font-style:normal; font-size:9px; color:var(--ink-3); margin-left:-4px}
 }
 
-
-/* ============================================================
-   一天一页：翻到过去的日子时，写待办那行换成说明
-   ============================================================ */
-.wk-daybar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  margin-top:28px; min-height:46px; padding:0 2px;
-  border-bottom:1px solid var(--line-faint);
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9.5px; letter-spacing:.1em; color:var(--ink-3);
-}
-
-.wk-daybar button{
-  flex:none; padding:6px 12px; border:1px solid var(--warm-line); border-radius:9px;
-  background:var(--btn-bg); color:var(--ink-2);
-  font-family:inherit; font-size:10px; letter-spacing:.04em;
-  transition:color .18s var(--ease), border-color .18s var(--ease);
-}
-
-.wk-daybar button:hover{color:var(--ink-strong); border-color:var(--warm)}
-
-/* 标签行右侧那行小字：当前看的是哪一天（窄屏有下拉，不用重复） */
-.wk-tabs-day{
-  margin-left:auto; padding-bottom:10px;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9px; letter-spacing:.12em; color:var(--ink-3);
-}
-
 @media(max-width:1099px){
   .wk-tabs-day{display:none}
 }
 
-/* 窄屏的日期下拉就贴在标签上方，别把间距撑成两段 */
-.wk-date-pick + .wk-tabs{margin-top:12px}
-
-
-
-/* ============================================================
-   一天一页：翻到过去的日子时，写待办那行换成说明
-   ============================================================ */
-.wk-daybar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  margin-top:28px; min-height:46px; padding:0 2px;
-  border-bottom:1px solid var(--line-faint);
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9.5px; letter-spacing:.1em; color:var(--ink-3);
-}
-
-.wk-daybar button{
-  flex:none; padding:6px 12px; border:1px solid var(--warm-line); border-radius:9px;
-  background:var(--btn-bg); color:var(--ink-2);
-  font-family:inherit; font-size:10px; letter-spacing:.04em;
-  transition:color .18s var(--ease), border-color .18s var(--ease);
-}
-
-.wk-daybar button:hover{color:var(--ink-strong); border-color:var(--warm)}
-
-/* 标签行右侧那行小字：当前看的是哪一天（窄屏有下拉，不用重复） */
-.wk-tabs-day{
-  margin-left:auto; padding-bottom:10px;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9px; letter-spacing:.12em; color:var(--ink-3);
-}
-
-@media(max-width:1099px){
-  .wk-tabs-day{display:none}
-}
-
-/* 窄屏的日期下拉就贴在标签上方，别把间距撑成两段 */
-.wk-date-pick + .wk-tabs{margin-top:12px}
-
-
-/* 「待办」下面那一行指路：更早的日子还挂着几件，点一下跳过去 */
-.wk-older{
-  display:block; margin-top:14px; padding:6px 0;
-  border:0; background:none; text-align:left;
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:9.5px; letter-spacing:.08em; color:var(--ink-3);
-  transition:color .18s var(--ease);
-}
-
-.wk-older:hover{color:var(--warm)}
 
 /* 「待办」下面那一行指路：更早的日子还挂着几件，点一下跳过去 */
 .wk-older{
@@ -591,36 +473,14 @@
 .work-sheet .uses-head h1{font-size:42px; letter-spacing:-.03em; line-height:1.14}
 
 .work-sheet .uses-head > .uses-lede{font-size:13px; line-height:2; max-width:660px}
-
-/* 两栏 */
-.wk-cols{display:grid; grid-template-columns:minmax(0,1fr); gap:36px; margin-top:30px}
 @media(min-width:1000px){
   .wk-cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:48px}
 }
-
-.wk-col{min-width:0}
-
-.wk-col-head{
-  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  padding-bottom:10px; border-bottom:1px solid var(--line-soft);
-  font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
-}
-
-.wk-col-head b{
-  font-weight:500; font-size:11px; letter-spacing:.04em;
-  color:var(--warm); font-variant-numeric:tabular-nums;
-}
-
-.wk-col .wk-list{max-width:none}
-.wk-col .wk-empty{max-width:none; margin-top:18px}
-.wk-col .wk-older{margin-top:16px}
 
 /* 行高和字号抬一档：两栏之后每栏窄了，字号小了会显得碎 */
 .wk-text{font-size:14px; line-height:1.75}
 .wk-item{padding:14px 0; gap:12px}
 .wk-meta{font-size:10px}
-.wk-col .wk-item:last-child{border-bottom:0}
 
 /* 左栏底部：全部 / 今天 */
 
@@ -634,130 +494,174 @@
 /* 纸面给个更高的下限，两栏空着也不至于显小 */
 @media(min-width:768px){
   .work-sheet{min-height:600px}
+}
+
+/* 手机上标题别放大到 42：一行放不下会显得笨 */
+@media(max-width:767px){
+  .work-sheet .uses-head h1{font-size:31px; letter-spacing:-.02em}
+  .work-sheet .uses-head > .uses-lede{font-size:12.5px}
+  .wk-cols{gap:30px; margin-top:24px}
 }
 
 
 /* ============================================================
-   工作页改版：进页面先看「全部」，待办 / 已完成两栏并排
+   第三次收版：页头页脚横跨整张纸，只有清单区才分栏
    ------------------------------------------------------------
-   原来一次只显示一个标签、一列 720，纸面大片空着。现在把版心拉到
-   1036，左栏 180 月历，右边两栏并排 —— 一屏就能看到全部。
+   之前页头长在右栏里：标题从月历右边起，左边的日历却从纸边起，
+   两条左边缘对不上，整页看着是歪的；页脚也只在半张纸上收尾。
+   现在页头像别的页一样吃满版心，下面才是「日期 ｜ 清单」两栏。
    ============================================================ */
+.work-sheet .uses-head{padding-bottom:22px}
+.work-sheet .uses-head h1{font-size:36px; line-height:1.16}
+.work-sheet .uses-head > .uses-lede{margin-top:10px; font-size:12.5px; line-height:1.9; max-width:640px}
+.work-sheet .uses-bar{margin-bottom:20px}
+.work-sheet .uses-top{margin-bottom:8px}
+
+/* 两栏网格铺满整张纸（页头已经不在里面了） */
+.work-sheet .wk-layout{max-width:none; margin:0; flex:1}
+
 @media(min-width:1100px){
-  .wk-layout:has(.wk-side){
-    max-width:1036px;
-    grid-template-columns:180px minmax(0,1fr);
-    column-gap:44px;
+  .work-sheet .wk-layout:has(.wk-side){
+    max-width:none;
+    grid-template-columns:196px minmax(0,1fr);
+    column-gap:48px;
   }
+
+  /* 日历的「日期」和输入行的字落在同一条水平线上 */
+  .work-sheet .wk-side{padding-top:34px}
 }
 
-/* 让标题、输入行、两栏、页脚都吃满版心 */
-.work-sheet .uses-bar,
-.work-sheet .uses-head,
-.work-sheet .uses-head h1,
-.work-sheet .uses-head > .uses-lede,
-.work-sheet .uses-top,
-.work-sheet .wk-add,
-.work-sheet .uses-foot{max-width:none}
-
-.work-sheet .uses-head h1{font-size:42px; letter-spacing:-.03em; line-height:1.14}
-
-.work-sheet .uses-head > .uses-lede{font-size:13px; line-height:2; max-width:660px}
-
-/* 两栏 */
-.wk-cols{display:grid; grid-template-columns:minmax(0,1fr); gap:36px; margin-top:30px}
-@media(min-width:1000px){
-  .wk-cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:48px}
+@media(max-width:1099px){
+  /* 窄屏没有左栏：日期下拉紧跟在输入行下面 */
+  .wk-date-pick{margin-top:18px}
 }
 
-.wk-col{min-width:0}
+/* ---- 清单：改成上下两组 ----
+   4 条和 5 条并排时，左边永远比右边矮一截，两块空白谁也不服谁；
+   合成一组往下排，行是整栏宽，时间靠右，读起来像一本流水账。 */
+.wk-groups{display:grid; gap:36px; margin-top:26px; margin-bottom:42px}
 
-.wk-col-head{
-  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-  padding-bottom:10px; border-bottom:1px solid var(--line-soft);
+.wk-group{min-width:0}
+
+.wk-group-head{
+  display:flex; align-items:baseline; gap:9px;
+  padding-bottom:9px; border-bottom:1px solid var(--line);
   font-family:ui-monospace,"SF Mono",Menlo,monospace;
-  font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+  font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
 }
 
-.wk-col-head b{
-  font-weight:500; font-size:11px; letter-spacing:.04em;
+.wk-group-head b{
+  font-weight:500; font-size:10.5px; letter-spacing:.04em;
   color:var(--warm); font-variant-numeric:tabular-nums;
 }
 
-.wk-col .wk-list{max-width:none}
-.wk-col .wk-empty{max-width:none; margin-top:18px}
-.wk-col .wk-older{margin-top:16px}
-
-/* 行高和字号抬一档：两栏之后每栏窄了，字号小了会显得碎 */
-.wk-text{font-size:14px; line-height:1.75}
-.wk-item{padding:14px 0; gap:12px}
-.wk-meta{font-size:10px}
-.wk-col .wk-item:last-child{border-bottom:0}
-
-/* 左栏底部：全部 / 今天 */
-
-/* 云端连不上时的提示 */
-.wk-offline{
-  margin:20px 0 0; padding:9px 12px; border-radius:9px;
-  border:1px solid var(--warm-line); background:var(--warm-faint);
-  font-size:11.5px; line-height:1.7; color:var(--ink-2);
+/* 行：勾、正文、时间（靠右一行）、删除 */
+.wk-group .wk-item{
+  grid-template-columns:22px minmax(0,1fr) auto 26px;
+  padding:13px 0; column-gap:14px;
 }
 
-/* 纸面给个更高的下限，两栏空着也不至于显小 */
-@media(min-width:768px){
-  .work-sheet{min-height:600px}
+.wk-group .wk-meta{flex-direction:row; align-items:baseline; gap:12px}
+.wk-group .wk-item:last-child{border-bottom:0}
+.wk-group .wk-empty{max-width:none; margin-top:16px}
+.wk-group .wk-older{margin-top:14px}
+
+/* ---- 左栏做成一张「日历卡」 ----
+   清单只有几行时，栏里必然空一大截；与其让它当半截表格，
+   不如把它做成纸上的一块小物件：有底、有边、高度只包住内容。
+   竖分隔线同时撤掉 —— 否则它会从卡片底下一直划到页脚，就是那道"缺一格"。 */
+@media(min-width:1100px){
+  .work-sheet .wk-layout:has(.wk-side){
+    grid-template-columns:206px minmax(0,1fr);
+    column-gap:44px;
+  }
+
+  .work-sheet .wk-side{
+    padding:18px 16px 16px;
+    border:1px solid var(--line-faint); border-radius:14px;
+    background:var(--panel-a);
+    box-shadow:0 1px 2px rgba(0,0,0,.02);
+    position:sticky; top:40px; align-self:start;
+  }
+
+  .work-sheet .wk-side::after{display:none}
+
+  /* 卡片里那条栏间竖线不要了 */
+  .work-sheet .wk-main::before{display:none}
 }
 
-/* 两栏之后每栏只有 360 出头，时间挤在右边会把正文压成两行。
-   把「建 / 完」挪到正文下面一行，正文就能吃满整栏宽度。 */
-.wk-col .wk-item{
-  grid-template-columns:20px minmax(0,1fr) 26px;
-  grid-template-rows:auto auto;
-  row-gap:3px; align-items:start;
+/* 卡片里空间紧，月历的字号略收一档，格高不变 */
+@media(min-width:1100px){
+  .work-sheet .wk-side .wk-cal-d{font-size:9.5px}
+  .work-sheet .wk-side-head{margin-bottom:2px}
+  .work-sheet .wk-side-key{margin-top:10px}
+  .work-sheet .wk-side-foot{margin-top:12px; padding-top:12px}
 }
 
-.wk-col .wk-check{grid-column:1; grid-row:1 / span 2; align-self:center}
-.wk-col .wk-text{grid-column:2; grid-row:1}
-.wk-col .wk-meta{
-  grid-column:2; grid-row:2;
-  flex-direction:row; align-items:center; gap:10px;
-}
-.wk-col .wk-del{grid-column:3; grid-row:1 / span 2; align-self:center}
-
-/* 两栏之后每栏只有 360 出头，时间挤在右边会把正文压成两行。
-   把「建 / 完」挪到正文下面一行，正文就能吃满整栏宽度。 */
-.wk-col .wk-item{
-  grid-template-columns:20px minmax(0,1fr) 26px;
-  grid-template-rows:auto auto;
-  row-gap:3px; align-items:start;
+/* 卡片里的控件按卡片尺寸收一档：40px 的开关塞进 206 的栏里太占份量 */
+@media(min-width:1100px){
+  .work-sheet .wk-side .wk-side-all{min-height:30px; font-size:11px}
+  .work-sheet .wk-side .wk-side-key{font-size:9.5px; gap:5px 10px}
+  .work-sheet .wk-side .wk-side-count{font-size:9px}
+  .work-sheet .wk-side{padding:16px 14px 14px}
 }
 
-.wk-col .wk-check{grid-column:1; grid-row:1 / span 2; align-self:center}
-.wk-col .wk-text{grid-column:2; grid-row:1}
-.wk-col .wk-meta{
-  grid-column:2; grid-row:2;
-  flex-direction:row; align-items:center; gap:10px;
-}
-.wk-col .wk-del{grid-column:3; grid-row:1 / span 2; align-self:center}
+/* 两组之间不必空到 36，28 刚好分得开又不散 */
+.wk-groups{gap:30px}
+.wk-group .wk-item{padding:12px 0}
 
-/* 计数贴着标题走：两栏之间没有竖线，数字甩到栏尾会读成隔壁的 */
-.wk-col-head{justify-content:flex-start; gap:10px}
-.wk-col-head b{margin-left:0}
-
-/* 计数贴着标题走：两栏之间没有竖线，数字甩到栏尾会读成隔壁的 */
-.wk-col-head{justify-content:flex-start; gap:10px}
-.wk-col-head b{margin-left:0}
-
-/* 手机上标题别放大到 42：一行放不下会显得笨 */
-@media(max-width:767px){
-  .work-sheet .uses-head h1{font-size:31px; letter-spacing:-.02em}
-  .work-sheet .uses-head > .uses-lede{font-size:12.5px}
-  .wk-cols{gap:30px; margin-top:24px}
+/* 翻到过去的日子：写待办那行换成一句说明 + 「回到今天」
+   （清理死样式时被 .wk-day 的前缀误伤，补回来） */
+.wk-daybar{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  margin-top:30px; min-height:44px; padding-bottom:10px;
+  border-bottom:1px solid var(--line);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9.5px; letter-spacing:.1em; color:var(--ink-3);
 }
 
-/* 手机上标题别放大到 42：一行放不下会显得笨 */
-@media(max-width:767px){
-  .work-sheet .uses-head h1{font-size:31px; letter-spacing:-.02em}
-  .work-sheet .uses-head > .uses-lede{font-size:12.5px}
-  .wk-cols{gap:30px; margin-top:24px}
+.wk-daybar span{min-width:0}
+
+.wk-daybar button{
+  flex:none; padding:6px 13px; border:1px solid var(--warm-line); border-radius:9px;
+  background:var(--btn-bg); color:var(--ink-2);
+  font-family:inherit; font-size:10.5px; letter-spacing:.04em;
+  transition:color .18s var(--ease), border-color .18s var(--ease), background-color .18s var(--ease);
+}
+
+@media(hover:hover) and (pointer:fine){
+  .wk-daybar button:hover{color:var(--ink-strong); border-color:var(--warm); background:var(--btn-bg-h)}
+}
+
+/* 翻到过去的日子：写待办那行换成一句说明 + 「回到今天」
+   （清理死样式时被 .wk-day 的前缀误伤，补回来） */
+.wk-daybar{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  margin-top:30px; min-height:44px; padding-bottom:10px;
+  border-bottom:1px solid var(--line);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:9.5px; letter-spacing:.1em; color:var(--ink-3);
+}
+
+.wk-daybar span{min-width:0}
+
+.wk-daybar button{
+  flex:none; padding:6px 13px; border:1px solid var(--warm-line); border-radius:9px;
+  background:var(--btn-bg); color:var(--ink-2);
+  font-family:inherit; font-size:10.5px; letter-spacing:.04em;
+  transition:color .18s var(--ease), border-color .18s var(--ease), background-color .18s var(--ease);
+}
+
+@media(hover:hover) and (pointer:fine){
+  .wk-daybar button:hover{color:var(--ink-strong); border-color:var(--warm); background:var(--btn-bg-h)}
+}
+
+/* 日历卡和输入行从同一条水平线开始（输入行有 30 的上边距） */
+@media(min-width:1100px){
+  .work-sheet .wk-side{margin-top:30px}
+}
+
+/* 日历卡和输入行从同一条水平线开始（输入行有 30 的上边距） */
+@media(min-width:1100px){
+  .work-sheet .wk-side{margin-top:30px}
 }
