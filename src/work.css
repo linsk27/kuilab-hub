@@ -548,3 +548,202 @@
 }
 
 .wk-older:hover{color:var(--warm)}
+
+/* ============================================================
+   工作页改版：进页面先看「全部」，待办 / 已完成两栏并排
+   ------------------------------------------------------------
+   原来一次只显示一个标签、一列 720，纸面大片空着。现在把版心拉到
+   1036，左栏 180 月历，右边两栏并排 —— 一屏就能看到全部。
+   ============================================================ */
+@media(min-width:1100px){
+  .wk-layout:has(.wk-side){
+    max-width:1036px;
+    grid-template-columns:180px minmax(0,1fr);
+    column-gap:44px;
+  }
+}
+
+/* 让标题、输入行、两栏、页脚都吃满版心 */
+.work-sheet .uses-bar,
+.work-sheet .uses-head,
+.work-sheet .uses-head h1,
+.work-sheet .uses-head > .uses-lede,
+.work-sheet .uses-top,
+.work-sheet .wk-add,
+.work-sheet .uses-foot{max-width:none}
+
+.work-sheet .uses-head h1{font-size:42px; letter-spacing:-.03em; line-height:1.14}
+
+.work-sheet .uses-head > .uses-lede{font-size:13px; line-height:2; max-width:660px}
+
+/* 两栏 */
+.wk-cols{display:grid; grid-template-columns:minmax(0,1fr); gap:36px; margin-top:30px}
+@media(min-width:1000px){
+  .wk-cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:48px}
+}
+
+.wk-col{min-width:0}
+
+.wk-col-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding-bottom:10px; border-bottom:1px solid var(--line-soft);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+}
+
+.wk-col-head b{
+  font-weight:500; font-size:11px; letter-spacing:.04em;
+  color:var(--warm); font-variant-numeric:tabular-nums;
+}
+
+.wk-col .wk-list{max-width:none}
+.wk-col .wk-empty{max-width:none; margin-top:18px}
+.wk-col .wk-older{margin-top:16px}
+
+/* 行高和字号抬一档：两栏之后每栏窄了，字号小了会显得碎 */
+.wk-text{font-size:14px; line-height:1.75}
+.wk-item{padding:14px 0; gap:12px}
+.wk-meta{font-size:10px}
+.wk-col .wk-item:last-child{border-bottom:0}
+
+/* 左栏底部：全部 / 今天 */
+.wk-side-picks{display:inline-flex; align-items:center; gap:12px}
+
+/* 云端连不上时的提示 */
+.wk-offline{
+  margin:20px 0 0; padding:9px 12px; border-radius:9px;
+  border:1px solid var(--warm-line); background:var(--warm-faint);
+  font-size:11.5px; line-height:1.7; color:var(--ink-2);
+}
+
+/* 纸面给个更高的下限，两栏空着也不至于显小 */
+@media(min-width:768px){
+  .work-sheet{min-height:600px}
+}
+
+
+/* ============================================================
+   工作页改版：进页面先看「全部」，待办 / 已完成两栏并排
+   ------------------------------------------------------------
+   原来一次只显示一个标签、一列 720，纸面大片空着。现在把版心拉到
+   1036，左栏 180 月历，右边两栏并排 —— 一屏就能看到全部。
+   ============================================================ */
+@media(min-width:1100px){
+  .wk-layout:has(.wk-side){
+    max-width:1036px;
+    grid-template-columns:180px minmax(0,1fr);
+    column-gap:44px;
+  }
+}
+
+/* 让标题、输入行、两栏、页脚都吃满版心 */
+.work-sheet .uses-bar,
+.work-sheet .uses-head,
+.work-sheet .uses-head h1,
+.work-sheet .uses-head > .uses-lede,
+.work-sheet .uses-top,
+.work-sheet .wk-add,
+.work-sheet .uses-foot{max-width:none}
+
+.work-sheet .uses-head h1{font-size:42px; letter-spacing:-.03em; line-height:1.14}
+
+.work-sheet .uses-head > .uses-lede{font-size:13px; line-height:2; max-width:660px}
+
+/* 两栏 */
+.wk-cols{display:grid; grid-template-columns:minmax(0,1fr); gap:36px; margin-top:30px}
+@media(min-width:1000px){
+  .wk-cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr); column-gap:48px}
+}
+
+.wk-col{min-width:0}
+
+.wk-col-head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding-bottom:10px; border-bottom:1px solid var(--line-soft);
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+}
+
+.wk-col-head b{
+  font-weight:500; font-size:11px; letter-spacing:.04em;
+  color:var(--warm); font-variant-numeric:tabular-nums;
+}
+
+.wk-col .wk-list{max-width:none}
+.wk-col .wk-empty{max-width:none; margin-top:18px}
+.wk-col .wk-older{margin-top:16px}
+
+/* 行高和字号抬一档：两栏之后每栏窄了，字号小了会显得碎 */
+.wk-text{font-size:14px; line-height:1.75}
+.wk-item{padding:14px 0; gap:12px}
+.wk-meta{font-size:10px}
+.wk-col .wk-item:last-child{border-bottom:0}
+
+/* 左栏底部：全部 / 今天 */
+.wk-side-picks{display:inline-flex; align-items:center; gap:12px}
+
+/* 云端连不上时的提示 */
+.wk-offline{
+  margin:20px 0 0; padding:9px 12px; border-radius:9px;
+  border:1px solid var(--warm-line); background:var(--warm-faint);
+  font-size:11.5px; line-height:1.7; color:var(--ink-2);
+}
+
+/* 纸面给个更高的下限，两栏空着也不至于显小 */
+@media(min-width:768px){
+  .work-sheet{min-height:600px}
+}
+
+/* 两栏之后每栏只有 360 出头，时间挤在右边会把正文压成两行。
+   把「建 / 完」挪到正文下面一行，正文就能吃满整栏宽度。 */
+.wk-col .wk-item{
+  grid-template-columns:20px minmax(0,1fr) 26px;
+  grid-template-rows:auto auto;
+  row-gap:3px; align-items:start;
+}
+
+.wk-col .wk-check{grid-column:1; grid-row:1 / span 2; align-self:center}
+.wk-col .wk-text{grid-column:2; grid-row:1}
+.wk-col .wk-meta{
+  grid-column:2; grid-row:2;
+  flex-direction:row; align-items:center; gap:10px;
+}
+.wk-col .wk-del{grid-column:3; grid-row:1 / span 2; align-self:center}
+
+/* 两栏之后每栏只有 360 出头，时间挤在右边会把正文压成两行。
+   把「建 / 完」挪到正文下面一行，正文就能吃满整栏宽度。 */
+.wk-col .wk-item{
+  grid-template-columns:20px minmax(0,1fr) 26px;
+  grid-template-rows:auto auto;
+  row-gap:3px; align-items:start;
+}
+
+.wk-col .wk-check{grid-column:1; grid-row:1 / span 2; align-self:center}
+.wk-col .wk-text{grid-column:2; grid-row:1}
+.wk-col .wk-meta{
+  grid-column:2; grid-row:2;
+  flex-direction:row; align-items:center; gap:10px;
+}
+.wk-col .wk-del{grid-column:3; grid-row:1 / span 2; align-self:center}
+
+/* 计数贴着标题走：两栏之间没有竖线，数字甩到栏尾会读成隔壁的 */
+.wk-col-head{justify-content:flex-start; gap:10px}
+.wk-col-head b{margin-left:0}
+
+/* 计数贴着标题走：两栏之间没有竖线，数字甩到栏尾会读成隔壁的 */
+.wk-col-head{justify-content:flex-start; gap:10px}
+.wk-col-head b{margin-left:0}
+
+/* 手机上标题别放大到 42：一行放不下会显得笨 */
+@media(max-width:767px){
+  .work-sheet .uses-head h1{font-size:31px; letter-spacing:-.02em}
+  .work-sheet .uses-head > .uses-lede{font-size:12.5px}
+  .wk-cols{gap:30px; margin-top:24px}
+}
+
+/* 手机上标题别放大到 42：一行放不下会显得笨 */
+@media(max-width:767px){
+  .work-sheet .uses-head h1{font-size:31px; letter-spacing:-.02em}
+  .work-sheet .uses-head > .uses-lede{font-size:12.5px}
+  .wk-cols{gap:30px; margin-top:24px}
+}

@@ -43,7 +43,8 @@ function stampLabel(iso, base) {
   const day = localDay(iso);
   if (!day) return '—';
   const time = hhmm(iso);
-  if (day === (base || todayKey())) return time;
+  const sameDay = base === undefined ? day === todayKey() : day === base;
+  if (sameDay) return time;
   const month = Number(day.slice(5, 7));
   const date = Number(day.slice(8, 10));
   return `${month}/${date} ${time}`;
@@ -110,13 +111,13 @@ export default function WorkPage() {
   const role = useRole();
   const [items, setItems] = useState(loadAll);
   const [draft, setDraft] = useState('');
-  const [tab, setTab] = useState('open');   // open | done
-  // 整页看的是"某一天"：pickMonth 只是月历翻到哪个月，day 才是当前这一天
+  // day 为空 = 全部（进页面默认看全部）；选了某天就只看那天。
+  // pickMonth 只是月历翻到哪个月。
   const [pickMonth, setPickMonth] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  const [day, setDay] = useState(() => todayKey());
+  const [day, setDay] = useState('');
   const [pass, setPass] = useState(() => { try { return window.localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } });
   const [localOnly, setLocalOnly] = useState(() => { try { return window.localStorage.getItem(LOCAL_ONLY_KEY) === '1'; } catch { return false; } });
   const [draftPass, setDraftPass] = useState('');
@@ -196,16 +197,17 @@ export default function WorkPage() {
     [alive],
   );
 
-  // 两个标签都只服务"这一天"：待办 = 这天记下的、还没勾的；已完成 = 这天勾掉的
+  // day 为空时两栏都放全部：左栏所有没勾的，右栏所有勾掉的
   const dayOpen = useMemo(
-    () => alive.filter(item => !item.done && localDay(item.at) === day)
+    () => alive.filter(item => !item.done && (!day || localDay(item.at) === day))
       .sort((a, b) => (b.at || '').localeCompare(a.at || '')),
     [alive, day],
   );
+
   // 已完成只算「那天记下的、已经勾掉的」。一条待办只属于它被记下的那天，
   // 24 号勾掉 23 号写的，它仍然在 23 号，不重复出现在 24 号。
   const dayDone = useMemo(
-    () => alive.filter(item => item.done && localDay(item.at) === day)
+    () => alive.filter(item => item.done && (!day || localDay(item.at) === day))
       .sort((a, b) => (b.doneAt || '').localeCompare(a.doneAt || '')),
     [alive, day],
   );
@@ -213,7 +215,7 @@ export default function WorkPage() {
   // 更早还挂着没勾的。这一页只看当天，但漏在旧日子里的不能让它们悄悄消失，
   // 所以只在「待办」下面留一行指路，不把旧条目摊进来。
   const olderOpen = useMemo(
-    () => open.filter(item => { const k = localDay(item.at); return k && k < day; }),
+    () => open.filter(item => { const k = localDay(item.at); return day && k && k < day; }),
     [open, day],
   );
   const oldestOpenDay = olderOpen.length ? localDay(olderOpen[olderOpen.length - 1].at) : '';
@@ -238,13 +240,6 @@ export default function WorkPage() {
     });
     return map;
   }, [alive]);
-
-  // 今天空着、但别的日子有记录时，给一条"最近一次记录在哪"的指路：
-  // 一天一页容易让人以为数据没了，其实只是今天没写。
-  const lastRecordedDay = useMemo(() => {
-    const keys = [...createdByDay.keys()].filter(k => k !== day).sort((a, b) => b.localeCompare(a));
-    return keys[0] || '';
-  }, [createdByDay, day]);
 
   // 窄屏那个日期下拉的选项：今天 + 所有记过东西的日子，从新到旧
   const dayOptions = useMemo(() => {
@@ -388,11 +383,6 @@ export default function WorkPage() {
     </ul>
   );
 
-  const TABS = [
-    { id: 'open', label: '待办', count: dayOpen.length },
-    { id: 'done', label: '已完成', count: dayDone.length },
-  ];
-
   const syncLabel = localOnly ? '只在这台设备'
     : sync === 'pulling' ? '正在取云端…'
       : sync === 'pushing' ? '正在存入云端…'
@@ -460,14 +450,22 @@ export default function WorkPage() {
               </div>
 
               <div className="wk-side-foot">
-                <button
-                  type="button"
-                  className={`wk-side-all${day === today ? ' is-on' : ''}`}
-                  onClick={goToday}
-                  disabled={day === today}
-                >
-                  今天
-                </button>
+                <span className="wk-side-picks">
+                  <button
+                    type="button"
+                    className={`wk-side-all${!day ? ' is-on' : ''}`}
+                    onClick={() => setDay('')}
+                  >
+                    全部
+                  </button>
+                  <button
+                    type="button"
+                    className={`wk-side-all${day === today ? ' is-on' : ''}`}
+                    onClick={goToday}
+                  >
+                    今天
+                  </button>
+                </span>
                 <span>本月 {cal.count} 天</span>
               </div>
             </nav>
@@ -489,13 +487,19 @@ export default function WorkPage() {
                   {role === 'guest' ? '访客' : locked ? '还没开锁' : open.length ? `共 ${open.length} 件没做完` : '手上没有待办'}
                 </span>
               </div>
-              <h1>{role === 'guest' ? '这一页是私人的' : day === today ? '今天做点什么' : '那天做了什么'}</h1>
+              <h1>
+                {role === 'guest' ? '这一页是私人的'
+                  : day ? (day === today ? '今天做点什么' : '那天做了什么')
+                    : '记下的都在这儿'}
+              </h1>
               <p className="uses-lede">
                 {role === 'guest'
                   ? '这一页只对站主开放。访客看到的是一个空房间 —— 不过你可以回去重新认一下身份。'
                   : locked
                     ? '先给这份清单上一把锁。开锁之后待办会存到云端，换一台设备输入同一句就能接着用。'
-                    : '一天一页：左边点哪天，就看那天记下的和勾掉的。写一条、回车，它会落在今天。'}
+                    : day
+                      ? '一天一页：左边点哪天，就看那天记下的和勾掉的。'
+                      : '左边点哪天就只看哪天；不选，就是全部。写一条、回车，它会落在今天。'}
               </p>
             </header>
 
@@ -543,14 +547,14 @@ export default function WorkPage() {
           </form>
         ) : (
           <>
-            {/* 只有今天能写。翻到别的日子是翻旧账，别把新条目塞进过去的页里 */}
-            {day === today ? (
+            {/* 全部模式下随时能写；翻到过去某天时只让看 */}
+            {!day || day === today ? (
               <form className="wk-add" onSubmit={add}>
                 <input
                   ref={inputRef}
                   value={draft}
                   onChange={event => setDraft(event.target.value)}
-                  placeholder="写一件事，回车加到今天"
+                  placeholder="写一件事，回车记到今天"
                   aria-label="新的待办"
                   maxLength={160}
                   autoComplete="off"
@@ -564,14 +568,15 @@ export default function WorkPage() {
               </div>
             )}
 
-            {/* 窄屏没有左栏月历：这一行下拉就是换日子的地方 */}
+            {/* 窄屏没有月历：这一行下拉换日子，第一项就是「全部」 */}
             <label className="wk-date-pick">
-              <span>日期</span>
+              <span>看哪天</span>
               <select
                 value={day}
-                onChange={event => selectDay(event.target.value)}
+                onChange={event => (event.target.value ? selectDay(event.target.value) : setDay(''))}
                 aria-label="选择日期"
               >
+                <option value="">全部</option>
                 {dayOptions.map(key => (
                   <option key={key} value={key}>{dayLabel(key)}</option>
                 ))}
@@ -579,63 +584,42 @@ export default function WorkPage() {
               <i aria-hidden="true">▾</i>
             </label>
 
-            <nav className="wk-tabs" role="tablist" aria-label="当天的待办">
-              {TABS.map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  id={`wk-tab-${item.id}`}
-                  aria-selected={tab === item.id}
-                  aria-controls="wk-panel"
-                  className={`wk-tab${tab === item.id ? ' is-active' : ''}`}
-                  onClick={() => setTab(item.id)}
-                >
-                  <span>{item.label}</span>
-                  <b>{item.count}</b>
-                </button>
-              ))}
-              <span className="wk-tabs-day">{dayLabel(day)}</span>
-            </nav>
+            {(sync === 'offline' || sync === 'error') && (
+              <p className="wk-offline">云端这次没连上，先显示本机这份；网络通了会自动再取一次。</p>
+            )}
 
-            <div className="wk-panel" id="wk-panel" role="tabpanel" aria-labelledby={`wk-tab-${tab}`}>
-              {tab === 'open' && (
-                <>
-                  {dayOpen.length
-                    ? rows(dayOpen, false)
-                    : <p className="wk-empty">
-                        {(sync === 'offline' || sync === 'error') && !items.length
-                          ? '云端这次没连上，本机也是空的。数据还在云端，网络通了会自动再取一次 —— 不用急着重新记。'
-                          : day === today
-                            ? '今天还没有待办。上面写好回车，就加到今天。'
-                            : '这天没有留下待办。'}
-                      </p>}
+            {/* 两栏并排：左边还没勾的，右边勾掉的；不选日期就是全部 */}
+            <div className="wk-cols">
+              <section className="wk-col">
+                <div className="wk-col-head"><span>待办</span><b>{dayOpen.length}</b></div>
+                {dayOpen.length
+                  ? rows(dayOpen, false)
+                  : <p className="wk-empty">
+                      {!day
+                        ? '手上没有待办。上面写好回车，就记上一条。'
+                        : day === today
+                          ? '今天还没有待办。上面写好回车，就加到今天。'
+                          : '这天没有留下待办。'}
+                    </p>}
+                {day && olderOpen.length > 0 && (
+                  <button type="button" className="wk-older" onClick={() => selectDay(oldestOpenDay)}>
+                    更早还有 {olderOpen.length} 件没勾 · 最早在 {dayLabel(oldestOpenDay)}
+                  </button>
+                )}
+              </section>
 
-                  {day === today && !dayOpen.length && olderOpen.length === 0 && lastRecordedDay && (
-                    <button type="button" className="wk-older" onClick={() => selectDay(lastRecordedDay)}>
-                      最近的记录在 {dayLabel(lastRecordedDay)}，去看看
-                    </button>
-                  )}
-
-                  {olderOpen.length > 0 && (
-                    <button
-                      type="button"
-                      className="wk-older"
-                      onClick={() => selectDay(oldestOpenDay)}
-                    >
-                      更早还有 {olderOpen.length} 件没勾 · 最早在 {dayLabel(oldestOpenDay)}
-                    </button>
-                  )}
-                </>
-              )}
-
-              {tab === 'done' && (dayDone.length
-                ? rows(dayDone, true)
-                : <p className="wk-empty">
-                    {day === today
-                      ? '今天还没勾掉任何一条。'
-                      : `这天没有勾掉任何一条。${createdByDay.get(day) ? `记下过 ${createdByDay.get(day)} 件，还没勾。` : ''}`}
-                  </p>)}
+              <section className="wk-col">
+                <div className="wk-col-head"><span>已完成</span><b>{dayDone.length}</b></div>
+                {dayDone.length
+                  ? rows(dayDone, true)
+                  : <p className="wk-empty">
+                      {!day
+                        ? '还没有勾掉的事。勾一条，它就会落到这里。'
+                        : day === today
+                          ? '今天还没勾掉任何一条。'
+                          : '这天没有勾掉任何一条。'}
+                    </p>}
+              </section>
             </div>
 
             <footer className="uses-foot">
